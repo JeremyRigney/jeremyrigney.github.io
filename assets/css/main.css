@@ -3397,10 +3397,10 @@ input, select, textarea {
             display: none;
             flex-direction: column;
             cursor: pointer;
-            padding: 10px;
-            background: #fff;
+            padding: 8px;
+            background: rgba(255,255,255,0.8);
             color: white;
-            width: 60px;
+            width: 50px;
             position: fixed;
             top: 5px;
             right: 5px;
@@ -3411,8 +3411,8 @@ input, select, textarea {
         .bar {
             background-color: #333;
             height: 5px;
-            width: 35px;
-            margin: 4px 0;
+            width: 30px;
+            margin: 2px 0;
             border-radius:3px;
         }
 
