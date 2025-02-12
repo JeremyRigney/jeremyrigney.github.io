@@ -17,7 +17,16 @@
 		<meta name="author" content="Jeremy Rigney">
 		<meta name="description" content="I hold a PhD in astrophysics from Queen's University Belfast. My research focused on observing the Sun and other stars using some of the largest and most advanced telescopes in the world to better understand stellar dynamics. Throughout my PhD I have presented my research at international conferences, and published peer reviewed research, collaborating with colleagues across the globe."/>
 		<meta name="keywords" content="Jeremy Rigney, Jeremy, astronomy ireland, irish astronomy, jeremy astronomy, jeremy science communication, science communication ireland, Jeremy Rigney astronomy, Dublin Institute for Advanced Studies, AOP, Armagh Observatory, Queen's University Belfast, Lindsay Scholar">
-
+		<script>
+        	function toggleMenu() {
+        	    var menu = document.getElementById("menu");
+        	    if (menu.style.display === "flex") {
+        	        menu.style.display = "none";
+        	    } else {
+        	        menu.style.display = "flex";
+        	    }
+        	}
+    	</script>
 	</head>
 	<body class="is-preload">
 
@@ -31,7 +40,7 @@
 						<p>Astrophysicist<br/>
 						   Science Communicator<br/>
 						   <ul class="icons">
-								<li><a href="https://x.com/jeremyrigney" target="_blank" class="icon brands fa-twitter"><span class="label">Twitter</span></a></li>
+								<li><a href="https://x.com/jeremyrigney" target="_blank" class="icon brands fa-x-twitter"><span class="label">Twitter</span></a></li>
 								<li><a href="https://www.instagram.com/jeremy.rigney/" target="_blank" class="icon brands fa-instagram"><span class="label">Instagram</span></a></li>
 								<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" class="icon brands fa-linkedin"><span class="label">LinkedIn</span></a></li>
 								<li><a href="https://github.com/jeremyrigney" target="_blank" class="icon brands fa-github"><span class="label">GitHub</span></a></li>
@@ -39,6 +48,20 @@
 							</ul>
 						</p>
 					</header>
+
+				<div class="hamburger" onclick="toggleMenu()">
+   				    <div class="bar"></div>
+   				    <div class="bar"></div>
+   				    <div class="bar"></div>
+   				</div>
+   				<div class="menu" id="menu">
+    			    <a href="#intro" class="active">About</a>
+					<a href="#first">Education</a>
+					<a href="#second">Experience</a>
+					<a href="#third">Public Speaking</a>
+					<a href="#cta">Contact</a>
+    			</div>
+
 
 				<!-- Nav -->
 					<nav id="nav">
@@ -50,6 +73,7 @@
 							<li><a href="#cta">Contact</a></li>
 						</ul>
 					</nav>
+
 
 				<!-- Main -->
 					<div id="main">
@@ -199,7 +223,7 @@
 								<dd><a href="#">jeremy.rigney [at] gmail [dot] com</a></dd>
 							</dl>
 							<ul class="icons">
-								<li><a href="https://x.com/jeremyrigney" target='_blank' class="icon brands fa-twitter alt"><span class="label">Twitter</span></a></li>
+								<li><a href="https://x.com/jeremyrigney" target='_blank' class="icon brands fa-x-twitter alt"><span class="label">Twitter</span></a></li>
 								<li><a href="https://www.instagram.com/jeremy.rigney/" target='_blank' class="icon brands fa-instagram alt"><span class="label">Instagram</span></a></li>
 								<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" class="icon brands fa-linkedin alt"><span class="label">LinkedIn</span></a></li>
 								<li><a href="https://github.com/jeremyrigney" target='_blank' class="icon brands fa-github alt"><span class="label">GitHub</span></a></li>

@@ -16,12 +16,37 @@
 		<meta name="author" content="Jeremy Rigney">
 		<meta name="description" content="I hold a PhD in astrophysics from Queen's University Belfast. My research focused on observing the Sun and other stars using some of the largest and most advanced telescopes in the world to better understand stellar dynamics. Throughout my PhD I have presented my research at international conferences, and published peer reviewed research, collaborating with colleagues across the globe."/>
 		<meta name="keywords" content="Jeremy Rigney, Jeremy, astronomy ireland, irish astronomy, jeremy astronomy, jeremy irish astronomy, jeremy science communication, science communication ireland, Jeremy Rigney astro, Dublin Institute for Advanced Studies, AOP, Armagh Observatory, Queen's University Belfast, Lindsay Scholar, jeremy queens, jeremy dias, jeremy armagh"/>
-
+		<script>
+        	function toggleMenu() {
+        	    var menu = document.getElementById("menu");
+        	    if (menu.style.display === "flex") {
+        	        menu.style.display = "none";
+        	    } else {
+        	        menu.style.display = "flex";
+        	    }
+        	}
+    	</script>
 	</head>
 	<body class="is-preload">
 
 		<!-- Wrapper -->
 			<div id="wrapper">
+
+
+				<div class="hamburger" onclick="toggleMenu()">
+   				    <div class="bar"></div>
+   				    <div class="bar"></div>
+   				    <div class="bar"></div>
+   				</div>
+   				<div class="menu" id="menu">
+					<a href="https://jeremy.ie" class="active">Home</a>
+					<a href="#first">Education</a>
+					<a href="#second">Experience</a>
+					<a href="#third">Technical Skills</a>
+					<a href="#fourth">Awards</a>
+					<a href="#fourth">Publications</a>
+					<a href="#cta">Contact</a>
+    			</div>
 
 				<!-- Nav -->
 					<nav id="nav">
@@ -184,7 +209,7 @@
 								<dd><a href="#">jeremy.rigney [at] gmail [dot] com</a></dd>
 							</dl>
 							<ul class="icons">
-								<li><a href="https://x.com/jeremyrigney" target='_blank' class="icon brands fa-twitter alt"><span class="label">Twitter</span></a></li>
+								<li><a href="https://x.com/jeremyrigney" target='_blank' class="icon brands fa-x-twitter alt"><span class="label">Twitter</span></a></li>
 								<li><a href="https://www.instagram.com/jeremy.rigney/" target='_blank' class="icon brands fa-instagram alt"><span class="label">Instagram</span></a></li>
 								<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" class="icon brands fa-linkedin alt"><span class="label">LinkedIn</span></a></li>
 								<li><a href="https://github.com/jeremyrigney" target='_blank' class="icon brands fa-github alt"><span class="label">GitHub</span></a></li>
