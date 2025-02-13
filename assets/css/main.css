@@ -3119,10 +3119,10 @@ input, select, textarea {
 			}
 
 			#header.alt > * {
-				-moz-transition: opacity 3s ease;
-				-webkit-transition: opacity 3s ease;
-				-ms-transition: opacity 3s ease;
-				transition: opacity 3s ease;
+				-moz-transition: opacity 0.8s ease;
+				-webkit-transition: opacity 0.8s ease;
+				-ms-transition: opacity 0.8s ease;
+				transition: opacity 0.8s ease;
 				-moz-transition-delay: 0.5s;
 				-webkit-transition-delay: 0.5s;
 				-ms-transition-delay: 0.5s;
@@ -3348,6 +3348,17 @@ input, select, textarea {
 					font-size: 0.9em;
 				}
 
+
+@media (min-width: 737px) {
+#mob_only{
+				display:none;
+			}
+}
+
+
+
+
+
 		@media screen and (max-width: 736px) {
 
 			#nav {
@@ -3364,6 +3375,9 @@ input, select, textarea {
 				#nav + #main {
 					padding-top: 0;
 				}
+			#mob_only{
+				display:inline;
+			}
 		}
 
 
