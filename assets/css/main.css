@@ -159,7 +159,7 @@ input, select, textarea {
 		@media screen and (max-width: 360px) {
 
 			body, input, select, textarea {
-				font-size: 11pt;
+				font-size: 14pt;
 			}
 
 		}
@@ -3393,14 +3393,18 @@ input, select, textarea {
             width: 80%;
             z-index: 1000;
             transition:0.2s linear;
+            border-radius:15px;
         }
 
         .menu a {
             color: white;
             padding: 15px;
+            font-weight:bold;
+            font-size:18px;
             text-decoration: none;
             text-align: center;
             display: block;
+
         }
 
         .menu a:hover {
