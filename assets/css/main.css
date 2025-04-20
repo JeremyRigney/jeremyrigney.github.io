@@ -3894,3 +3894,55 @@ input, select, textarea {
 			}
 
 		}
+
+
+/* Blog Articles */
+
+.blog_article{
+width:80%;
+margin:0px auto;
+color:#000;
+}
+
+
+.blog_article h2{
+	text-align:center;
+	margin-bottom:10px;
+
+}
+
+.blog_article .image.main{
+	max-height:300px;
+	overflow:hidden;
+	display: block;
+	width: auto;
+  	height: auto;
+  	margin-bottom:0px;
+
+}
+
+.blog_article p{
+	width:85%;
+	margin: 0px auto; 
+	margin-bottom:10px; 
+	font-family: "Cormorant", serif;
+	font-weight:400;
+	font-size:20px;
+}
+
+@media screen and (max-width: 736px) {
+
+	.blog_article{
+		width:95%;
+	}
+
+}
+
+
+
+
+
+
+
+
+
