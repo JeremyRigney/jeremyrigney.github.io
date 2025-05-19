@@ -143,5 +143,272 @@
 			<script src="assets/js/util.js"></script>
 			<script src="assets/js/main.js"></script>
 
+
+
+
+
+        <!-- Bootstrap core JS-->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- SimpleLightbox plugin JS-->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/SimpleLightbox/2.1.0/simpleLightbox.min.js"></script>
+        <!-- Core theme JS-->
+        <script src="js/scripts.js"></script>
+
+        <script src="https://cdn.startbootstrap.com/sb-forms-latest.js"></script>
+    
+
+        <script src="https://code.jquery.com/jquery-1.6.4.js"></script>
+        <script type='text/javascript'>
+            //var goesdata;
+             var goesDataShort;
+             var goesDataLong;
+            $.getJSON('https://services.swpc.noaa.gov/json/goes/primary/xrays-3-day.json', function(data) {
+
+                const energy = data.map(i => `${i.energy}`);
+                const obs_flux = data.map(i => `${i.observed_flux}`);
+                
+                const times = data.map(i => `${i.time_tag}`);
+
+                
+                var short = [];
+                var long = [];
+
+                var shortData = [];
+                var longData = [];
+
+                let idx = energy.indexOf('0.05-0.4nm');
+                while (idx != -1) {
+                  short.push(obs_flux[idx])
+                  idx = energy.indexOf('0.05-0.4nm', idx + 1);
+                  
+                };
+
+                for (const x1 of short.keys()){
+                    var temp = {x:new Date(Date.parse(times[x1])), y:parseFloat(short[x1])};
+                    shortData.push(temp);
+                };
+
+
+                let idx2 = energy.indexOf('0.1-0.8nm');
+                while (idx2 != -1) {
+                  long.push(obs_flux[idx2])
+                  idx2 = energy.indexOf('0.1-0.8nm', idx2 + 1);
+                };
+
+                for (const x2 of long.keys()){
+                    var temp = {x:new Date(Date.parse(times[x2])), y:parseFloat(long[x2])};
+                    longData.push(temp);
+                };
+
+            
+
+            //console.log(goesDataLong);
+            //window.onload = function () {
+
+                var chart = new CanvasJS.Chart("chartContainer", {
+                    zoomEnabled: true,
+                    zoomType: "xy",
+                    exportEnabled: true,
+                    title: {
+                        text: "GOES 3-Day X-Ray Data",
+                        fontWeight:"normal",
+                        fontSize:"16"
+                    },
+                    axisX: {
+                        valueFormatString: "HH:MM DD/MM",
+                        title: "TIme and Date"
+                    },
+                    axisY: {
+                        logarithmic: true,
+                        title: "Energy",
+                        prefix: "",
+                        suffix: "",
+                        maximum: 0.0005,
+                        minimum: 0.00000001,
+                        labelFormatter: function ( e ) {
+                            var ret;
+                            switch(e.value){
+                                case 0.00000001:
+                                    ret = "A";
+                                    break;
+                                case 0.0000001:
+                                    ret = "B";
+                                    break;
+                                case 0.000001:
+                                    ret = "C";
+                                    break;
+                                case 0.00001:
+                                    ret = "M";
+                                    break;
+                                case 0.0001:
+                                    ret = "X";
+                                    break;
+        
+                            }
+                        return ret;
+                        }
+                    },
+
+                    toolTip: {
+                        shared: true
+                    },
+
+
+
+                    legend: {
+                        cursor: "pointer",
+                        verticalAlign: "top",
+                        horizontalAlign: "center",
+                        dockInsidePlotArea: true,
+                        itemclick: toogleDataSeries
+                    },
+                    data: [{
+                        type:"line",
+                        //axisYType: "secondary",
+                        name: "GOES 0.05-0.4 nm",
+                        color:'#2C4770',
+                        showInLegend: true,
+                        markerSize: 1,
+                        yValueFormatString: "#.##########",
+                        dataPoints: shortData,
+                        
+                    },
+                    {
+                        type: "line",
+                        //axisYType: "secondary",
+                        name: "GOES 0.1-0.8 nm",
+                        color:'#c34e2e',
+                        showInLegend: true,
+                        markerSize: 1,
+                        yValueFormatString: "#.##########",
+                        dataPoints: longData,
+
+                    },
+                    
+                    ]
+                });
+                chart.render();
+                
+                function toogleDataSeries(e){
+                    if (typeof(e.dataSeries.visible) === "undefined" || e.dataSeries.visible) {
+                        e.dataSeries.visible = false;
+                    } else{
+                        e.dataSeries.visible = true;
+                    }
+                    chart.render();
+                }
+            
+            //console.log(longData);
+            //}
+        });
+
+
+
+        </script>
+
+
+<script type='text/javascript'>
+         
+            $.getJSON('https://api.sunrise-sunset.org/json?lat=53.3871&lng=-6.3375&date=today', function(data) {
+
+                //https://sunrise-sunset.org/api
+                //$(".srise").html(data.results.sunrise);
+                //$(".sset").html(data.results.sunset);
+                $(".snoon").html(data.results.solar_noon);
+                $(".daylen").html(data.results.day_length);
+                $(".asttwibegin").html(data.results.astronomical_twilight_begin);
+                $(".asttwiend").html(data.results.astronomical_twilight_end);
+
+
+                var today = new Date();
+                var dd = String(today.getDate()).padStart(2, '0');
+                var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+                var yyyy = today.getFullYear();
+
+                var today = dd + '/' + mm + '/' + yyyy;
+                $(".todaydate").html(today);
+
+            });
+
+
+            $.getJSON('https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/Dublin?unitGroup=metric&include=current&key=WUTWMSAENKK9ZK69JSY48FJSQ&contentType=json', function(data) {
+                $(".srise").html(data.currentConditions.sunrise);
+                $(".sset").html(data.currentConditions.sunset);
+                $(".mphse").html(data.currentConditions.moonphase);
+                console.log(data);
+            });
+
+
+            var x = new XMLHttpRequest();
+            x.open("GET", "https://export.arxiv.org/api/query?search_query=all:star+AND+all:flare+AND+all:m+dwarf&start=0&max_results=3&sortBy=lastUpdatedDate&sortOrder=descending", true);
+            x.onreadystatechange = function () {
+                if (x.readyState == 4 && x.status == 200){
+                    var doc = x.responseXML;
+                    console.log(doc)
+
+                    $(".firsttitle").html(doc.getElementsByTagName("title")[1].textContent);
+                    $(".secondtitle").html(doc.getElementsByTagName("title")[2].textContent);
+                    $(".thirdtitle").html(doc.getElementsByTagName("title")[3].textContent);
+
+
+                    var trimmedabs1 = doc.getElementsByTagName("summary")[0].textContent.substr(0, 270);
+                    //re-trim if we are in the middle of a word
+                    trimmedabs1 = trimmedabs1.substr(0, Math.min(trimmedabs1.length, trimmedabs1.lastIndexOf(" ")))
+                    $(".firstabstract").html(trimmedabs1);
+                    
+
+                    var trimmedabs2 = doc.getElementsByTagName("summary")[1].textContent.substr(0, 270);
+                    //re-trim if we are in the middle of a word
+                    trimmedabs2 = trimmedabs2.substr(0, Math.min(trimmedabs2.length, trimmedabs2.lastIndexOf(" ")))
+                    $(".secondabstract").html(trimmedabs2);
+                    
+
+                    var trimmedabs3 = doc.getElementsByTagName("summary")[2].textContent.substr(0, 270);
+                    //re-trim if we are in the middle of a word
+                    trimmedabs3 = trimmedabs3.substr(0, Math.min(trimmedabs3.length, trimmedabs3.lastIndexOf(" ")))
+                    $(".thirdabstract").html(trimmedabs3);
+
+                    var link1 = '<a href=\''+doc.getElementsByTagName("id")[1].textContent+'\' target=\'_blank\' style=\' text-decoration: none; color: #fff; \'>Read on arXiv</a>'
+                     $(".link1").html(link1);
+                    var link2 = '<a href=\''+doc.getElementsByTagName("id")[2].textContent+'\' target=\'_blank\' style=\' text-decoration: none; color: #fff; \'>Read on arXiv</a>'
+                     $(".link2").html(link2)
+                    var link3 = '<a href=\''+doc.getElementsByTagName("id")[3].textContent+'\' target=\'_blank\' style=\' text-decoration: none; color: #fff; \'>Read on arXiv</a>'
+                     $(".link3").html(link3);
+
+                    var fruitName = doc.evaluate("/feed/entry[0]/author[1]", doc, null, XPathResult.ANY_TYPE, null);
+
+                    a = doc.documentElement.childNodes;
+                    var authorp1 = doc.getElementsByTagName("entry")[0].childNodes[11].textContent;
+                    $(".authorp1").html(authorp1);
+                    var authorp2 = doc.getElementsByTagName("entry")[1].childNodes[11].textContent;
+                    $(".authorp2").html(authorp2);
+                    var authorp3 = doc.getElementsByTagName("entry")[2].childNodes[11].textContent;
+                    $(".authorp3").html(authorp3);
+
+                    
+
+                }
+            };
+            x.send(null);
+
+
+
+
+</script>
+
+<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+
+
+<script>
+function myFunction() {
+   var element = document.body;
+   element.classList.toggle("dark-mode");
+}
+</script>
+
+
+
+
+
 	</body>
 </html>
