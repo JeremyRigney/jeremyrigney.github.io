@@ -26,6 +26,7 @@
 
 		<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
  		<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+ 		<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
 
 
 		<script type='text/javascript'>
@@ -72,18 +73,38 @@
 							
 				<section id="first" class="main">
 		            
-		        <div class="content" style='max-width: 970px;'>
-		            <h2 class="text-center mt-0">Dashboard</h2>
-		            
+		        <div class="content" style='max-width: 970px; margin:0px auto;'>
+		            <h2 class="text-center mt-0">Data Dashboard</h2>
 
-		        <span style=''>Recent arXiv articles related to radio+flare+stars:</span>
-		            <div class="row gtr-uniform">
+		            <p>A collection of widgets I have created and collated, added to semi-regularly. The Irish Rail, arXiv summaries, GOES Plot, Solar Info and solar images are all live widgets I developed from scratch, pulling from publicly available data. The weather and lunar phase widgets are lightly modified from free, pre-existing widgets.
+
+
+		            <ul>
+					  <li>Irish Rail Live Train Information. JavaScript pulls from an API I built running via a flask app. The flask app is hosted on Google Cloud hub. Data updated in realtime (~1 minute).</li>
+					  <li>The arXiv summaries pull from the arXiv API, filtered to only search and return papers related to solar and stellar flares (ideally with radio data). This provided an at-a-glance summary of daily papers related to my PhD thesis work.</li>
+					  <li>The weather and lunar phase widgets are pre-built, the only modifications are style and locations.</li>
+					  <li>The GOES live plot pulls data from the GOES satellite live JSON files. The data are live X-ray flux of the full solar disk. Bright peaks correspond to solar flares, classified from A-X, with X being the most powerful (y-axis). THe plot is a 3-day summary, and is near-realtime. It utilises canvasJS to plot the data.</li>
+					  <li>The Solar Info again uses JS to pull from a live JSON file, location dependent. The solar images adjacent are near-realtime (-15 mins) NASA SDO AIA images.</li>
+					</ul>
+		            </p>
+
+		          <div class="row gtr-uniform">
+		          <div class="col-12">
+		          <h3>Live Irish Rail Train Positions (Interactive)</h3>
+				  <div id="trainmap" style=" height: 600px; width: 70%; border-radius:10px; margin:0px auto;"></div>
+				  
+				  </div>
+				  </div>
+		            
+				</br>
+		        <span style=''>Recent arXiv articles related to flare stars:</span>
+		            <div class="row gtr-uniform" style='margin-top:20px;'>
 
 		              <div class="col-4">
 		                
-		                <div class="p-3 border rounded card"><!-- style='border-radius: 12px; background: #fff; box-shadow:  -7px 7px 14px #d0d0d0, 7px -7px 14px #f0f0f0;'> -->
+		                <div class="p-3" style=' background: #f5f5f5; border-radius:5px;padding:10px;'><!-- style='border-radius: 12px; background: #fff; box-shadow:  -7px 7px 14px #d0d0d0, 7px -7px 14px #f0f0f0;'> -->
 
-		                    <div height='70px' style='line-height:20px; text-align:center; color:#000; background-color:#fff; padding-top:20px; border-radius:4px;'>
+		                    <div height='70px' style='line-height:20px; text-align:center; color:#000; padding-top:20px; border-radius:4px;'>
 		                    <span class='firsttitle'></span>
 		                    </div>
 
@@ -94,17 +115,19 @@
 
 		                    <!-- <div style='text-align:center;line-height:15px; color:#000; font-size:13px;  margin-top:30px;'><span class='link1'></span></div>-->
 		                    
-		                    <button class="button">Read  on arXiv</button>
+		                    <button class="link1 button">Read  on arXiv</button>
 
 		                </div>
 
 		              </div>
+
+
 		            
 		              <div class="col-4">
 		                
-		                <div class="p-3 border rounded card" ><!--style='background-color:#04284E;'>-->
+		                <div class="p-3" style=' background: #f5f5f5; border-radius:5px; padding:10px;'>
 
-		                    <div height='70px' style='line-height:20px; text-align:center; color:#000; background-color:#fff; padding-top:20px; border-radius:4px;'>
+		                    <div height='70px' style='line-height:20px; text-align:center; color:#000; padding-top:20px; border-radius:4px;'>
 		                    <span class='secondtitle'></span>
 		                    </div>
 
@@ -114,7 +137,7 @@
 		                    </div>
 
 		                    <!-- <div style='text-align:center;line-height:15px; color:#fff; font-size:13px;  margin-top:30px;'><span class='link2'></span></div>-->
-		                    <button class="button">Read  on arXiv</button>
+		                    <button class="link2 button">Read  on arXiv</button>
 
 		                </div>
 		              </div>
@@ -122,9 +145,9 @@
 
 		              <div class="col-4">
 		                
-		                <div class="p-3 border rounded card"><!-- style='background-color:#02364C;'>-->
+		               <div class="p-3" style=' background: #f5f5f5; border-radius:5px; padding:10px;'><!-- style='background-color:#02364C;'>-->
 
-		                    <div height='70px' style='line-height:20px; text-align:center; color:#000; background-color:#fff; padding-top:20px; border-radius:4px;'>
+		                    <div height='70px' style='line-height:20px; text-align:center; color:#000; padding-top:20px; border-radius:4px;'>
 		                    <span class='thirdtitle'></span>
 		                    </div>
 
@@ -134,7 +157,7 @@
 		                    </div>
 
 		                    <!--<div style='text-align:center;line-height:15px; color:#fff; font-size:13px;  margin-top:30px;'><span class='link3'></span></div>-->
-		                    <button class="button">Read  on arXiv</button>
+		                    <button class="link3 button">Read  on arXiv</button>
 		                </div>
 		              </div>
 		            
@@ -146,7 +169,7 @@
 
 
 
-		            <div class="row gtr-uniform">
+		            <div class="row gtr-uniform" style='margin-top:40px; margin-bottom:40px;'>
 		              <div class="col-12">
 		                <div class="p-3 border rounded bg-light">
 
@@ -165,7 +188,7 @@
 		   
 		            </div>
 
-		            <div class="row gtr-uniform">
+		            <div class="row gtr-uniform" style='margin-top:40px;'>
 		              <div class="col-4">
 		                
 		                <div class="p-3 border rounded bg-light">
@@ -186,9 +209,9 @@
 		              </div>
 		            </div>
 		            
-		            <div class="row gtr-uniform">
-		              <div class="col-8">
-		                <div class="p-3 border bg-light">
+		            <div class="row gtr-uniform" style='margin-top:40px;'>
+		              <div class="col-4">
+		                <div class="p-3 border bg-light" style='padding:10px; border:1px solid #000; border-radius:5px;'>
 		                    Solar Information for Dublin Today: <span class='todaydate'></span>. (UTC)</br></br>
 		                    
 		                    <div height='30px' style='line-height:30px;'><img src='images/sunrise (2).png' height='25px' style='margin-right:10px;'/>Sunrise: <span class='srise'></span></div></br>
@@ -203,13 +226,13 @@
 		                    <!--Icons created by Freepik, ThoseIcons, and PixelPerfect from flaticon.com -->
 		                </div>
 		              </div>
-		              <div class="col-4">
-		                <div class="p-3 border bg-light" style="font-weight:bold;text-align:center;padding-top:5px;padding-bottom:5px;">
+		              <div class="col-8">
+		                <div class="p-3 border bg-light" style="font-weight:bold;text-align:center;padding-top:10px;padding-bottom:5px;">
 		                    The Sun Now (SDO AIA)
 		                    </br>
 		                    <a href='https://sdo.gsfc.nasa.gov/data/' target='_blank'><img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_2048_0171.jpg" height=220px width=220px style='border-radius:5px;margin-bottom:10px;'/></a>
 		                    
-		                    <a href='https://sdo.gsfc.nasa.gov/data/' target='_blank'><img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_2048_HMIIC.jpg" height=220px width=220px style='border-radius:5px;'/></a>
+		                    <a href='https://sdo.gsfc.nasa.gov/data/' target='_blank'><img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_2048_HMIIC.jpg" height=220px width=220px style='border-radius:5px;margin-bottom:10px;'/></a>
 
 		                </div>
 		              </div>
@@ -217,13 +240,7 @@
 		            </div>
 
 
-		          <div class="row gtr-uniform">
-		          <div class="col-12">
-		          <h2>Live Irish Rail Train Positions</h2>
-				  <div id="trainmap" style=" height: 600px; width: 100%;"></div>
-				  
-				  </div>
-				  </div>
+		         
 
 
 		        </div>
@@ -282,14 +299,6 @@
 
 
 
-        <!-- Bootstrap core JS-->
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-        <!-- SimpleLightbox plugin JS-->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/SimpleLightbox/2.1.0/simpleLightbox.min.js"></script>
-        <!-- Core theme JS-->
-        <script src="js/scripts.js"></script>
-
-       <!-- <script src="https://cdn.startbootstrap.com/sb-forms-latest.js"></script>-->
     
 
         <script src="https://code.jquery.com/jquery-1.6.4.js"></script>
@@ -470,7 +479,7 @@
                 $(".srise").html(data.currentConditions.sunrise);
                 $(".sset").html(data.currentConditions.sunset);
                 $(".mphse").html(data.currentConditions.moonphase);
-                console.log(data);
+                //console.log(data);
             });
 
 
@@ -479,7 +488,7 @@
             x.onreadystatechange = function () {
                 if (x.readyState == 4 && x.status == 200){
                     var doc = x.responseXML;
-                    console.log(doc)
+                    //console.log(doc)
 
                     $(".firsttitle").html(doc.getElementsByTagName("title")[1].textContent);
                     $(".secondtitle").html(doc.getElementsByTagName("title")[2].textContent);
@@ -503,11 +512,11 @@
                     trimmedabs3 = trimmedabs3.substr(0, Math.min(trimmedabs3.length, trimmedabs3.lastIndexOf(" ")))
                     $(".thirdabstract").html(trimmedabs3);
 
-                    var link1 = '<a href=\''+doc.getElementsByTagName("id")[1].textContent+'\' target=\'_blank\' style=\' text-decoration: none; color: #fff; \'>Read on arXiv</a>'
+                    var link1 = '<a href=\''+doc.getElementsByTagName("id")[1].textContent+'\' target=\'_blank\' style=\' text-decoration: none; color: #000; \'>Read on arXiv</a>'
                      $(".link1").html(link1);
-                    var link2 = '<a href=\''+doc.getElementsByTagName("id")[2].textContent+'\' target=\'_blank\' style=\' text-decoration: none; color: #fff; \'>Read on arXiv</a>'
+                    var link2 = '<a href=\''+doc.getElementsByTagName("id")[2].textContent+'\' target=\'_blank\' style=\' text-decoration: none; color: #000; \'>Read on arXiv</a>'
                      $(".link2").html(link2)
-                    var link3 = '<a href=\''+doc.getElementsByTagName("id")[3].textContent+'\' target=\'_blank\' style=\' text-decoration: none; color: #fff; \'>Read on arXiv</a>'
+                    var link3 = '<a href=\''+doc.getElementsByTagName("id")[3].textContent+'\' target=\'_blank\' style=\' text-decoration: none; color: #000; \'>Read on arXiv</a>'
                      $(".link3").html(link3);
 
                     var fruitName = doc.evaluate("/feed/entry[0]/author[1]", doc, null, XPathResult.ANY_TYPE, null);
@@ -531,7 +540,6 @@
 
 </script>
 
-<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
 
 
 
@@ -539,7 +547,14 @@
 
 <script>//http://127.0.0.1:5000/
 
-const map = L.map('trainmap').setView([53.35, -6.26], 7);
+const trainIcon = L.icon({
+    iconUrl: 'images/train.png',  // or a full URL if hosted on GitHub Pages
+    iconSize: [32, 18],            // size in pixels
+    iconAnchor: [16, 32],          // point of the icon which corresponds to marker location
+    popupAnchor: [0, -32]          // point from which the popup should open relative to the iconAnchor
+});
+
+const map = L.map('trainmap').setView([53.4495, -7.5030], 7);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap contributors',
@@ -564,10 +579,13 @@ function loadTrains() {
         const lon = parseFloat(train.TrainLongitude);
         const code = train.TrainCode;
         const message = train.PublicMessage;
+        const messageparsed = message.replace(/\\n/g, '<br>');
+        
 
-        const marker = L.marker([lat, lon])
+
+        const marker = L.marker([lat, lon], { icon: trainIcon })
           .addTo(map)
-          .bindPopup(`<strong>Train: ${code}</strong><br>${message}`);
+          .bindPopup(`<strong>Train: ${code}</strong><br>${messageparsed}`);
 
         window.trainMarkers.push(marker);
       });
@@ -576,7 +594,7 @@ function loadTrains() {
 }
 // Initial load
 loadTrains();
-console.log('Map object:', trainmap);
+//console.log('Map object:', trainmap);
 
 // Refresh every 60 seconds
 setInterval(loadTrains, 60000);
