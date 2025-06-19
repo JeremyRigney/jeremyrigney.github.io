@@ -89,10 +89,10 @@
 		            </p>
 
 		          <div class="row gtr-uniform">
-		          <div class="col-12">
+		          <div class="col-8 col-12-small">
 		          <h3>Live Irish Rail Train Positions (Interactive)</h3>
 		          New features coming soon...
-				  <div id="trainmap" style=" height: 600px; width: 70%; border-radius:10px; margin:0px auto;"></div>
+				  <div id="trainmap" style=" height: 600px; width: 90%; border-radius:10px; margin:0px auto;"></div>
 				  
 				  </div>
 				  </div>
@@ -101,7 +101,7 @@
 		        <span style=''>Recent arXiv articles related to flare stars:</span>
 		            <div class="row gtr-uniform" style='margin-top:20px;'>
 
-		              <div class="col-4">
+		              <div class="col-4 col-12-small">
 		                
 		                <div class="p-3" style=' background: #f5f5f5; border-radius:5px;padding:10px;'><!-- style='border-radius: 12px; background: #fff; box-shadow:  -7px 7px 14px #d0d0d0, 7px -7px 14px #f0f0f0;'> -->
 
@@ -124,7 +124,7 @@
 
 
 		            
-		              <div class="col-4">
+		              <div class="col-4 col-12-small">
 		                
 		                <div class="p-3" style=' background: #f5f5f5; border-radius:5px; padding:10px;'>
 
@@ -144,7 +144,7 @@
 		              </div>
 
 
-		              <div class="col-4">
+		              <div class="col-4 col-12-small">
 		                
 		               <div class="p-3" style=' background: #f5f5f5; border-radius:5px; padding:10px;'><!-- style='background-color:#02364C;'>-->
 
@@ -171,7 +171,7 @@
 
 
 		            <div class="row gtr-uniform" style='margin-top:40px; margin-bottom:40px;'>
-		              <div class="col-12">
+		              <div class="col-12 col-12-small">
 		                <div class="p-3 border rounded bg-light">
 
 		                <!--<a class="weatherwidget-io" href="https://forecast7.com/en/53d35n6d26/dublin/" data-label_1="DUBLIN" data-label_2="WEATHER" data-theme="original" data-basecolor="#142E54" data-lowcolor="#ffffff" data-raincolor="#ffffff" >DUBLIN WEATHER</a>
@@ -190,7 +190,7 @@
 		            </div>
 
 		            <div class="row gtr-uniform" style='margin-top:40px;'>
-		              <div class="col-4">
+		              <div class="col-4 col-12-small">
 		                
 		                <div class="p-3 border rounded bg-light">
 
@@ -201,7 +201,7 @@
 		                </div>
 		              </div>
 
-		              <div class="col-8">
+		              <div class="col-8 col-12-small">
 
 		                <div class="p-3 border rounded bg-light">
 		                    <div id="chartContainer" style="height: 260px; width: 100%;"></div>
@@ -211,7 +211,7 @@
 		            </div>
 		            
 		            <div class="row gtr-uniform" style='margin-top:40px;'>
-		              <div class="col-4">
+		              <div class="col-4 col-12-small">
 		                <div class="p-3 border bg-light" style='padding:10px; border:1px solid #000; border-radius:5px;'>
 		                    Solar Information for Dublin Today: <span class='todaydate'></span>. (UTC)</br></br>
 		                    
@@ -227,7 +227,7 @@
 		                    <!--Icons created by Freepik, ThoseIcons, and PixelPerfect from flaticon.com -->
 		                </div>
 		              </div>
-		              <div class="col-8">
+		              <div class="col-8 col-12-small">
 		                <div class="p-3 border bg-light" style="font-weight:bold;text-align:center;padding-top:10px;padding-bottom:5px;">
 		                    The Sun Now (SDO AIA)
 		                    </br>
@@ -546,13 +546,20 @@
 
 
 
-<script>//http://127.0.0.1:5000/
+<script>
 
-const trainIcon = L.icon({
-    iconUrl: 'images/train.png',  // or a full URL if hosted on GitHub Pages
-    iconSize: [32, 18],            // size in pixels
-    iconAnchor: [16, 32],          // point of the icon which corresponds to marker location
-    popupAnchor: [0, -32]          // point from which the popup should open relative to the iconAnchor
+const dartIcon = L.icon({
+    iconUrl: 'images/dart.png', 
+    iconSize: [18, 18],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32]
+});
+
+const icIcon = L.icon({
+    iconUrl: 'images/ictrain.png', 
+    iconSize: [18, 18],            
+    iconAnchor: [16, 32],          
+    popupAnchor: [0, -32]          
 });
 
 const map = L.map('trainmap').setView([53.4495, -7.5030], 7);
@@ -583,10 +590,30 @@ function loadTrains() {
         const messageparsed = message.replace(/\\n/g, '<br>');
         
 
+        const destination = train.Direction.toLowerCase() || '';
 
-        const marker = L.marker([lat, lon], { icon: trainIcon })
+        // Decide which icon to use (InterCity or DART)
+        //const isNorthSouth = destination.includes("northbound") || destination.includes("southbound");
+        //const icon = isNorthSouth ? dartIcon : icIcon;
+
+
+        const trainCode = train.TrainCode || '';
+		const isDART = trainCode.startsWith('E');
+		const icon = isDART ? dartIcon : icIcon;
+
+
+		const icMsg = `<strong>Train: ${code}</strong><br>${messageparsed}`
+		const dartMsg = `<strong>DART Service: ${code}</strong><br>${messageparsed}`
+		const trainText = isDART ? dartMsg : icMsg;
+
+        const marker = L.marker([lat, lon], { icon: icon })
           .addTo(map)
-          .bindPopup(`<strong>Train: ${code}</strong><br>${messageparsed}`);
+          .bindPopup(trainText);
+
+
+        //const marker = L.marker([lat, lon], { icon: trainIcon })
+        //  .addTo(map)
+        //  .bindPopup(`<strong>Train: ${code}</strong><br>${messageparsed}`);
 
         window.trainMarkers.push(marker);
       });
@@ -599,6 +626,25 @@ loadTrains();
 
 // Refresh every 60 seconds
 setInterval(loadTrains, 60000);
+
+// Create a custom legend control
+const legend = L.control({ position: "topleft" });
+
+legend.onAdd = function (map) {
+  const div = L.DomUtil.create("div", "info_legend");
+  div.innerHTML = `
+    <h4>Legend</h4>
+    <div style="display: flex; align-items: center; margin-bottom: 4px;">
+      <img src="images/ictrain.png" width="24" style="margin-right: 6px;"> IC/Regional Service
+    </div>
+    <div style="display: flex; align-items: center;">
+      <img src="images/dart.png" width="24" style="margin-right: 6px;"> DART Service
+    </div>
+  `;
+  return div;
+};
+
+legend.addTo(map);
 
 </script>
 
