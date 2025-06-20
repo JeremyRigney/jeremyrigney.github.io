@@ -569,13 +569,39 @@ const icIcon = L.icon({
     popupAnchor: [0, -32]          
 });
 
-const map = L.map('trainmap').setView([53.4495, -7.5030], 7);
+// const map = L.map('trainmap').setView([53.4495, -7.5030], 7);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap contributors',
-}).addTo(map);
+// L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+//   attribution: '© OpenStreetMap contributors',
+// }).addTo(map);
 
+// OpenStreetMap tile layer
+const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '© OpenStreetMap contributors'
+});
 
+// Satellite layer (from Esri)
+const satellite = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Tiles © Esri & contributors'
+  }
+);
+
+// Create the map with the default base layer
+const map = L.map('trainmap', {
+  center: [53.4495, -7.5030],
+  zoom: 7,
+  layers: [osm]  // Start with OSM base
+});
+
+const baseMaps = {
+  "OpenStreetMap": osm,
+  "Satellite": satellite
+};
+
+L.control.layers(baseMaps).addTo(map);
 
 let stationLookup = {}; // Global: full station name => {lat, lon}
 let routeMarkers = [];  // Global array to remove old route markers
@@ -624,6 +650,23 @@ function loadTrains() {
         const message = train.PublicMessage;
         const messageparsed = message.replace(/\\n/g, '<br>');
         
+       
+
+
+		// Reject invalid numbers or missing data
+		  if (isNaN(lat) || isNaN(lon)) {
+		    console.warn(`Skipping train ${code}: invalid coordinates.`);
+		    return;
+		  }
+
+		// Reject coordinates outside the Irish rail network bounding box
+		  if (
+		    lat < 51.3 || lat > 55.5 ||
+		    lon < -10.7 || lon > -5.3
+		  ) {
+		    console.warn(`Skipping train ${code}: out-of-bounds coordinates (${lat}, ${lon})`);
+		    return;
+		  }
 
         const destination = train.Direction.toLowerCase() || '';
 
@@ -663,6 +706,7 @@ function loadTrains() {
           .addTo(map)
           .bindPopup(popupMessage);
 
+         console.log(`Adding train ${code} at (${lat}, ${lon})`);
 
         //const marker = L.marker([lat, lon], { icon: trainIcon })
         //  .addTo(map)
