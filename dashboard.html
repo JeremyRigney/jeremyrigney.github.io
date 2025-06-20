@@ -80,22 +80,29 @@
 
 
 		            <ul>
-					  <li>Irish Rail Live Irish Rail train information. JavaScript pulls real-time data (~1-minute updates) from a custom API that I built with Flask (Python) and hosted on Google Cloud. The API obtains data from the Irish Rail API XML files. More information and upgrades will be added to this widget in time, this is a miniomum working example.</li>
+					  <li>Irish Rail Live Irish Rail train information. JavaScript pulls real-time data (~1-minute updates) from a custom API that I built with Flask (Python) and hosted on Google Cloud. The Flask app obtains data from the Irish Rail API XML files. More information and upgrades will be added to this widget in time, this is a minimum working example.</li>
 					  <li>The arXiv summaries pull from the arXiv API, filtered to only search and return papers related to solar and stellar flares (ideally with radio data). This provided an at-a-glance summary of daily papers related to my PhD thesis work.</li>
 					  <li>The weather and lunar phase widgets are pre-built, the only modifications are style and locations.</li>
-					  <li>The GOES live plot pulls data from the GOES satellite live JSON files. The data are live X-ray flux of the full solar disk. Bright peaks correspond to solar flares, classified from A-X, with X being the most powerful (y-axis). THe plot is a 3-day summary, and is near-realtime. It utilises canvasJS to plot the data.</li>
+					  <li>The GOES live plot pulls data from the GOES satellite live JSON files. The data are live X-ray flux of the full solar disk. Bright peaks correspond to solar flares, classified from A-X, with X being the most powerful (y-axis). The plot is a 3-day summary, and is near-realtime. It utilises canvasJS to plot the data.</li>
 					  <li>The Solar Info again uses JS to pull from a live JSON file, location dependent. The solar images adjacent are near-realtime (-15 mins) NASA SDO AIA images.</li>
 					</ul>
 		            </p>
 
 		          <div class="row gtr-uniform">
 		          <div class="col-8 col-12-small">
-		          <h3>Live Irish Rail Train Positions (Interactive)</h3>
-		          New features coming soon...
-				  <div id="trainmap" style=" height: 600px; width: 90%; border-radius:10px; margin:0px auto;"></div>
-				  
+		          	<h3>Live Irish Rail Train Positions (Interactive)</h3>
+		          	New features coming soon...
+				  	<div id="trainmap" style=" height: 600px; width: 90%; border-radius:10px; margin:0px auto;"></div>
 				  </div>
+				
+				  <div class="col-4 col-12-small">
+				    <div id="route-info" style="padding: 10px; font-size: 14px; max-height: 600px; overflow-y: auto;">
+				    <h4 style='padding-bottom:40px;'>Selected Train Route</h4>
+				    <div id="station-list">Click a train on the map to see its stops.</div>
+				    </div>
 				  </div>
+
+				</div>
 		            
 				</br>
 		        <span style=''>Recent arXiv articles related to flare stars:</span>
@@ -551,14 +558,14 @@
 const dartIcon = L.icon({
     iconUrl: 'images/dart.png', 
     iconSize: [18, 18],
-    iconAnchor: [16, 32],
+    iconAnchor: [16, 16],
     popupAnchor: [0, -32]
 });
 
 const icIcon = L.icon({
     iconUrl: 'images/ictrain.png', 
     iconSize: [18, 18],            
-    iconAnchor: [16, 32],          
+    iconAnchor: [16, 16],          
     popupAnchor: [0, -32]          
 });
 
@@ -568,11 +575,39 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap contributors',
 }).addTo(map);
 
+
+
+let stationLookup = {}; // Global: full station name => {lat, lon}
+let routeMarkers = [];  // Global array to remove old route markers
+
+// Load all stations once on page load
+function loadStations() {
+  //fetch("https://irishrail-api-737590149980.europe-west1.run.app/stations")
+  fetch("http://localhost:5050/stations")
+    .then(res => res.json())
+    .then(stations => {
+      stations.forEach(station => {
+        const name = station.StationDesc;
+        const lat = parseFloat(station.StationLatitude);
+        const lon = parseFloat(station.StationLongitude);
+        stationLookup[name] = { lat, lon };
+      });
+    })
+    .catch(err => console.error("Error loading stations:", err));
+}
+// Call this on load
+loadStations();
+
+function clearRouteMarkers() {
+  routeMarkers.forEach(m => map.removeLayer(m));
+  routeMarkers = [];
+}
+
 // Initialize trainMarkers array once
 window.trainMarkers = [];
 
 function loadTrains() {
-  fetch('https://irishrail-api-737590149980.europe-west1.run.app')
+  fetch('http://localhost:5050/')
     .then(res => res.json())
     .then(trains => {
       // Remove existing markers if any
@@ -601,28 +636,123 @@ function loadTrains() {
 		const isDART = trainCode.startsWith('E');
 		const icon = isDART ? dartIcon : icIcon;
 
+		const scheduledTimeMatch = message.match(/(\d{2}:\d{2})/i);  // Adjust regex as needed
 
-		const icMsg = `<strong>Train: ${code}</strong><br>${messageparsed}`
-		const dartMsg = `<strong>DART Service: ${code}</strong><br>${messageparsed}`
-		const trainText = isDART ? dartMsg : icMsg;
+		  if (scheduledTimeMatch) {
+		    const scheduledTimeStr = scheduledTimeMatch[1]; // e.g., "14:30"
+		    const [h, m] = scheduledTimeStr.split(':');
+		    const now = new Date();
+		    const sched = new Date(now);
+		    sched.setHours(parseInt(h), parseInt(m), 0);
+
+		    const diffMinutes = (sched - now) / 60000;
+
+		    if (diffMinutes > 10) {
+		      // Too far in future, skip adding to map
+		      return;
+		    }
+		  }
+
+
+		const popupMessage = isDART
+          ? `<strong>DART Service: ${code}</strong><br>${messageparsed}`
+          : `<strong>Train: ${code}</strong><br>${messageparsed}`;
+
 
         const marker = L.marker([lat, lon], { icon: icon })
           .addTo(map)
-          .bindPopup(trainText);
+          .bindPopup(popupMessage);
 
 
         //const marker = L.marker([lat, lon], { icon: trainIcon })
         //  .addTo(map)
         //  .bindPopup(`<strong>Train: ${code}</strong><br>${messageparsed}`);
 
+
+
+         // Add click event to fetch route info
+        marker.on('click', () => {
+          const today = new Date().toISOString().split('T')[0]; // yyyy-mm-dd
+          fetch(`http://localhost:5050/trainroute?code=${code}&date=${today}`)
+            .then(res => res.json())
+            .then(route => {
+			  clearRouteMarkers();
+
+			  if (!Array.isArray(route) || route.length === 0) {
+			    marker.bindPopup(`${popupMessage}<br><br><em>No route data available.</em>`).openPopup();
+			    return;
+			  }
+
+			  let routeInfo = "<br><strong>Route:</strong><br>";
+			  const latlngs = [];
+
+			  route.forEach(stop => {
+			    const name = stop.LocationFullName;
+			    const coords = stationLookup[name];
+
+			    if (coords) {
+			      const stopMarker = L.circleMarker([coords.lat, coords.lon], {
+			        radius: 5,
+			        color: "black",
+			        fillOpacity: 0.8,
+
+			      }).addTo(map);
+
+			      stopMarker.bindPopup(`<strong>${name}</strong><br>Scheduled: ${stop.ScheduledArrival || ''} - ${stop.ScheduledDeparture || ''}`);
+			      routeMarkers.push(stopMarker);
+			      latlngs.push([coords.lat, coords.lon]);
+			    }
+
+			    routeInfo += `• ${name}<br>`;
+			  });
+
+			  // Optionally draw a line between route stops
+			  const polyline = L.polyline(latlngs, { color: "white", weight: 2, fillOpacity:0.5 }).addTo(map);
+			  routeMarkers.push(polyline);  // So I can remove it later
+
+			  //marker.bindPopup(`${popupMessage}${routeInfo}`).openPopup();
+
+			  let stationHTML = `<ul style="list-style: none; padding-left: 0;">`;
+				route.forEach(stop => {
+				  const name = stop.LocationFullName;
+				  let arr = stop.ScheduledArrival || '';
+				  let dep = stop.ScheduledDeparture || '';
+
+				  // Skip non-stopping locations
+				  if (arr !== dep) {
+				    // Hide 00:00:00 where appropriate
+				    arr = (arr === '00:00:00') ? '' : arr;
+				    dep = (dep === '00:00:00') ? '' : dep;
+
+				    let timeText = (arr && dep) ? `${arr} → ${dep}` :
+				                   (arr) ? `Arr: ${arr}` :
+				                   (dep) ? `Dep: ${dep}` : '';
+
+				    stationHTML += `<li><strong>${name}</strong><br><small>${timeText}</small></li>`;
+				  }
+				});
+				stationHTML += `</ul>`;
+				document.getElementById("station-list").innerHTML = stationHTML;
+			})
+
+            .catch(error => {
+              marker.bindPopup(`${popupMessage}<br><br><em>Unable to load route.</em>`).openPopup();
+              console.error('Error fetching route:', error);
+            });
+        });
+
+
         window.trainMarkers.push(marker);
       });
     })
     .catch(error => console.error('Error fetching train data:', error));
 }
+
+
 // Initial load
 loadTrains();
 //console.log('Map object:', trainmap);
+
 
 // Refresh every 60 seconds
 setInterval(loadTrains, 60000);
