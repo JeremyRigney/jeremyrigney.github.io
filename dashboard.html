@@ -583,7 +583,7 @@ let routeMarkers = [];  // Global array to remove old route markers
 // Load all stations once on page load
 function loadStations() {
   //fetch("https://irishrail-api-737590149980.europe-west1.run.app/stations")
-  fetch("http://localhost:5050/stations")
+  fetch("https://irishrail-api-737590149980.europe-west1.run.app/stations")
     .then(res => res.json())
     .then(stations => {
       stations.forEach(station => {
@@ -607,7 +607,7 @@ function clearRouteMarkers() {
 window.trainMarkers = [];
 
 function loadTrains() {
-  fetch('http://localhost:5050/')
+  fetch('https://irishrail-api-737590149980.europe-west1.run.app/')
     .then(res => res.json())
     .then(trains => {
       // Remove existing markers if any
@@ -673,7 +673,7 @@ function loadTrains() {
          // Add click event to fetch route info
         marker.on('click', () => {
           const today = new Date().toISOString().split('T')[0]; // yyyy-mm-dd
-          fetch(`http://localhost:5050/trainroute?code=${code}&date=${today}`)
+          fetch(`https://irishrail-api-737590149980.europe-west1.run.app/trainroute?code=${code}&date=${today}`)
             .then(res => res.json())
             .then(route => {
 			  clearRouteMarkers();
