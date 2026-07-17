@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Sun, Interrupted — Ireland's Partial Solar Eclipse, 12 August 2026</title>
+  <meta name="description" content="An editorial scroll-story of the 12 August 2026 partial solar eclipse over Ireland — timing, coverage, and safe viewing guidance." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/eclipse-ireland-2026.css" />
+</head>
+<body>
+  <header class="site-header" id="site-header">
+    <div class="brand">
+      <a class="masthead" href="#cover">Eclipse<span class="masthead-dot">.</span></a>
+      <span class="byline">a site by <a href="https://jeremy.ie">Jeremy</a></span>
+    </div>
+    <p class="issue-meta">No.&nbsp;01 — Dublin, Ireland — 12.08.2026</p>
+    <button class="nav-toggle" type="button" aria-label="Open menu" aria-controls="site-nav" aria-expanded="false">
+      <span></span>
+      <span></span>
+    </button>
+    <nav class="site-nav" id="site-nav" aria-label="Page navigation">
+      <a href="#what">What</a>
+      <a href="#timing">Timing</a>
+      <a href="#stat">Coverage</a>
+      <a href="#safety">Safety</a>
+      <a href="#references">Sources</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="cover" class="scene-section">
+      <div class="scene-sticky">
+        <div class="cover-grid">
+          <div class="cover-headline">
+            <p class="eyebrow reveal">Partial Solar Eclipse — Ireland</p>
+            <h1 class="display-h1 reveal">The Sun,<br /><em>Interrupted.</em></h1>
+            <p class="lead reveal">On the evening of 12 August 2026, the Moon slides across the face of the Sun over Ireland, carving it down to a thin, blazing crescent. Scroll to watch the alignment unfold in real time.</p>
+            <a class="scroll-cta reveal" href="#what"><span class="scroll-cta-label">Scroll to witness</span><span class="scroll-cta-arrow" aria-hidden="true">↓</span></a>
+          </div>
+
+          <aside class="coverlines" aria-live="polite">
+            <div class="coverline coverline-lead">
+              <span class="coverline-num" id="countdown-value">—</span>
+              <span class="coverline-label">Until first contact</span>
+            </div>
+            <div class="coverline">
+              <span class="coverline-dt">Phase</span>
+              <span class="coverline-dd" id="telemetry-phase">Pre-contact</span>
+            </div>
+            <div class="coverline">
+              <span class="coverline-dt">Coverage</span>
+              <span class="coverline-dd"><span id="telemetry-coverage">0%</span> max obscuration</span>
+            </div>
+            <div class="coverline">
+              <span class="coverline-dt">Window</span>
+              <span class="coverline-dd" id="telemetry-time">18:13–20:05 IST</span>
+            </div>
+            <div class="coverline">
+              <span class="coverline-dt">Coordinates</span>
+              <span class="coverline-dd">53.35°N, 6.26°W</span>
+            </div>
+            <p class="coverline-note">Times are indicative for this visual narrative. Check official local forecasts before observing.</p>
+          </aside>
+        </div>
+
+        <div class="eclipse-canvas" aria-label="Vector eclipse scene with moon crossing the sun">
+          <div class="aurora-glow"></div>
+          <div class="sun" aria-hidden="true">
+            <div class="sun-core"></div>
+            <div class="sun-ring"></div>
+          </div>
+          <div id="moon" class="moon" aria-hidden="true"></div>
+
+          <svg class="landscape" viewBox="0 0 1200 500" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+            <defs>
+              <linearGradient id="hillBack" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#3c3350" />
+                <stop offset="100%" stop-color="#2c2540" />
+              </linearGradient>
+              <linearGradient id="hillFront" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#241d33" />
+                <stop offset="100%" stop-color="#171226" />
+              </linearGradient>
+              <linearGradient id="waterBand" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#f7d9a8" stop-opacity="0.22" />
+                <stop offset="100%" stop-color="#f7d9a8" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <path d="M0 428 C140 408 190 425 310 414 C430 401 520 418 640 407 C760 394 850 410 975 398 C1050 391 1110 398 1200 388 L1200 500 L0 500 Z" fill="url(#hillBack)" />
+            <path d="M0 458 C160 441 250 456 380 446 C505 436 640 452 760 441 C898 428 1010 444 1200 433 L1200 500 L0 500 Z" fill="url(#hillFront)" />
+            <rect x="0" y="436" width="1200" height="64" fill="url(#waterBand)" />
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section id="what" class="content-section">
+      <div class="section-wrap split split-what">
+        <div>
+          <p class="section-kicker reveal">01 — What Is It</p>
+          <h2 class="reveal">A geometric alignment of Sun, Moon, and Earth</h2>
+          <p class="dropcap reveal">A solar eclipse happens when the Moon passes between Earth and the Sun. In a partial eclipse, the Moon does not completely cover the Sun from your location, so a crescent of sunlight remains visible. The exact shape depends on where you are standing and the local timing of the alignment — no two vantage points see quite the same event.</p>
+        </div>
+        <div class="what-visual reveal">
+          <svg class="align-diagram" viewBox="0 0 480 230" role="img" aria-label="Diagram of the Moon passing directly between the Earth and the Sun">
+            <defs>
+              <radialGradient id="d-sun" cx="38%" cy="34%" r="72%">
+                <stop offset="0%" stop-color="#ffe9c4" />
+                <stop offset="46%" stop-color="#e8863f" />
+                <stop offset="100%" stop-color="#cf4520" />
+              </radialGradient>
+              <radialGradient id="d-earth" cx="34%" cy="30%" r="78%">
+                <stop offset="0%" stop-color="#5a7b8a" />
+                <stop offset="100%" stop-color="#26333d" />
+              </radialGradient>
+              <radialGradient id="d-moon" cx="34%" cy="30%" r="78%">
+                <stop offset="0%" stop-color="#5a5060" />
+                <stop offset="100%" stop-color="#201a2a" />
+              </radialGradient>
+            </defs>
+            <line class="d-axis" x1="34" y1="118" x2="456" y2="118" />
+            <polygon class="d-cone" points="252,105 252,131 96,124 96,112" />
+            <g class="d-sun-group">
+              <g class="d-rays">
+                <line x1="404" y1="52" x2="404" y2="34" />
+                <line x1="404" y1="184" x2="404" y2="202" />
+                <line x1="338" y1="118" x2="320" y2="118" />
+                <line x1="470" y1="118" x2="488" y2="118" />
+                <line x1="357" y1="71" x2="344" y2="58" />
+                <line x1="451" y1="165" x2="464" y2="178" />
+                <line x1="357" y1="165" x2="344" y2="178" />
+                <line x1="451" y1="71" x2="464" y2="58" />
+              </g>
+              <circle cx="404" cy="118" r="46" fill="url(#d-sun)" />
+            </g>
+            <circle class="d-earth" cx="86" cy="118" r="26" fill="url(#d-earth)" />
+            <circle class="d-moon" cx="252" cy="118" r="13" fill="url(#d-moon)" />
+            <text class="d-label" x="86" y="172" text-anchor="middle">Earth</text>
+            <text class="d-label" x="252" y="162" text-anchor="middle">Moon</text>
+            <text class="d-label" x="404" y="192" text-anchor="middle">Sun</text>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section id="timing" class="content-section alt">
+      <div class="section-wrap split">
+        <div>
+          <p class="section-kicker reveal">02 — When It Happens</p>
+          <h2 class="reveal">Late afternoon to early evening over Ireland</h2>
+          <p class="reveal">From Dublin, the partial eclipse runs from first contact at <strong>18:13</strong> to final contact at <strong>20:05&nbsp;IST</strong>, with maximum eclipse at <strong>19:11</strong> — the Sun sitting low to the west-north-west, so a clear horizon matters.</p>
+        </div>
+        <ol class="phase-list stagger">
+          <li class="reveal">
+            <svg class="phase-glyph" viewBox="0 0 40 40" aria-hidden="true"><circle class="pg-sun" cx="20" cy="20" r="13" /><circle class="pg-moon" cx="33" cy="34" r="13" /></svg>
+            <span class="phase-num">01</span><span class="phase-copy">First contact — the Moon begins to bite into the Sun.</span>
+          </li>
+          <li class="reveal">
+            <svg class="phase-glyph" viewBox="0 0 40 40" aria-hidden="true"><circle class="pg-sun" cx="20" cy="20" r="13" /><circle class="pg-moon" cx="27" cy="29" r="13" /></svg>
+            <span class="phase-num">02</span><span class="phase-copy">Deep partial — sunlight narrows dramatically.</span>
+          </li>
+          <li class="reveal">
+            <svg class="phase-glyph" viewBox="0 0 40 40" aria-hidden="true"><circle class="pg-sun" cx="20" cy="20" r="13" /><circle class="pg-moon" cx="20" cy="22" r="13" /></svg>
+            <span class="phase-num">03</span><span class="phase-copy">Maximum — roughly 98% coverage from this viewpoint.</span>
+          </li>
+          <li class="reveal">
+            <svg class="phase-glyph" viewBox="0 0 40 40" aria-hidden="true"><circle class="pg-sun" cx="20" cy="20" r="13" /><circle class="pg-moon" cx="13" cy="29" r="13" /></svg>
+            <span class="phase-num">04</span><span class="phase-copy">Exit — the Moon moves off and daylight strengthens.</span>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="stat" class="content-section stat-spread">
+      <div class="section-wrap coverage-layout">
+        <div class="coverage-copy">
+          <p class="section-kicker reveal">03 — Coverage</p>
+          <div class="stat-row">
+            <div class="stat-block reveal">
+              <p class="stat-number" data-count-to="98">0<span class="stat-unit">%</span></p>
+              <p class="stat-caption">Maximum obscuration across Ireland — a wafer-thin crescent of sunlight remains.</p>
+            </div>
+            <div class="stat-block stat-block-secondary reveal">
+              <p class="stat-number stat-number-small">1h 52m</p>
+              <p class="stat-caption">Total duration of the visible partial phase, first to final contact.</p>
+            </div>
+          </div>
+          <p class="reveal">The sequence is tuned so the Moon misses perfect centre alignment by a small amount. That leaves a thin bright solar crescent, matching an extreme partial eclipse rather than a total eclipse.</p>
+        </div>
+
+        <figure class="coverage-figure reveal">
+          <svg class="max-eclipse" viewBox="0 0 400 400" role="img" aria-label="The Sun at maximum eclipse, reduced to a thin crescent as the Moon covers about 98 percent of its face">
+            <defs>
+              <radialGradient id="me-sky" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#241d3a" />
+                <stop offset="62%" stop-color="#181228" />
+                <stop offset="88%" stop-color="#140f22" />
+                <stop offset="100%" stop-color="#140f22" stop-opacity="0" />
+              </radialGradient>
+              <radialGradient id="me-corona" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="rgba(255, 224, 178, 0)" />
+                <stop offset="52%" stop-color="rgba(248, 176, 108, 0.34)" />
+                <stop offset="72%" stop-color="rgba(232, 134, 63, 0.16)" />
+                <stop offset="100%" stop-color="rgba(232, 134, 63, 0)" />
+              </radialGradient>
+              <radialGradient id="me-sun" cx="50%" cy="30%" r="68%">
+                <stop offset="0%" stop-color="#fff6e6" />
+                <stop offset="45%" stop-color="#ffd79a" />
+                <stop offset="78%" stop-color="#f0a052" />
+                <stop offset="100%" stop-color="#e8863f" />
+              </radialGradient>
+              <filter id="me-glow" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="7" result="b" />
+                <feMerge>
+                  <feMergeNode in="b" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            <circle cx="200" cy="200" r="196" fill="url(#me-sky)" />
+            <g class="me-rays">
+              <g stroke="rgba(248, 176, 108, 0.5)" stroke-width="2" stroke-linecap="round">
+                <line x1="200" y1="42" x2="200" y2="14" />
+                <line x1="200" y1="358" x2="200" y2="386" />
+                <line x1="42" y1="200" x2="14" y2="200" />
+                <line x1="358" y1="200" x2="386" y2="200" />
+                <line x1="88" y1="88" x2="68" y2="68" />
+                <line x1="312" y1="312" x2="332" y2="332" />
+                <line x1="88" y1="312" x2="68" y2="332" />
+                <line x1="312" y1="88" x2="332" y2="68" />
+              </g>
+            </g>
+            <circle cx="200" cy="200" r="168" fill="url(#me-corona)" />
+            <circle cx="200" cy="200" r="118" fill="url(#me-sun)" filter="url(#me-glow)" />
+            <circle cx="200" cy="212" r="122" fill="#130e20" />
+          </svg>
+          <figcaption>Maximum eclipse — the Sun cut to a crescent at roughly 98% obscuration, around 19:11&nbsp;IST.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="safety" class="content-section alt">
+      <div class="section-wrap split safety-layout">
+        <div class="safety-visual reveal">
+          <svg class="pinhole" viewBox="0 0 320 340" role="img" aria-label="A pinhole projector: sunlight passes through a small hole in a card and casts an inverted crescent image of the eclipsed Sun onto a screen below — a safe way to watch the eclipse indirectly.">
+            <defs>
+              <radialGradient id="ph-sun-grad" cx="40%" cy="32%" r="72%">
+                <stop offset="0%" stop-color="#fff4e2" />
+                <stop offset="48%" stop-color="#ffd398" />
+                <stop offset="100%" stop-color="#e8863f" />
+              </radialGradient>
+              <radialGradient id="ph-halo" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="rgba(232, 134, 63, 0.42)" />
+                <stop offset="60%" stop-color="rgba(232, 134, 63, 0.12)" />
+                <stop offset="100%" stop-color="rgba(232, 134, 63, 0)" />
+              </radialGradient>
+              <linearGradient id="ph-cone-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="rgba(248, 176, 108, 0.36)" />
+                <stop offset="100%" stop-color="rgba(248, 176, 108, 0)" />
+              </linearGradient>
+              <radialGradient id="ph-pool" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="rgba(232, 134, 63, 0.55)" />
+                <stop offset="100%" stop-color="rgba(232, 134, 63, 0)" />
+              </radialGradient>
+              <mask id="ph-sun-mask">
+                <circle cx="272" cy="54" r="17" fill="#fff" />
+                <circle cx="281" cy="45" r="16.4" fill="#000" />
+              </mask>
+              <mask id="ph-img-mask">
+                <circle cx="155" cy="289" r="12" fill="#fff" />
+                <circle cx="147.5" cy="296.5" r="11.6" fill="#000" />
+              </mask>
+              <filter id="ph-soft" x="-70%" y="-70%" width="240%" height="240%">
+                <feGaussianBlur stdDeviation="2.6" result="b" />
+                <feMerge>
+                  <feMergeNode in="b" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            <circle cx="272" cy="54" r="40" fill="url(#ph-halo)" />
+            <g class="ph-rays">
+              <line x1="272" y1="16" x2="272" y2="2" />
+              <line x1="242" y1="26" x2="232" y2="16" />
+              <line x1="302" y1="26" x2="312" y2="16" />
+              <line x1="229" y1="54" x2="215" y2="54" />
+              <line x1="315" y1="54" x2="329" y2="54" />
+            </g>
+            <circle cx="272" cy="54" r="17" fill="url(#ph-sun-grad)" mask="url(#ph-sun-mask)" />
+
+            <g class="ph-beam">
+              <line x1="259" y1="66" x2="154" y2="148" />
+              <line x1="266" y1="73" x2="158" y2="152" />
+            </g>
+
+            <polygon points="156,151 104,281 208,281" fill="url(#ph-cone-grad)" />
+
+            <rect class="ph-screen" x="42" y="278" width="228" height="21" rx="6" />
+            <rect class="ph-screen-top" x="42" y="278" width="228" height="4" rx="2" />
+            <ellipse cx="156" cy="289" rx="56" ry="12" fill="url(#ph-pool)" />
+
+            <g filter="url(#ph-soft)">
+              <circle class="ph-crescent" cx="155" cy="289" r="12" mask="url(#ph-img-mask)" />
+            </g>
+
+            <g transform="rotate(-9 156 149)">
+              <rect class="ph-card-edge" x="74" y="153" width="150" height="6" rx="3" />
+              <rect class="ph-card" x="74" y="141" width="150" height="14" rx="4" />
+              <rect class="ph-card-shine" x="82" y="144" width="120" height="3" rx="1.5" />
+              <circle class="ph-hole" cx="156" cy="148" r="3.4" />
+            </g>
+          </svg>
+
+          <svg class="safety-glasses" viewBox="0 0 220 96" role="img" aria-label="Illustration of ISO-certified eclipse viewing glasses">
+            <path class="sg-frame" d="M18 20 H202 a10 10 0 0 1 10 10 v14 a14 14 0 0 1 -14 14 H128 a12 12 0 0 1 -12 -10 a6 6 0 0 0 -12 0 a12 12 0 0 1 -12 10 H24 a14 14 0 0 1 -14 -14 V30 a10 10 0 0 1 8 -10 Z" />
+            <rect class="sg-lens" x="24" y="26" width="60" height="26" rx="5" />
+            <rect class="sg-lens" x="136" y="26" width="60" height="26" rx="5" />
+          </svg>
+        </div>
+
+        <div class="safety-copy">
+          <p class="section-kicker reveal">04 — Eye Safety</p>
+          <h2 class="reveal">Never view the Sun directly without proper protection</h2>
+          <ul class="safety-list stagger">
+            <li class="reveal">Use certified solar viewers that meet ISO&nbsp;12312-2.</li>
+            <li class="reveal">Do not use normal sunglasses, camera filters, or smoked glass.</li>
+            <li class="reveal">Make a pinhole camera to project the eclipse onto a surface.</li>
+            <li class="reveal">If using telescopes or binoculars, use approved front-mounted solar filters.</li>
+            <li class="reveal">Supervise children closely during observation.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="references" class="content-section">
+      <div class="section-wrap">
+        <p class="section-kicker reveal">05 — Local Circumstances &amp; Resources</p>
+        <h2 class="reveal">Verify exact local circumstances before the event</h2>
+        <p class="reveal">Times and coverage on this page are illustrative. Cloud cover and a clear west-north-west horizon decide what you actually see — so check the live forecast and the official eclipse resources close to the day.</p>
+
+        <div class="resource-grid">
+          <a class="resource-card resource-featured reveal" href="https://eclipse26.ie" target="_blank" rel="noopener noreferrer">
+            <span class="resource-tag">Featured — Ireland</span>
+            <span class="resource-name">eclipse26.ie</span>
+            <span class="resource-desc">The dedicated hub for Ireland's 2026 solar eclipses — local timings, public events, and safe-viewing guidance for observers across the island.</span>
+            <span class="resource-go">Visit eclipse26.ie<span class="resource-arrow" aria-hidden="true">→</span></span>
+          </a>
+
+          <a class="resource-card reveal" href="https://www.timeanddate.com/eclipse/in/ireland/dublin" target="_blank" rel="noopener noreferrer">
+            <span class="resource-name">Time and Date</span>
+            <span class="resource-desc">Precise contact times, magnitude and Sun altitude for your exact town.</span>
+            <span class="resource-go">timeanddate.com<span class="resource-arrow" aria-hidden="true">→</span></span>
+          </a>
+
+          <a class="resource-card reveal" href="https://www.met.ie" target="_blank" rel="noopener noreferrer">
+            <span class="resource-name">Met Éireann</span>
+            <span class="resource-desc">Ireland's national forecast — check cloud cover for the evening of 12 August.</span>
+            <span class="resource-go">met.ie<span class="resource-arrow" aria-hidden="true">→</span></span>
+          </a>
+
+          <a class="resource-card reveal" href="https://science.nasa.gov/eclipses/" target="_blank" rel="noopener noreferrer">
+            <span class="resource-name">NASA — Eclipses</span>
+            <span class="resource-desc">Background science, global maps and predictions for solar and lunar eclipses.</span>
+            <span class="resource-go">science.nasa.gov<span class="resource-arrow" aria-hidden="true">→</span></span>
+          </a>
+
+          <a class="resource-card reveal" href="https://www.astronomy.ie" target="_blank" rel="noopener noreferrer">
+            <span class="resource-name">Astronomy Ireland</span>
+            <span class="resource-desc">Local events, viewing meet-ups and where to get certified solar viewers.</span>
+            <span class="resource-go">astronomy.ie<span class="resource-arrow" aria-hidden="true">→</span></span>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Eclipse Ireland — an independent scroll-story, not an official forecast.</p>
+    <p class="footer-credit">Designed &amp; built by <a href="https://jeremy.ie">Jeremy</a> · <a href="https://jeremy.ie">jeremy.ie</a></p>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="assets/js/eclipse-ireland-2026.js"></script>
+</body>
+</html>
