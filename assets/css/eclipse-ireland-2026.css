@@ -450,19 +450,30 @@ a {
   z-index: 2;
 }
 
-.sun,
-.moon {
+.sun {
   position: absolute;
   left: 50%;
   top: 42%;
   width: min(33vmin, 22rem);
   aspect-ratio: 1;
   border-radius: 50%;
-}
-
-.sun {
   transform: translate(-50%, -50%);
   z-index: 6;
+}
+
+/* A static circular window pinned over the Sun. The Moon moves inside it, so it
+   is clipped to the Sun's disc: invisible against the sky and only ever seen as
+   a dark bite where it occludes the Sun — as a real partial eclipse looks. */
+.moon-window {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: min(33vmin, 22rem);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  clip-path: circle(50%);
+  z-index: 7;
+  pointer-events: none;
 }
 
 .sun-core {
@@ -486,7 +497,12 @@ a {
    it takes out of the Sun. Kept flat and close to the sky tone so it all but
    disappears against the sky and only reads where it occludes the Sun. */
 .moon {
-  z-index: 7;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
   background: #2b2747;
   transform: translate(-50%, -50%) translate(16rem, 0.5rem);
   will-change: transform;
@@ -1143,7 +1159,7 @@ a {
   }
 
   .sun,
-  .moon {
+  .moon-window {
     top: 47%;
     width: min(42vmin, 17.5rem);
   }
@@ -1175,7 +1191,7 @@ a {
   }
 
   .sun,
-  .moon {
+  .moon-window {
     top: 44%;
     width: min(50vmin, 15rem);
   }

@@ -140,7 +140,10 @@
     var MOON_START_X = 330;
     var MOON_TRAVEL_X = -650;
     var MOON_DROP_Y = 28;
-    var MOON_ARC_Y = 14;
+    // Arc amplitude. Entry/exit sit at MOON_DROP_Y; at maximum the Moon lifts to a
+    // vertical miss of (MOON_DROP_Y - MOON_ARC_Y) ≈ 4px, so the discs very nearly
+    // coincide and peak obscuration reads ~96% (a hair off perfect centre).
+    var MOON_ARC_Y = 24;
     var MAX_ECLIPSE_PROGRESS = Math.acos(1 - 2 * (-MOON_START_X / MOON_TRAVEL_X)) / Math.PI;
 
     function clamp(value, min, max) {
