@@ -112,6 +112,14 @@
       return;
     }
 
+    // The Moon and Sun discs are the same rendered size (see CSS), so the Sun's
+    // radius in px is half the Moon element's width. Cached and re-measured on
+    // resize so coverage geometry stays correct across viewports.
+    var sunRadius = 0;
+    function measureDiscs() {
+      sunRadius = moon.offsetWidth / 2;
+    }
+
     var timeByPhase = {
       pre: '~18:05 IST',
       first: '18:13 IST',
@@ -153,11 +161,27 @@
       return clamp((scrollTop - start) / (end - start), 0, 1);
     }
 
-    function coverageFromProgress(progress) {
-      var width = 0.2;
-      var exponent = -Math.pow((progress - MAX_ECLIPSE_PROGRESS) / width, 2);
-      var value = Math.max(0, 98 * Math.exp(exponent));
-      return Math.min(98, Math.round(value));
+    // Obscuration from the actual disc overlap. (x, y) is the Moon centre's
+    // offset from the Sun centre in px; both discs share radius sunRadius. The
+    // Moon only touches the Sun once the centre distance drops below 2R, so
+    // coverage stays exactly 0 until first contact, peaks when the discs are
+    // concentric, and returns to 0 at last contact.
+    function coverageFromGeometry(x, y) {
+      var r = sunRadius;
+      if (r <= 0) {
+        return 0;
+      }
+      var d = Math.sqrt(x * x + y * y);
+      if (d >= 2 * r) {
+        return 0;
+      }
+      if (d <= 0) {
+        return 98;
+      }
+      // Lens (intersection) area of two equal circles, radius r, centres d apart.
+      var overlap = 2 * r * r * Math.acos(d / (2 * r)) - (d / 2) * Math.sqrt(4 * r * r - d * d);
+      var fraction = overlap / (Math.PI * r * r);
+      return Math.min(98, Math.round(98 * fraction));
     }
 
     function phaseFromProgress(progress) {
@@ -197,7 +221,7 @@
       stage.style.setProperty('--eclipse-darkness', (eclipseDarkness * 0.82).toFixed(3));
 
       var phase = phaseFromProgress(progress);
-      var coverage = coverageFromProgress(progress);
+      var coverage = coverageFromGeometry(x, y);
 
       phaseEl.textContent = phase.name;
       coverageEl.textContent = coverage + '%';
@@ -235,13 +259,19 @@
       }
     }
 
-    function onScrollOrResize() {
+    function onScroll() {
       queueAnimation();
     }
 
+    function onResize() {
+      measureDiscs();
+      queueAnimation();
+    }
+
+    measureDiscs();
     applyState(renderedProgress);
-    window.addEventListener('scroll', onScrollOrResize, { passive: true });
-    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize);
   })();
 
   /* ---------- Cover headline entrance ---------- */

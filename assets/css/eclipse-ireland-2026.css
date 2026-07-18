@@ -1036,20 +1036,39 @@ a {
 /* ---------- Responsive ---------- */
 
 @media (max-width: 1080px) {
+  /* Stack the hero as a vertical column: headline pinned to the top, info box
+     pinned to the bottom, leaving a clear band in the middle for the eclipse
+     animation instead of overlaying text across the whole sun. */
   .cover-grid {
-    grid-template-columns: minmax(0, 1fr);
-    align-items: start;
-    gap: 1.6rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 1.4rem;
   }
 
+  /* Info box becomes a compact 2-column card rather than a horizontal strip. */
   .coverlines {
     border-left: none;
-    border-top: 1px solid rgba(253, 247, 234, 0.3);
-    padding-left: 0;
-    padding-top: 1rem;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(8rem, auto);
-    overflow-x: auto;
+    padding: 0.95rem 1.1rem 1.05rem;
+    background: rgba(15, 12, 32, 0.5);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    border: 1px solid rgba(253, 247, 234, 0.16);
+    border-radius: 14px;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.7rem 1.2rem;
+  }
+
+  .coverline-lead {
+    grid-column: 1 / -1;
+    margin-bottom: 0.1rem;
+    padding-bottom: 0.7rem;
+    border-bottom: 1px solid rgba(253, 247, 234, 0.16);
+  }
+
+  .coverline-lead .coverline-num {
+    font-size: 1.5rem;
   }
 
   .coverline-note {
@@ -1135,6 +1154,43 @@ a {
 
   .stat-number {
     font-size: clamp(4rem, 22vw, 7rem);
+  }
+}
+
+@media (max-width: 600px) {
+  /* On phones the sun has to stay high (above the hill line), so drop the deck
+     paragraph — the headline and info card give enough context, and the eclipse
+     animation stays fully visible between them. */
+  .lead {
+    display: none;
+  }
+
+  .cover-grid {
+    padding-top: 5rem;
+    padding-bottom: clamp(1.4rem, 4vh, 2.2rem);
+  }
+
+  .scroll-cta {
+    margin-top: 1.1rem;
+  }
+
+  .sun,
+  .moon {
+    top: 44%;
+    width: min(50vmin, 15rem);
+  }
+
+  .coverlines {
+    padding: 0.85rem 0.95rem 0.95rem;
+    gap: 0.6rem 1rem;
+  }
+
+  .coverline-lead .coverline-num {
+    font-size: 1.34rem;
+  }
+
+  .coverline-dd {
+    font-size: 0.78rem;
   }
 }
 
