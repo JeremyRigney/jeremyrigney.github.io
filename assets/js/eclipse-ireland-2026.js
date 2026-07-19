@@ -500,4 +500,299 @@
       rafId = window.requestAnimationFrame(step);
     });
   })();
+
+  /* ---------- Path of totality map (Leaflet) ---------- */
+
+  (function totalityMap() {
+    var el = document.getElementById('totality-map');
+    if (!el || typeof window.L === 'undefined') {
+      return;
+    }
+
+    // Real geometry for the 12 Aug 2026 total eclipse, from NASA GSFC path
+    // tables (eclipse.gsfc.nasa.gov), sampled every ~4 minutes of UT across the
+    // Iceland → North Atlantic → Spain segment. [lat, lon] in decimal degrees.
+    var centreLine = [
+      [68.24, -26.41], [66.19, -25.63], [64.17, -24.76], [62.18, -23.79],
+      [60.22, -22.74], [58.27, -21.57], [56.32, -20.29], [54.36, -18.85],
+      [52.37, -17.21], [50.33, -15.32], [48.21, -13.05], [45.94, -10.19],
+      [43.37, -6.19], [41.82, -3.19], [39.41, 2.95]
+    ];
+    var northLimit = [
+      [68.73, -22.95], [66.63, -22.44], [64.57, -21.77], [62.55, -20.96],
+      [60.55, -20.02], [58.56, -18.94], [56.57, -17.71], [54.56, -16.30],
+      [52.52, -14.65], [50.42, -12.69], [48.21, -10.27], [45.80, -7.08],
+      [42.91, -2.09], [40.67, 3.30]
+    ];
+    var southLimit = [
+      [67.72, -29.63], [65.70, -28.63], [63.73, -27.58], [61.78, -26.48],
+      [59.86, -25.32], [57.95, -24.08], [56.04, -22.74], [54.12, -21.28],
+      [52.18, -19.65], [50.20, -17.80], [48.15, -15.64], [45.98, -13.01],
+      [43.61, -9.55], [42.26, -7.24], [40.68, -4.04]
+    ];
+    // Catmull-Rom spline: turn the sparse NASA anchor points into a dense, smooth
+    // curve so the band and centre line read as flowing arcs, not straight chords.
+    function smooth(pts) {
+      if (pts.length < 3) {
+        return pts.slice();
+      }
+      var out = [];
+      var seg = 16;
+      for (var i = 0; i < pts.length - 1; i++) {
+        var p0 = pts[i > 0 ? i - 1 : 0];
+        var p1 = pts[i];
+        var p2 = pts[i + 1];
+        var p3 = pts[i + 2 < pts.length ? i + 2 : pts.length - 1];
+        for (var t = 0; t < seg; t++) {
+          var s = t / seg;
+          var s2 = s * s;
+          var s3 = s2 * s;
+          out.push([
+            0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * s + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * s2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * s3),
+            0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * s + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * s2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * s3)
+          ]);
+        }
+      }
+      out.push(pts[pts.length - 1]);
+      return out;
+    }
+
+    var centre = smooth(centreLine);
+    // Close the band: smoothed northern limit, then smoothed southern limit back.
+    var band = smooth(northLimit).concat(smooth(southLimit).reverse());
+
+    // Obscuration percentages are approximate, from NASA/timeanddate local
+    // circumstances for 12 Aug 2026 — enough to show how coverage falls off with
+    // distance from the path. `total` cities sit inside the band.
+    var cities = [
+      { latlng: [64.13, -21.90], name: 'Reykjavík', sub: 'Iceland', total: true, meta: '≈1 min of totality · ~17:48 UT', dir: 'right' },
+      { latlng: [43.36, -8.41], name: 'A Coruña', sub: 'N. Spain', total: true, meta: 'Totality at sunset · ~18:29 UT (20:29 CEST)', dir: 'left' },
+      { latlng: [40.42, -3.70], name: 'Madrid', sub: 'Spain', cover: 99, meta: '~99% covered · just south of the path', dir: 'right' },
+      { latlng: [53.35, -6.26], name: 'Dublin', sub: 'Ireland', cover: 90, meta: '~90% covered · maximum ~19:11 IST', dir: 'left' },
+      { latlng: [51.51, -0.13], name: 'London', sub: 'England', cover: 90, meta: '~90% covered', dir: 'top' },
+      { latlng: [48.85, 2.35], name: 'Paris', sub: 'France', cover: 91, meta: '~91% covered', dir: 'right' },
+      { latlng: [38.72, -9.14], name: 'Lisbon', sub: 'Portugal', cover: 84, meta: '~84% covered', dir: 'left' }
+    ];
+
+    // On touch devices, one-finger drag would trap the reader on the map instead
+    // of letting the page scroll, so lock the map to a static illustration there.
+    var coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+
+    var map = L.map(el, {
+      scrollWheelZoom: false,
+      dragging: !coarsePointer,
+      touchZoom: !coarsePointer,
+      doubleClickZoom: !coarsePointer,
+      boxZoom: false,
+      keyboard: false,
+      zoomControl: !coarsePointer,
+      attributionControl: true,
+      minZoom: 3,
+      maxZoom: 7
+    });
+
+    // Deep, near-black basemap — warmed toward the page's cosmic indigo in CSS —
+    // so land and water both read as night and the ember eclipse band stands out.
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a> · Eclipse path: NASA GSFC',
+      subdomains: 'abcd',
+      maxZoom: 8
+    }).addTo(map);
+
+    map.fitBounds([[37.5, -29.0], [68.5, 5.0]], { padding: [10, 10] });
+    map.setMaxBounds([[31, -42], [74, 18]]);
+
+    // ----- Partial-coverage shading -----
+    // Offset the centre line perpendicular by a distance in degrees of latitude
+    // (~111 km each), correcting longitude by cos(lat) so the step is even on the
+    // ground. A "buffer" wraps a capsule of that radius around the whole path.
+    function offsetLine(pts, distDeg, side) {
+      var res = [];
+      var n = pts.length;
+      for (var i = 0; i < n; i++) {
+        var a = pts[Math.max(0, i - 1)];
+        var b = pts[Math.min(n - 1, i + 1)];
+        var lat = pts[i][0];
+        var lon = pts[i][1];
+        var cos = Math.cos(lat * Math.PI / 180) || 1e-6;
+        var tx = (b[1] - a[1]) * cos;
+        var ty = (b[0] - a[0]);
+        var len = Math.sqrt(tx * tx + ty * ty) || 1e-6;
+        tx /= len;
+        ty /= len;
+        // Left-hand normal (-ty, tx); `side` flips it. +1 falls east of the path.
+        var nx = -ty * side;
+        var ny = tx * side;
+        // Taper the offset to zero over the first/last ~14% of the line so each
+        // buffer closes to a point at the path ends — nested leaf shapes rather
+        // than wide capsules that fan out to the map corners.
+        var t = n > 1 ? i / (n - 1) : 0.5;
+        var dd = distDeg * Math.min(1, Math.min(t, 1 - t) / 0.14);
+        res.push([lat + ny * dd, lon + (nx * dd) / cos]);
+      }
+      return res;
+    }
+
+    function buffer(pts, distDeg) {
+      return offsetLine(pts, distDeg, 1).concat(offsetLine(pts, distDeg, -1).reverse());
+    }
+
+    // Nested capsules, widest first, so translucent ember stacks toward the path.
+    // Distances are tuned so the steps roughly track the labelled city figures;
+    // they are indicative shading, not exact magnitude contours.
+    var coverBands = [
+      { d: 26, cover: 45 },
+      { d: 21, cover: 55 },
+      { d: 17, cover: 65 },
+      { d: 13, cover: 75, label: true },
+      { d: 10, cover: 82 },
+      { d: 7, cover: 90, label: true }
+    ];
+
+    coverBands.forEach(function (b) {
+      L.polygon(buffer(centre, b.d), {
+        stroke: false,
+        fillColor: '#e8863f',
+        fillOpacity: 0.075,
+        interactive: false
+      }).addTo(map);
+    });
+
+    // Faint dashed contour + a label on a couple of levels, placed wherever the
+    // eastern offset happens to fall inside the visible frame.
+    var emptyIcon = L.divIcon({ className: '', html: '', iconSize: [0, 0] });
+    coverBands.forEach(function (b) {
+      if (!b.label) {
+        return;
+      }
+      var east = offsetLine(centre, b.d, 1);
+      L.polyline(east, {
+        color: '#f8b06c',
+        weight: 1,
+        opacity: 0.32,
+        dashArray: '3 6',
+        interactive: false
+      }).addTo(map);
+
+      // Pick a vertex near mid-latitudes that sits within the frame for the label.
+      var spot = null;
+      for (var i = 0; i < east.length; i++) {
+        var p = east[i];
+        if (p[0] > 47 && p[0] < 56 && p[1] > -26 && p[1] < 3) {
+          if (!spot || Math.abs(p[0] - 51.5) < Math.abs(spot[0] - 51.5)) {
+            spot = p;
+          }
+        }
+      }
+      if (spot) {
+        L.marker(spot, { icon: emptyIcon, interactive: false, keyboard: false })
+          .addTo(map)
+          .bindTooltip('~' + b.cover + '%', {
+            permanent: true,
+            direction: 'center',
+            className: 'coverage-contour-tip'
+          })
+          .openTooltip();
+      }
+    });
+
+    // Band of totality.
+    L.polygon(band, {
+      color: '#e8863f',
+      weight: 1,
+      opacity: 0.85,
+      fillColor: '#e8863f',
+      fillOpacity: 0.28,
+      interactive: false
+    }).addTo(map);
+
+    // Soft glow beneath the centre line so it reads as light on the dark sky.
+    L.polyline(centre, {
+      color: '#f8b06c',
+      weight: 9,
+      opacity: 0.16,
+      lineCap: 'round',
+      lineJoin: 'round',
+      interactive: false
+    }).addTo(map);
+
+    // Centre line — a hot near-white core, drawn on scroll below.
+    var line = L.polyline(centre, {
+      color: '#fff6ea',
+      weight: 2.6,
+      opacity: 1,
+      lineCap: 'round',
+      lineJoin: 'round',
+      interactive: false
+    }).addTo(map);
+
+    // Nudge each label clear of its 14px dot in the tooltip's direction.
+    function tipOffset(dir) {
+      if (dir === 'left') { return [-9, 0]; }
+      if (dir === 'top') { return [0, -9]; }
+      if (dir === 'bottom') { return [0, 9]; }
+      return [9, 0];
+    }
+
+    cities.forEach(function (city) {
+      var icon = L.divIcon({
+        className: '',
+        html: '<div class="totality-marker' + (city.total ? '' : ' is-partial') + '"></div>',
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
+      });
+      var label = city.total ? 'Total' : city.cover + '%';
+      L.marker(city.latlng, { icon: icon, keyboard: false })
+        .addTo(map)
+        .bindTooltip(label, {
+          permanent: true,
+          direction: city.dir || 'right',
+          className: 'totality-tip' + (city.total ? ' is-total' : ''),
+          offset: tipOffset(city.dir)
+        })
+        .bindPopup(
+          '<span class="totality-popup-name">' + city.name + '</span>' +
+          '<span class="totality-popup-tag">' + (city.total ? 'Totality — ' : 'Partial — ') + city.sub + '</span>' +
+          '<span class="totality-popup-meta">' + city.meta + '</span>'
+        );
+    });
+
+    // Keep the rendered size correct once layout settles and on resize.
+    window.setTimeout(function () { map.invalidateSize(); }, 200);
+    window.addEventListener('resize', function () { map.invalidateSize(); });
+
+    /* ----- Draw the centre line in as the section scrolls into view ----- */
+
+    // Leaflet vector layers keep their rendered SVG element on `_path`.
+    var path = line._path || (typeof line.getElement === 'function' ? line.getElement() : null);
+    if (!path || typeof path.getTotalLength !== 'function' || !hasGsap || reducedMotion) {
+      return; // No SVG path or no GSAP: leave the line fully drawn.
+    }
+
+    var length = path.getTotalLength();
+    if (!length) {
+      return;
+    }
+
+    // Prime the stroke as a single dash the length of the whole line, offset out
+    // of view, then animate the offset to zero so it appears to draw itself.
+    path.style.strokeDasharray = length;
+    path.style.strokeDashoffset = length;
+
+    gsap.to(path, {
+      strokeDashoffset: 0,
+      duration: 1.8,
+      ease: 'power2.inOut',
+      scrollTrigger: {
+        trigger: el,
+        start: 'top 72%',
+        once: true
+      },
+      onComplete: function () {
+        // Clear the dash so any later Leaflet reproject keeps the line solid.
+        path.style.strokeDasharray = 'none';
+        path.style.strokeDashoffset = '0';
+      }
+    });
+  })();
 })();

@@ -1016,6 +1016,225 @@ a {
   max-width: 20rem;
 }
 
+/* ---------- Path of totality map ---------- */
+
+.totality-map-figure {
+  margin: 2.4rem 0 0;
+}
+
+.totality-map {
+  width: 100%;
+  height: clamp(24rem, 55vh, 34rem);
+  border: 1px solid rgba(253, 247, 234, 0.14);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #191430;
+  box-shadow: 0 16px 40px rgba(20, 15, 34, 0.4);
+  /* Sit below the fixed header (z-index 30) so Leaflet panes never overlap it. */
+  z-index: 0;
+}
+
+/* Push the near-neutral dark basemap toward the page's cosmic indigo, so land
+   and water both read as a night sky and the ember eclipse band is the one warm
+   thing on the map. sepia injects chroma that hue-rotate can spin to purple. */
+.totality-map .leaflet-tile-pane {
+  filter: brightness(0.85) sepia(1) saturate(2.6) hue-rotate(212deg) contrast(1.02);
+}
+
+.totality-map .leaflet-container {
+  background: #191430;
+  font-family: var(--font-body);
+}
+
+/* Map chrome restyled to the dusk palette. */
+.totality-map .leaflet-bar a {
+  background: rgba(33, 26, 55, 0.94);
+  color: rgba(253, 247, 234, 0.82);
+  border-bottom-color: rgba(253, 247, 234, 0.14);
+}
+
+.totality-map .leaflet-bar a:hover {
+  background: rgba(47, 38, 79, 0.96);
+  color: var(--accent-ember);
+}
+
+.totality-map .leaflet-control-attribution {
+  background: rgba(15, 12, 32, 0.72);
+  color: rgba(253, 247, 234, 0.55);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+}
+
+.totality-map .leaflet-control-attribution a {
+  color: rgba(253, 247, 234, 0.78);
+}
+
+/* City markers — a glowing ember dot for totality, a hollow ring for partial. */
+.totality-marker {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-ember);
+  border: 2px solid #fdf7ea;
+  box-shadow: 0 0 0 1px rgba(20, 15, 34, 0.6), 0 0 10px 1px rgba(232, 134, 63, 0.6);
+}
+
+.totality-marker.is-partial {
+  background: rgba(43, 39, 71, 0.95);
+  border-color: var(--accent-ember);
+  box-shadow: 0 0 0 1px rgba(20, 15, 34, 0.6);
+}
+
+/* Coverage-contour labels floating on the shaded partial bands. */
+.totality-map .coverage-contour-tip.leaflet-tooltip {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  color: rgba(248, 176, 108, 0.85);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 4px rgba(10, 8, 23, 0.9);
+}
+
+.totality-map .coverage-contour-tip.leaflet-tooltip::before {
+  display: none;
+}
+
+/* Permanent coverage labels riding beside each marker. */
+.totality-map .totality-tip.leaflet-tooltip {
+  background: rgba(15, 12, 32, 0.82);
+  border: 1px solid rgba(253, 247, 234, 0.16);
+  border-radius: 5px;
+  padding: 1px 6px;
+  color: #fdf7ea;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.totality-map .totality-tip.is-total {
+  color: var(--accent-ember);
+  border-color: rgba(232, 134, 63, 0.5);
+}
+
+.totality-map .totality-tip.leaflet-tooltip::before {
+  display: none; /* drop the default callout arrow — labels sit flush to the dot */
+}
+
+/* Popups — dark plate in the dusk palette. */
+.totality-map .leaflet-popup-content-wrapper {
+  background: rgba(33, 26, 55, 0.98);
+  color: #efe4d2;
+  border: 1px solid rgba(253, 247, 234, 0.16);
+  border-radius: 10px;
+  box-shadow: 0 16px 34px rgba(10, 8, 23, 0.5);
+}
+
+.totality-map .leaflet-popup-tip {
+  background: rgba(33, 26, 55, 0.98);
+  border: 1px solid rgba(253, 247, 234, 0.16);
+}
+
+.totality-map .leaflet-popup-close-button {
+  color: rgba(253, 247, 234, 0.6);
+}
+
+.totality-map .leaflet-popup-content {
+  margin: 0.85rem 1rem;
+  line-height: 1.45;
+}
+
+.totality-popup-name {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.12rem;
+  letter-spacing: -0.02em;
+  color: #fdf7ea;
+}
+
+.totality-popup-tag {
+  display: block;
+  margin-top: 0.15rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-ember);
+}
+
+.totality-popup-meta {
+  margin-top: 0.4rem;
+  font-size: 0.82rem;
+  color: rgba(239, 228, 210, 0.75);
+}
+
+/* Legend under the map — echoes .coverage-figure figcaption. */
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.6rem;
+  margin: 1.1rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.map-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.map-swatch {
+  flex: none;
+  width: 1.4rem;
+  height: 0.7rem;
+  border-radius: 3px;
+}
+
+.map-swatch-band {
+  background: rgba(232, 134, 63, 0.32);
+  border: 1px solid var(--accent-ember);
+}
+
+.map-swatch-line {
+  height: 0;
+  border: 0;
+  border-top: 2.5px solid var(--accent-flame);
+  border-radius: 0;
+}
+
+.map-swatch-shade {
+  background: linear-gradient(90deg, rgba(232, 134, 63, 0.15), rgba(232, 134, 63, 0.7));
+  border: 1px solid rgba(232, 134, 63, 0.5);
+}
+
+.map-swatch-dot {
+  width: 0.7rem;
+  border-radius: 50%;
+  background: var(--accent-ember);
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--rule);
+}
+
+.map-fallback {
+  padding: 1.4rem;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 600px) {
+  .totality-map {
+    height: clamp(20rem, 62vh, 26rem);
+  }
+}
+
 /* ---------- Footer ---------- */
 
 .site-footer {

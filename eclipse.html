@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <link rel="stylesheet" href="assets/css/eclipse-ireland-2026.css" />
 </head>
 <body>
@@ -27,6 +28,7 @@
       <a href="#what">What</a>
       <a href="#timing">Timing</a>
       <a href="#stat">Coverage</a>
+      <a href="#totality">Totality</a>
       <a href="#safety">Safety</a>
       <a href="#references">Sources</a>
     </nav>
@@ -247,7 +249,29 @@
       </div>
     </section>
 
-    <section id="safety" class="content-section alt">
+    <section id="totality" class="content-section alt map-section">
+      <div class="section-wrap">
+        <p class="section-kicker reveal">04 — Path of Totality</p>
+        <h2 class="reveal">Where the Sun goes fully dark</h2>
+        <p class="reveal">Ireland only ever sees a partial eclipse. The narrow track of <strong>totality</strong> — where the Moon blots the Sun out completely — sweeps down out of the Arctic, crosses <strong>western Iceland</strong>, races over the North Atlantic and makes landfall in <strong>northern Spain</strong> around sunset. To stand in the Moon's full shadow, that band is where you would need to be.</p>
+
+        <figure class="totality-map-figure reveal">
+          <div id="totality-map" class="totality-map" role="img" aria-label="Map of the 12 August 2026 total solar eclipse. A band of totality runs from western Iceland, south across the North Atlantic, to northern Spain. Ireland lies east of the band and sees only a deep partial eclipse.">
+            <noscript>
+              <p class="map-fallback">On 12 August 2026 the path of totality crosses western Iceland (~17:48&nbsp;UT), the North Atlantic, and northern Spain near sunset (~18:30&nbsp;UT). Ireland lies just east of the band and sees a deep partial eclipse of up to 98%.</p>
+            </noscript>
+          </div>
+          <figcaption class="map-legend">
+            <span class="map-legend-item"><span class="map-swatch map-swatch-band" aria-hidden="true"></span>Band of totality</span>
+            <span class="map-legend-item"><span class="map-swatch map-swatch-line" aria-hidden="true"></span>Centre line</span>
+            <span class="map-legend-item"><span class="map-swatch map-swatch-shade" aria-hidden="true"></span>Partial coverage (deeper = more)</span>
+            <span class="map-legend-item"><span class="map-swatch map-swatch-dot" aria-hidden="true"></span>Viewing location</span>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="safety" class="content-section">
       <div class="section-wrap split safety-layout">
         <div class="safety-visual reveal">
           <svg class="pinhole" viewBox="0 0 320 340" role="img" aria-label="A pinhole projector: sunlight passes through a small hole in a card and casts an inverted crescent image of the eclipsed Sun onto a screen below — a safe way to watch the eclipse indirectly.">
@@ -328,7 +352,7 @@
         </div>
 
         <div class="safety-copy">
-          <p class="section-kicker reveal">04 — Eye Safety</p>
+          <p class="section-kicker reveal">05 — Eye Safety</p>
           <h2 class="reveal">Never view the Sun directly without proper protection</h2>
           <ul class="safety-list stagger">
             <li class="reveal">Use certified solar viewers that meet ISO&nbsp;12312-2.</li>
@@ -341,9 +365,9 @@
       </div>
     </section>
 
-    <section id="references" class="content-section">
+    <section id="references" class="content-section alt">
       <div class="section-wrap">
-        <p class="section-kicker reveal">05 — Local Circumstances &amp; Resources</p>
+        <p class="section-kicker reveal">06 — Local Circumstances &amp; Resources</p>
         <h2 class="reveal">Verify exact local circumstances before the event</h2>
         <p class="reveal">Times and coverage on this page are illustrative. Cloud cover and a clear west-north-west horizon decide what you actually see — so check the live forecast and the official eclipse resources close to the day.</p>
 
@@ -390,6 +414,7 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="assets/js/eclipse-ireland-2026.js"></script>
 </body>
 </html>
