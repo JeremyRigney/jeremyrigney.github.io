@@ -1,826 +1,666 @@
-<!DOCTYPE HTML>
-<!--
-	Stellar by HTML5 UP
-	html5up.net | @ajlkn
-	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
--->
-<html>
+<!DOCTYPE html>
+<html lang="en">
 	<head>
-		<title>Jeremy Rigney | Blog</title>
+		<title>Jeremy Rigney | Data Dashboard</title>
 		<meta charset="utf-8" />
 		<!-- Favicon-->
-        <link rel="icon" type="image/x-icon" href="images/favicon.png"/>
-		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		<link rel="stylesheet" href="assets/css/main.css" />
-		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
-		<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+		<link rel="icon" type="image/x-icon" href="images/favicon.png"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="theme-color" content="#06140e" />
 		<meta name="author" content="Jeremy Rigney">
-		<meta name="description" content="I hold a PhD in astrophysics from Queen's University Belfast. My research focused on observing the Sun and other stars using some of the largest and most advanced telescopes in the world to better understand stellar dynamics. Throughout my PhD I have presented my research at international conferences, and published peer reviewed research, collaborating with colleagues across the globe."/>
-		<meta name="keywords" content="Jeremy Rigney, Jeremy, astronomy ireland, irish astronomy, jeremy astronomy, jeremy irish astronomy, jeremy science communication, science communication ireland, Jeremy Rigney astro, Dublin Institute for Advanced Studies, AOP, Armagh Observatory, Queen's University Belfast, Lindsay Scholar, jeremy queens, jeremy dias, jeremy armagh"/>
+		<meta name="description" content="A data dashboard of live widgets built by Jeremy Rigney — Irish Rail train positions, arXiv flare-star summaries, GOES X-ray flux, and live solar data."/>
+		<meta name="keywords" content="Jeremy Rigney, data dashboard, Irish Rail live map, GOES X-ray, solar data, arXiv, astronomy ireland, data scientist ireland"/>
 
-
-		<link rel="preconnect" href="https://fonts.googleapis.com">
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300..700;1,300..700&display=swap" rel="stylesheet">
-
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Chivo+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+		<link rel="stylesheet" href="assets/css/dashboard.css" />
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
 		<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
- 		<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
- 		<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
-
-
-		<script type='text/javascript'>
-        	function toggleMenu() {
-        	    var menu = document.getElementById("menu");
-        	    if (menu.style.display === "flex") {
-        	        menu.style.display = "none";
-        	    } else {
-        	        menu.style.display = "flex";
-        	    }
-        	}
-    	</script>
+		<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+		<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
 	</head>
-	<body class="is-preload">
 
-		<!-- Wrapper -->
-			<div id="wrapper">
+	<body>
 
+		<!-- Header -->
+		<header class="site-header" id="site-header">
+			<a class="brand" href="https://jeremy.ie">Jeremy<span>.</span></a>
+			<nav class="nav-links" id="nav-links" aria-label="Primary">
+				<a href="https://jeremy.ie">Home</a>
+				<a href="cv.html">CV</a>
+				<a href="#projects">Projects</a>
+				<a href="#contact" class="nav-cta">Contact</a>
+			</nav>
+			<button class="nav-toggle" id="nav-toggle" type="button" aria-label="Open menu" aria-controls="nav-links" aria-expanded="false">
+				<span></span><span></span><span></span>
+			</button>
+		</header>
 
-				<div class="hamburger" onclick="toggleMenu()">
-   				    <div class="bar"></div>
-   				    <div class="bar"></div>
-   				    <div class="bar"></div>
-   				</div>
-   				<div class="menu" id="menu">
-    			    <a href="https://jeremy.ie" class="active">Home</a>
-					<a href="https://jeremy.ie/cv">CV</a>
-					<a href="#cta">Contact</a>
-    			</div>
+		<main id="top">
 
-				<!-- Nav -->
-					<nav id="nav">
-						<ul>
-							<li><a href="https://jeremy.ie" class="active">Home</a></li>
-							<li><a href="https://jeremy.ie/cv">CV</a></li>
-							<li><a href="#cta">Contact</a></li>
-						</ul>
-					</nav>
-
-				<!-- Main -->
-					<div id="main">
-
-						<!-- Content -->
-							
-				<section id="first" class="main">
-		            
-		        <div class="content" style='max-width: 970px; margin:0px auto;'>
-		            <h2 class="text-center mt-0">Data Dashboard</h2>
-
-		            <p>A collection of widgets I have created and collated, added to semi-regularly. The Irish Rail, arXiv summaries, GOES Plot, Solar Info and solar images are all live widgets I developed from scratch, pulling from publicly available data. The weather and lunar phase widgets are lightly modified from free, pre-existing widgets.
-
-
-		            <ul>
-					  <li>Irish Rail Live Irish Rail train information. JavaScript pulls real-time data (~1-minute updates) from a custom API that I built with Flask (Python) and hosted on Google Cloud. The Flask app obtains data from the Irish Rail API XML files. More information and upgrades will be added to this widget in time, this is a minimum working example.</li>
-					  <li>The arXiv summaries pull from the arXiv API, filtered to only search and return papers related to solar and stellar flares (ideally with radio data). This provided an at-a-glance summary of daily papers related to my PhD thesis work.</li>
-					  <li>The weather and lunar phase widgets are pre-built, the only modifications are style and locations.</li>
-					  <li>The GOES live plot pulls data from the GOES satellite live JSON files. The data are live X-ray flux of the full solar disk. Bright peaks correspond to solar flares, classified from A-X, with X being the most powerful (y-axis). The plot is a 3-day summary, and is near-realtime. It utilises canvasJS to plot the data.</li>
-					  <li>The Solar Info again uses JS to pull from a live JSON file, location dependent. The solar images adjacent are near-realtime (-15 mins) NASA SDO AIA images.</li>
-					</ul>
-		            </p>
-
-		          <div class="row gtr-uniform">
-		          <div class="col-8 col-12-small">
-		          	<h3>Live Irish Rail Train Positions (Interactive)</h3>
-		          	New features coming soon...
-				  	<div id="trainmap" style=" height: 600px; width: 90%; border-radius:10px; margin:0px auto;"></div>
-				  </div>
-				
-				  <div class="col-4 col-12-small">
-				    <div id="route-info" style="padding: 10px; font-size: 14px; max-height: 600px; overflow-y: auto;">
-				    <h4 style='padding-bottom:40px;'>Selected Train Route</h4>
-				    <div id="station-list">Click a train on the map to see its stops.</div>
-				    </div>
-				  </div>
-
-				</div>
-		            
-				</br>
-		        <span style=''>Recent arXiv articles related to flare stars:</span>
-		            <div class="row gtr-uniform" style='margin-top:20px;'>
-
-		              <div class="col-4 col-12-small">
-		                
-		                <div class="p-3" style=' background: #f5f5f5; border-radius:5px;padding:10px;'><!-- style='border-radius: 12px; background: #fff; box-shadow:  -7px 7px 14px #d0d0d0, 7px -7px 14px #f0f0f0;'> -->
-
-		                    <div height='70px' style='line-height:20px; text-align:center; color:#000; padding-top:20px; border-radius:4px;'>
-		                    <span class='firsttitle'></span>
-		                    </div>
-
-		                    <div height='50px' style='line-height:16px; text-align:left; color:#000; font-size:11px; margin-top:20px; padding:20px;'>
-		                    <i><span class='authorp1'></span> et al.</br></br></i>
-		                    <span class='firstabstract'></span>...
-		                    </div>
-
-		                    <!-- <div style='text-align:center;line-height:15px; color:#000; font-size:13px;  margin-top:30px;'><span class='link1'></span></div>-->
-		                    
-		                    <button class="link1 button">Read  on arXiv</button>
-
-		                </div>
-
-		              </div>
-
-
-		            
-		              <div class="col-4 col-12-small">
-		                
-		                <div class="p-3" style=' background: #f5f5f5; border-radius:5px; padding:10px;'>
-
-		                    <div height='70px' style='line-height:20px; text-align:center; color:#000; padding-top:20px; border-radius:4px;'>
-		                    <span class='secondtitle'></span>
-		                    </div>
-
-		                    <div height='50px' style='line-height:16px; text-align:left; color:#000; font-size:11px; margin-top:20px; padding:20px;'>
-		                    <i><span class='authorp2'></span> et al.</br></br></i>
-		                    <span style='height:100px; overflow-y:hidden;' class='secondabstract'></span>...
-		                    </div>
-
-		                    <!-- <div style='text-align:center;line-height:15px; color:#fff; font-size:13px;  margin-top:30px;'><span class='link2'></span></div>-->
-		                    <button class="link2 button">Read  on arXiv</button>
-
-		                </div>
-		              </div>
-
-
-		              <div class="col-4 col-12-small">
-		                
-		               <div class="p-3" style=' background: #f5f5f5; border-radius:5px; padding:10px;'><!-- style='background-color:#02364C;'>-->
-
-		                    <div height='70px' style='line-height:20px; text-align:center; color:#000; padding-top:20px; border-radius:4px;'>
-		                    <span class='thirdtitle'></span>
-		                    </div>
-
-		                    <div height='50px' style='line-height:16px; text-align:left; color:#000; font-size:11px; margin-top:20px; padding:20px;'>
-		                    <i><span class='authorp3'></span> et al.</br></br></i>
-		                    <span class='thirdabstract'></span>...
-		                    </div>
-
-		                    <!--<div style='text-align:center;line-height:15px; color:#fff; font-size:13px;  margin-top:30px;'><span class='link3'></span></div>-->
-		                    <button class="link3 button">Read  on arXiv</button>
-		                </div>
-		              </div>
-		            
-		            </div>
-
-
-
-
-
-
-
-		            <div class="row gtr-uniform" style='margin-top:40px; margin-bottom:40px;'>
-		              <div class="col-12 col-12-small">
-		                <div class="p-3 border rounded bg-light">
-
-		                <!--<a class="weatherwidget-io" href="https://forecast7.com/en/53d35n6d26/dublin/" data-label_1="DUBLIN" data-label_2="WEATHER" data-theme="original" data-basecolor="#142E54" data-lowcolor="#ffffff" data-raincolor="#ffffff" >DUBLIN WEATHER</a>
-		                <script>
-		                    !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src='https://weatherwidget.io/js/widget.min.js';fjs.parentNode.insertBefore(js,fjs);}}(document,'script','weatherwidget-io-js');
-		                </script>-->
-
-		                <a class="weatherwidget-io" href="https://forecast7.com/en/53d35n6d26/dublin/" data-label_1="DUBLIN" data-label_2="WEATHER" data-theme="original" data-basecolor="#fff" data-accent="rgba(20, 46, 84, 0.02)" data-textcolor="#142E54" data-highcolor="#c34e2e" data-lowcolor="#142E54" data-mooncolor="#142E54" data-cloudcolor="#777777" data-raincolor="#142E54" >DUBLIN WEATHER</a>
-				<script>
-				!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src='https://weatherwidget.io/js/widget.min.js';fjs.parentNode.insertBefore(js,fjs);}}(document,'script','weatherwidget-io-js');
-				</script>
-				                
-		                </div>
-		              </div>
-		   
-		            </div>
-
-		            <div class="row gtr-uniform" style='margin-top:40px;'>
-		              <div class="col-4 col-12-small">
-		                
-		                <div class="p-3 border rounded bg-light">
-
-		                   <!--<script type="text/javascript" src="http://moonphases.co.uk/js/widget.js" id="moonphase_widget" widget="tiny-times" lat="53.3498" lng="-6.2603" date="" tz=""></script>-->
-
-		                <!-- © wdisseny --><div id="contain_moon" style="text-align:center;padding-top:5px;padding-bottom:5px;"><div style="font-weight:bold">Current Lunar Phase</div><div style="margin-top:-7px;margin-bottom:50px;padding:30px;filter:drop-shadow(0 0 30px hsl(219,100%,6%))"></div><div>.</div><div style="font-size:small">.</div></div><script>(function(){var d=new Date().getDate();var m=document.querySelectorAll("#contain_moon div");var a=new XMLHttpRequest();var url="https://www.icalendar37.net/lunar/api/?lang=en&month="+(new Date().getMonth()+1)+"&year="+(new Date().getFullYear())+"&size=100&lightColor=rgb(245,245,245)&shadeColor=rgb(57,57,57)&t&LDZ="+new Date(new Date().getFullYear(),new Date().getMonth(),1)/1000+"";m[1].style.height="100px";a.onreadystatechange=function(){if(a.readyState==4&&a.status==200){var b=JSON.parse(a.responseText);m[1].innerHTML=b.phase[d].svg;if(typeof moon_widget_loaded=="function")moon_widget_loaded(b);m[2].innerHTML=b.phase[d].npWidget;m[3].innerHTML="<br>Next full moon<br>"+b.nextFullMoon}};a.open("GET",url,true);a.send()})()</script>
-
-		                </div>
-		              </div>
-
-		              <div class="col-8 col-12-small">
-
-		                <div class="p-3 border rounded bg-light">
-		                    <div id="chartContainer" style="height: 260px; width: 100%;"></div>
-		                </div>
-		              
-		              </div>
-		            </div>
-		            
-		            <div class="row gtr-uniform" style='margin-top:40px;'>
-		              <div class="col-4 col-12-small">
-		                <div class="p-3 border bg-light" style='padding:10px; border:1px solid #000; border-radius:5px;'>
-		                    Solar Information for Dublin Today: <span class='todaydate'></span>. (UTC)</br></br>
-		                    
-		                    <div height='30px' style='line-height:30px;'><img src='images/sunrise (2).png' height='25px' style='margin-right:10px;'/>Sunrise: <span class='srise'></span></div></br>
-		                    <div height='30px' style='line-height:30px;'><img src='images/sunset (1).png' height='25px' style='margin-right:10px;'/>Sunset: <span class='sset'></span></div></br>
-
-		                    <div height='30px' style='line-height:30px;'><img src='images/solarnoon (1).png' height='25px' style='margin-right:10px;'/>Solar Noon: <span class='snoon'></span></div></br>
-		                    <div height='30px' style='line-height:30px;'><img src='images/twilight.png' height='25px' style='margin-right:10px;'/>Lunar Phase: <span class='mphse'></span></div></br>
-
-		                    <div height='30px' style='line-height:30px;'><img src='images/clock.png' height='25px' style='margin-right:10px;'/>Day Length: <span class='daylen'></span></div></br>
-		                    <!--<div height='30px' style='line-height:30px;'><img src='assets/twilight.png' height='25px' style='margin-right:10px;'/>Astro. Twilight Begins: <span class='asttwibegin'></span></div></br>
-		                    <div height='30px' style='line-height:30px;'><img src='assets/twilight.png' height='25px' style='margin-right:10px;'/>Astro. Twilight Ends: <span class='asttwiend'></span></div></br>-->
-		                    <!--Icons created by Freepik, ThoseIcons, and PixelPerfect from flaticon.com -->
-		                </div>
-		              </div>
-		              <div class="col-8 col-12-small">
-		                <div class="p-3 border bg-light" style="font-weight:bold;text-align:center;padding-top:10px;padding-bottom:5px;">
-		                    The Sun Now (SDO AIA)
-		                    </br>
-		                    <a href='https://sdo.gsfc.nasa.gov/data/' target='_blank'><img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_2048_0171.jpg" height=220px width=220px style='border-radius:5px;margin-bottom:10px;'/></a>
-		                    
-		                    <a href='https://sdo.gsfc.nasa.gov/data/' target='_blank'><img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_2048_HMIIC.jpg" height=220px width=220px style='border-radius:5px;margin-bottom:10px;'/></a>
-
-		                </div>
-		              </div>
-		  
-		            </div>
-
-
-		         
-
-
-		        </div>
-		           
-
- 
-        	</section>
-
-					
-
+			<!-- Intro -->
+			<section class="page-intro">
+				<div class="wrap">
+					<p class="kicker reveal">Live data · Dublin, Ireland</p>
+					<h1 class="reveal">Data Dashboard</h1>
+					<p class="lead reveal">A growing collection of widgets I've built and collated. The Irish Rail map, arXiv summaries, GOES X-ray plot and solar info are live widgets I developed from scratch, pulling from publicly available data via APIs I host. The weather and lunar widgets are lightly modified from free existing widgets. This board expands as I add new tools and projects.</p>
+					<div class="status-row reveal">
+						<span class="status-chip"><span class="status-dot"></span> Irish Rail · ~60s refresh</span>
+						<span class="status-chip"><span class="status-dot"></span> GOES X-ray · near-realtime</span>
+						<span class="status-chip"><span class="status-dot"></span> SDO AIA · −15 min</span>
+						<span class="status-chip"><span class="status-dot"></span> arXiv · daily</span>
 					</div>
+				</div>
+			</section>
 
-				<!-- Footer -->
-					<footer id="footer">
-						<section id="cta">
-							<h2>Get in Touch</h2>
-							<p>I welcome opportunities to engage in public speaking, particularly at science festivals, open days, and similar events. Feel free to reach out with any enquiries.</p>
-							<ul class="actions">
-								<li><a href="https://jeremy.ie/speaking" class="button">See Previous Talks</a></li>
-							</ul>
-						</section>
-						<section>
-							<h2 style='color:#03220C;'>Contact Information</h2>
-							<dl class="alt">
-								<dt>Location</dt>
-								<dd>Dublin &bull; Ireland</dd>
-								<!--<dt>Phone</dt>
-								<dd>(000) 000-0000 x 0000</dd>-->
-								<dt>Email</dt>
-								<dd><a href="#">jeremy.rigney [at] gmail [dot] com</a></dd>
-							</dl>
-							<ul class="icons">
-								<li><a href="https://x.com/jeremyrigney" target='_blank' class="icon brands fa-x-twitter alt"><span class="label">Twitter</span></a></li>
-								<li><a href="https://www.instagram.com/jeremy.rigney/" target='_blank' class="icon brands fa-instagram alt"><span class="label">Instagram</span></a></li>
-								<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" class="icon brands fa-linkedin alt"><span class="label">LinkedIn</span></a></li>
-								<li><a href="https://github.com/jeremyrigney" target='_blank' class="icon brands fa-github alt"><span class="label">GitHub</span></a></li>
-								<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target='_blank' class="icon brands fa-google-scholar alt"><span class="label">Google Scholar</span></a></li>
-							</ul>
-						</section>
-						<p class="copyright">&copy;Template from <a href="https://html5up.net">HTML5 UP</a>.</p>
-					</footer>
+			<!-- Grid -->
+			<div class="wrap">
+
+				<!-- Transit -->
+				<div class="section-label reveal"><h2>Transit</h2></div>
+				<div class="tile-grid grid-section">
+					<article class="tile map-tile span-8 reveal">
+						<div class="tile-head">
+							<div class="tile-head-stack">
+								<span class="t-label">Live · Interactive</span>
+								<h3>Irish Rail Train Positions</h3>
+							</div>
+							<span class="t-meta">Flask API · Google Cloud</span>
+						</div>
+						<div class="tile-body flush">
+							<div id="trainmap"></div>
+						</div>
+					</article>
+					<article class="tile span-4 reveal">
+						<div class="tile-head">
+							<div class="tile-head-stack">
+								<span class="t-label">Selected route</span>
+								<h3>Stops &amp; Times</h3>
+							</div>
+						</div>
+						<div class="route-panel">
+							<div id="station-list"><span class="route-empty">Click a train on the map to see its stops.</span></div>
+						</div>
+					</article>
+				</div>
+
+				<!-- Solar -->
+				<div class="section-label reveal"><h2>Solar activity</h2></div>
+				<div class="tile-grid grid-section">
+					<article class="tile span-8 reveal">
+						<div class="tile-head">
+							<div class="tile-head-stack">
+								<span class="t-label">GOES · X-ray flux</span>
+								<h3>3-Day Solar X-Ray</h3>
+							</div>
+							<span class="t-meta">Flares classed A–X</span>
+						</div>
+						<div class="tile-body">
+							<div id="chartContainer"></div>
+						</div>
+					</article>
+					<article class="tile span-4 reveal">
+						<div class="tile-head">
+							<div class="tile-head-stack">
+								<span class="t-label">Ephemeris · Dublin</span>
+								<h3>Solar Information</h3>
+							</div>
+						</div>
+						<div class="tile-body">
+							<p class="solar-date"><span class="todaydate"></span> · UTC</p>
+							<div class="solar-list">
+								<div class="solar-row"><img src="images/sunrise (2).png" alt=""><span class="s-label">Sunrise</span><span class="s-value srise"></span></div>
+								<div class="solar-row"><img src="images/sunset (1).png" alt=""><span class="s-label">Sunset</span><span class="s-value sset"></span></div>
+								<div class="solar-row"><img src="images/solarnoon (1).png" alt=""><span class="s-label">Solar Noon</span><span class="s-value snoon"></span></div>
+								<div class="solar-row"><img src="images/twilight.png" alt=""><span class="s-label">Lunar Phase</span><span class="s-value mphse"></span></div>
+								<div class="solar-row"><img src="images/clock.png" alt=""><span class="s-label">Day Length</span><span class="s-value daylen"></span></div>
+							</div>
+						</div>
+					</article>
+					<article class="tile span-4 reveal">
+						<div class="tile-head">
+							<div class="tile-head-stack">
+								<span class="t-label">NASA SDO · AIA / HMI</span>
+								<h3>The Sun Now</h3>
+							</div>
+							<span class="t-meta">−15 min</span>
+						</div>
+						<div class="tile-body">
+							<div class="sdo-grid">
+								<a href="https://sdo.gsfc.nasa.gov/data/" target="_blank" rel="noopener"><img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_2048_0171.jpg" alt="SDO AIA 171 image of the Sun"/></a>
+								<a href="https://sdo.gsfc.nasa.gov/data/" target="_blank" rel="noopener"><img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_2048_HMIIC.jpg" alt="SDO HMI continuum image of the Sun"/></a>
+							</div>
+							<p class="sdo-caption">AIA 171 Å · HMI Continuum</p>
+						</div>
+					</article>
+					<article class="tile span-4 reveal">
+						<div class="tile-head">
+							<div class="tile-head-stack">
+								<span class="t-label">icalendar37</span>
+								<h3>Current Lunar Phase</h3>
+							</div>
+						</div>
+						<div class="tile-body">
+							<div id="contain_moon" style="text-align:center;">
+								<div style="font-weight:bold">Current Lunar Phase</div>
+								<div style="margin-top:-7px;margin-bottom:40px;padding:20px;filter:drop-shadow(0 0 24px rgba(111,208,160,0.25))"></div>
+								<div>.</div>
+								<div style="font-size:small">.</div>
+							</div>
+						</div>
+					</article>
+				</div>
+
+				<!-- Research -->
+				<div class="section-label reveal"><h2>Research feed</h2></div>
+				<div class="tile-grid grid-section">
+					<article class="tile arxiv-card span-4 reveal">
+						<div class="tile-head"><div class="tile-head-stack"><span class="t-label">arXiv · flare stars</span></div></div>
+						<div class="tile-body">
+							<div class="arxiv-title firsttitle"></div>
+							<div class="arxiv-authors"><span class="authorp1"></span> et al.</div>
+							<div class="arxiv-abstract"><span class="firstabstract"></span>…</div>
+							<button class="link1 btn-mini">Read on arXiv</button>
+						</div>
+					</article>
+					<article class="tile arxiv-card span-4 reveal">
+						<div class="tile-head"><div class="tile-head-stack"><span class="t-label">arXiv · flare stars</span></div></div>
+						<div class="tile-body">
+							<div class="arxiv-title secondtitle"></div>
+							<div class="arxiv-authors"><span class="authorp2"></span> et al.</div>
+							<div class="arxiv-abstract"><span class="secondabstract"></span>…</div>
+							<button class="link2 btn-mini">Read on arXiv</button>
+						</div>
+					</article>
+					<article class="tile arxiv-card span-4 reveal">
+						<div class="tile-head"><div class="tile-head-stack"><span class="t-label">arXiv · flare stars</span></div></div>
+						<div class="tile-body">
+							<div class="arxiv-title thirdtitle"></div>
+							<div class="arxiv-authors"><span class="authorp3"></span> et al.</div>
+							<div class="arxiv-abstract"><span class="thirdabstract"></span>…</div>
+							<button class="link3 btn-mini">Read on arXiv</button>
+						</div>
+					</article>
+				</div>
+				<p class="feed-credit reveal">Paper metadata via the <a href="https://info.arxiv.org/help/api/index.html" target="_blank" rel="noopener">arXiv API</a> (CC0). Thank you to arXiv for use of its open access interoperability.</p>
+
+				<!-- Environment -->
+				<div class="section-label reveal"><h2>Environment</h2></div>
+				<div class="tile-grid grid-section">
+					<article class="tile span-8 reveal">
+						<div class="tile-head">
+							<div class="tile-head-stack">
+								<span class="t-label">weatherwidget.io</span>
+								<h3>Dublin Weather</h3>
+							</div>
+						</div>
+						<div class="tile-body widget-shell">
+							<a class="weatherwidget-io" href="https://forecast7.com/en/53d35n6d26/dublin/" data-label_1="DUBLIN" data-label_2="WEATHER" data-theme="dark" data-basecolor="#0b2419" data-accent="rgba(205,176,106,0.08)" data-textcolor="#dbe4dd" data-highcolor="#e4cf96" data-lowcolor="#6cc6d6" data-mooncolor="#dbe4dd" data-cloudcolor="#9fb0a6" data-cloudfill="#9fb0a6" data-raincolor="#6cc6d6" data-suncolor="#e4cf96" data-shadecolor="#081b13">DUBLIN WEATHER</a>
+						</div>
+					</article>
+
+					<!-- Projects / links: modular tiles, add more here -->
+					<article class="tile link-tile span-4 reveal" id="projects" onclick="window.open('https://github.com/jeremyrigney','_blank')" style="cursor:pointer;">
+						<div class="tile-head"><div class="tile-head-stack"><span class="t-label">Code</span></div></div>
+						<div class="tile-body">
+							<span class="lt-name">Projects on GitHub</span>
+							<span class="lt-desc">Source for these widgets and other experiments.</span>
+							<span class="lt-go">View profile →</span>
+						</div>
+					</article>
+				</div>
 
 			</div>
+		</main>
+
+		<!-- Footer -->
+		<footer class="site-footer" id="contact">
+			<div class="wrap">
+				<div class="footer-grid">
+					<div>
+						<p class="kicker reveal">Get in touch</p>
+						<h2 class="reveal">Questions about the data, or a collaboration?</h2>
+						<p class="footer-lead reveal">I welcome opportunities in data, research and public speaking. Feel free to reach out.</p>
+						<ul class="socials">
+							<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a></li>
+							<li><a href="https://github.com/jeremyrigney" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a></li>
+							<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target="_blank" rel="noopener" aria-label="Google Scholar"><i class="fa-brands fa-google-scholar"></i></a></li>
+							<li><a href="https://www.instagram.com/jeremy.rigney/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a></li>
+						</ul>
+					</div>
+					<dl class="footer-contact reveal">
+						<dt>Location</dt>
+						<dd>Dublin &bull; Ireland</dd>
+						<dt>Email</dt>
+						<dd><a href="mailto:jeremy.rigney@gmail.com">jeremy.rigney [at] gmail [dot] com</a></dd>
+					</dl>
+				</div>
+				<div class="footer-bottom">
+					<p>&copy; <span id="year">2026</span> Jeremy Rigney</p>
+					<p><a href="https://jeremy.ie">Home</a> &nbsp;·&nbsp; <a href="cv.html">CV</a> &nbsp;·&nbsp; <a href="speaking.html">Speaking</a></p>
+				</div>
+			</div>
+		</footer>
 
 		<!-- Scripts -->
-			<script src="assets/js/jquery.min.js"></script>
-			<script src="assets/js/jquery.scrollex.min.js"></script>
-			<script src="assets/js/jquery.scrolly.min.js"></script>
-			<script src="assets/js/browser.min.js"></script>
-			<script src="assets/js/breakpoints.min.js"></script>
-			<script src="assets/js/util.js"></script>
-			<script src="assets/js/main.js"></script>
-
-
-
-
-
-
-    
-
-        <script src="https://code.jquery.com/jquery-1.6.4.js"></script>
-        <script type='text/javascript'>
-            //var goesdata;
-             var goesDataShort;
-             var goesDataLong;
-            $.getJSON('https://services.swpc.noaa.gov/json/goes/primary/xrays-3-day.json', function(data) {
-
-                const energy = data.map(i => `${i.energy}`);
-                const obs_flux = data.map(i => `${i.observed_flux}`);
-                
-                const times = data.map(i => `${i.time_tag}`);
-
-                
-                var short = [];
-                var long = [];
-
-                var shortData = [];
-                var longData = [];
-
-                let idx = energy.indexOf('0.05-0.4nm');
-                while (idx != -1) {
-                  short.push(obs_flux[idx])
-                  idx = energy.indexOf('0.05-0.4nm', idx + 1);
-                  
-                };
-
-                for (const x1 of short.keys()){
-                    var temp = {x:new Date(Date.parse(times[x1])), y:parseFloat(short[x1])};
-                    shortData.push(temp);
-                };
-
-
-                let idx2 = energy.indexOf('0.1-0.8nm');
-                while (idx2 != -1) {
-                  long.push(obs_flux[idx2])
-                  idx2 = energy.indexOf('0.1-0.8nm', idx2 + 1);
-                };
-
-                for (const x2 of long.keys()){
-                    var temp = {x:new Date(Date.parse(times[x2])), y:parseFloat(long[x2])};
-                    longData.push(temp);
-                };
-
-            
-
-            //console.log(goesDataLong);
-            //window.onload = function () {
-
-                var chart = new CanvasJS.Chart("chartContainer", {
-                    zoomEnabled: true,
-                    zoomType: "xy",
-                    exportEnabled: true,
-                    title: {
-                        text: "GOES 3-Day X-Ray Data",
-                        fontWeight:"normal",
-                        fontSize:"16"
-                    },
-                    axisX: {
-                        valueFormatString: "HH:MM DD/MM",
-                        title: "TIme and Date"
-                    },
-                    axisY: {
-                        logarithmic: true,
-                        title: "Energy",
-                        prefix: "",
-                        suffix: "",
-                        maximum: 0.0005,
-                        minimum: 0.00000001,
-                        labelFormatter: function ( e ) {
-                            var ret;
-                            switch(e.value){
-                                case 0.00000001:
-                                    ret = "A";
-                                    break;
-                                case 0.0000001:
-                                    ret = "B";
-                                    break;
-                                case 0.000001:
-                                    ret = "C";
-                                    break;
-                                case 0.00001:
-                                    ret = "M";
-                                    break;
-                                case 0.0001:
-                                    ret = "X";
-                                    break;
-        
-                            }
-                        return ret;
-                        }
-                    },
-
-                    toolTip: {
-                        shared: true
-                    },
-
-
-
-                    legend: {
-                        cursor: "pointer",
-                        verticalAlign: "top",
-                        horizontalAlign: "center",
-                        dockInsidePlotArea: true,
-                        itemclick: toogleDataSeries
-                    },
-                    data: [{
-                        type:"line",
-                        //axisYType: "secondary",
-                        name: "GOES 0.05-0.4 nm",
-                        color:'#2C4770',
-                        showInLegend: true,
-                        markerSize: 1,
-                        yValueFormatString: "#.##########",
-                        dataPoints: shortData,
-                        
-                    },
-                    {
-                        type: "line",
-                        //axisYType: "secondary",
-                        name: "GOES 0.1-0.8 nm",
-                        color:'#c34e2e',
-                        showInLegend: true,
-                        markerSize: 1,
-                        yValueFormatString: "#.##########",
-                        dataPoints: longData,
-
-                    },
-                    
-                    ]
-                });
-                chart.render();
-                
-                function toogleDataSeries(e){
-                    if (typeof(e.dataSeries.visible) === "undefined" || e.dataSeries.visible) {
-                        e.dataSeries.visible = false;
-                    } else{
-                        e.dataSeries.visible = true;
-                    }
-                    chart.render();
-                }
-            
-            //console.log(longData);
-            //}
-        });
-
-
-
-        </script>
-
-
-<script type='text/javascript'>
-         
-            $.getJSON('https://api.sunrise-sunset.org/json?lat=53.3871&lng=-6.3375&date=today', function(data) {
-
-                //https://sunrise-sunset.org/api
-                //$(".srise").html(data.results.sunrise);
-                //$(".sset").html(data.results.sunset);
-                $(".snoon").html(data.results.solar_noon);
-                $(".daylen").html(data.results.day_length);
-                $(".asttwibegin").html(data.results.astronomical_twilight_begin);
-                $(".asttwiend").html(data.results.astronomical_twilight_end);
-
-
-                var today = new Date();
-                var dd = String(today.getDate()).padStart(2, '0');
-                var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
-                var yyyy = today.getFullYear();
-
-                var today = dd + '/' + mm + '/' + yyyy;
-                $(".todaydate").html(today);
-
-            });
-
-
-            $.getJSON('https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/Dublin?unitGroup=metric&include=current&key=WUTWMSAENKK9ZK69JSY48FJSQ&contentType=json', function(data) {
-                $(".srise").html(data.currentConditions.sunrise);
-                $(".sset").html(data.currentConditions.sunset);
-                $(".mphse").html(data.currentConditions.moonphase);
-                //console.log(data);
-            });
-
-
-            var x = new XMLHttpRequest();
-            x.open("GET", "https://export.arxiv.org/api/query?search_query=all:star+AND+all:flare+AND+all:m+dwarf+NOT+all:fast+radio+bursts+NOT+all:neutron+stars+NOT+all:black+hole&start=0&max_results=3&sortBy=lastUpdatedDate&sortOrder=descending", true);
-            x.onreadystatechange = function () {
-                if (x.readyState == 4 && x.status == 200){
-                    var doc = x.responseXML;
-                    //console.log(doc)
-
-                    $(".firsttitle").html(doc.getElementsByTagName("title")[1].textContent);
-                    $(".secondtitle").html(doc.getElementsByTagName("title")[2].textContent);
-                    $(".thirdtitle").html(doc.getElementsByTagName("title")[3].textContent);
-
-
-                    var trimmedabs1 = doc.getElementsByTagName("summary")[0].textContent.substr(0, 270);
-                    //re-trim if we are in the middle of a word
-                    trimmedabs1 = trimmedabs1.substr(0, Math.min(trimmedabs1.length, trimmedabs1.lastIndexOf(" ")))
-                    $(".firstabstract").html(trimmedabs1);
-                    
-
-                    var trimmedabs2 = doc.getElementsByTagName("summary")[1].textContent.substr(0, 270);
-                    //re-trim if we are in the middle of a word
-                    trimmedabs2 = trimmedabs2.substr(0, Math.min(trimmedabs2.length, trimmedabs2.lastIndexOf(" ")))
-                    $(".secondabstract").html(trimmedabs2);
-                    
-
-                    var trimmedabs3 = doc.getElementsByTagName("summary")[2].textContent.substr(0, 270);
-                    //re-trim if we are in the middle of a word
-                    trimmedabs3 = trimmedabs3.substr(0, Math.min(trimmedabs3.length, trimmedabs3.lastIndexOf(" ")))
-                    $(".thirdabstract").html(trimmedabs3);
-
-                    var link1 = '<a href=\''+doc.getElementsByTagName("id")[1].textContent+'\' target=\'_blank\' style=\' text-decoration: none; color: #000; \'>Read on arXiv</a>'
-                     $(".link1").html(link1);
-                    var link2 = '<a href=\''+doc.getElementsByTagName("id")[2].textContent+'\' target=\'_blank\' style=\' text-decoration: none; color: #000; \'>Read on arXiv</a>'
-                     $(".link2").html(link2)
-                    var link3 = '<a href=\''+doc.getElementsByTagName("id")[3].textContent+'\' target=\'_blank\' style=\' text-decoration: none; color: #000; \'>Read on arXiv</a>'
-                     $(".link3").html(link3);
-
-                    var fruitName = doc.evaluate("/feed/entry[0]/author[1]", doc, null, XPathResult.ANY_TYPE, null);
-
-                    a = doc.documentElement.childNodes;
-                    var authorp1 = doc.getElementsByTagName("entry")[0].childNodes[11].textContent;
-                    $(".authorp1").html(authorp1);
-                    var authorp2 = doc.getElementsByTagName("entry")[1].childNodes[11].textContent;
-                    $(".authorp2").html(authorp2);
-                    var authorp3 = doc.getElementsByTagName("entry")[2].childNodes[11].textContent;
-                    $(".authorp3").html(authorp3);
-
-                    
-
-                }
-            };
-            x.send(null);
-
-
-
-
-</script>
-
-
-
-
-
-
-<script>
-
-const dartIcon = L.icon({
-    iconUrl: 'images/dart.png', 
-    iconSize: [18, 18],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -32]
-});
-
-const icIcon = L.icon({
-    iconUrl: 'images/ictrain.png', 
-    iconSize: [18, 18],            
-    iconAnchor: [16, 16],          
-    popupAnchor: [0, -32]          
-});
-
-// const map = L.map('trainmap').setView([53.4495, -7.5030], 7);
-
-// L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-//   attribution: '© OpenStreetMap contributors',
-// }).addTo(map);
-
-// OpenStreetMap tile layer
-const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
-  attribution: '© OpenStreetMap contributors'
-});
-
-// Satellite layer (from Esri)
-const satellite = L.tileLayer(
-  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 19,
-    attribution: 'Tiles © Esri & contributors'
-  }
-);
-
-// Create the map with the default base layer
-const map = L.map('trainmap', {
-  center: [53.4495, -7.5030],
-  zoom: 7,
-  layers: [osm]  // Start with OSM base
-});
-
-const baseMaps = {
-  "OpenStreetMap": osm,
-  "Satellite": satellite
-};
-
-L.control.layers(baseMaps).addTo(map);
-
-let stationLookup = {}; // Global: full station name => {lat, lon}
-let routeMarkers = [];  // Global array to remove old route markers
-
-// Load all stations once on page load
-function loadStations() {
-  //fetch("https://irishrail-api-737590149980.europe-west1.run.app/stations")
-  fetch("https://irishrail-api-737590149980.europe-west1.run.app/stations")
-    .then(res => res.json())
-    .then(stations => {
-      stations.forEach(station => {
-        const name = station.StationDesc;
-        const lat = parseFloat(station.StationLatitude);
-        const lon = parseFloat(station.StationLongitude);
-        stationLookup[name] = { lat, lon };
-      });
-    })
-    .catch(err => console.error("Error loading stations:", err));
-}
-// Call this on load
-loadStations();
-
-function clearRouteMarkers() {
-  routeMarkers.forEach(m => map.removeLayer(m));
-  routeMarkers = [];
-}
-
-// Initialize trainMarkers array once
-window.trainMarkers = [];
-
-function loadTrains() {
-  fetch('https://irishrail-api-737590149980.europe-west1.run.app/')
-    .then(res => res.json())
-    .then(trains => {
-      // Remove existing markers if any
-      if (window.trainMarkers && Array.isArray(window.trainMarkers)) {
-        window.trainMarkers.forEach(marker => marker.remove());
-      }
-      window.trainMarkers = [];
-
-      // Add new markers
-      trains.forEach(train => {
-        const lat = parseFloat(train.TrainLatitude);
-        const lon = parseFloat(train.TrainLongitude);
-        const code = train.TrainCode;
-        const message = train.PublicMessage;
-        const messageparsed = message.replace(/\\n/g, '<br>');
-        
-       
-
-
-		// Reject invalid numbers or missing data
-		  if (isNaN(lat) || isNaN(lon)) {
-		    console.warn(`Skipping train ${code}: invalid coordinates.`);
-		    return;
-		  }
-
-		// Reject coordinates outside the Irish rail network bounding box
-		  if (
-		    lat < 51.3 || lat > 55.5 ||
-		    lon < -10.7 || lon > -5.3
-		  ) {
-		    console.warn(`Skipping train ${code}: out-of-bounds coordinates (${lat}, ${lon})`);
-		    return;
-		  }
-
-        const destination = train.Direction.toLowerCase() || '';
-
-        // Decide which icon to use (InterCity or DART)
-        //const isNorthSouth = destination.includes("northbound") || destination.includes("southbound");
-        //const icon = isNorthSouth ? dartIcon : icIcon;
-
-
-        const trainCode = train.TrainCode || '';
-		const isDART = trainCode.startsWith('E');
-		const icon = isDART ? dartIcon : icIcon;
-
-		const scheduledTimeMatch = message.match(/(\d{2}:\d{2})/i);  // Adjust regex as needed
-
-		  if (scheduledTimeMatch) {
-		    const scheduledTimeStr = scheduledTimeMatch[1]; // e.g., "14:30"
-		    const [h, m] = scheduledTimeStr.split(':');
-		    const now = new Date();
-		    const sched = new Date(now);
-		    sched.setHours(parseInt(h), parseInt(m), 0);
-
-		    const diffMinutes = (sched - now) / 60000;
-
-		    if (diffMinutes > 10) {
-		      // Too far in future, skip adding to map
-		      return;
-		    }
-		  }
-
-
-		const popupMessage = isDART
-          ? `<strong>DART Service: ${code}</strong><br>${messageparsed}`
-          : `<strong>Train: ${code}</strong><br>${messageparsed}`;
-
-
-        const marker = L.marker([lat, lon], { icon: icon })
-          .addTo(map)
-          .bindPopup(popupMessage);
-
-         console.log(`Adding train ${code} at (${lat}, ${lon})`);
-
-        //const marker = L.marker([lat, lon], { icon: trainIcon })
-        //  .addTo(map)
-        //  .bindPopup(`<strong>Train: ${code}</strong><br>${messageparsed}`);
-
-
-
-         // Add click event to fetch route info
-        marker.on('click', () => {
-          const today = new Date().toISOString().split('T')[0]; // yyyy-mm-dd
-          fetch(`https://irishrail-api-737590149980.europe-west1.run.app/trainroute?code=${code}&date=${today}`)
-            .then(res => res.json())
-            .then(route => {
-			  clearRouteMarkers();
-
-			  if (!Array.isArray(route) || route.length === 0) {
-			    marker.bindPopup(`${popupMessage}<br><br><em>No route data available.</em>`).openPopup();
-			    return;
-			  }
-
-			  let routeInfo = "<br><strong>Route:</strong><br>";
-			  const latlngs = [];
-
-			  route.forEach(stop => {
-			    const name = stop.LocationFullName;
-			    const coords = stationLookup[name];
-
-			    if (coords) {
-			      const stopMarker = L.circleMarker([coords.lat, coords.lon], {
-			        radius: 5,
-			        color: "black",
-			        fillOpacity: 0.8,
-
-			      }).addTo(map);
-
-			      stopMarker.bindPopup(`<strong>${name}</strong><br>Scheduled: ${stop.ScheduledArrival || ''} - ${stop.ScheduledDeparture || ''}`);
-			      routeMarkers.push(stopMarker);
-			      latlngs.push([coords.lat, coords.lon]);
-			    }
-
-			    routeInfo += `• ${name}<br>`;
-			  });
-
-			  // Optionally draw a line between route stops
-			  const polyline = L.polyline(latlngs, { color: "white", weight: 2, fillOpacity:0.5 }).addTo(map);
-			  routeMarkers.push(polyline);  // So I can remove it later
-
-			  //marker.bindPopup(`${popupMessage}${routeInfo}`).openPopup();
-
-			  let stationHTML = `<ul style="list-style: none; padding-left: 0;">`;
-				route.forEach(stop => {
-				  const name = stop.LocationFullName;
-				  let arr = stop.ScheduledArrival || '';
-				  let dep = stop.ScheduledDeparture || '';
-
-				  // Skip non-stopping locations
-				  if (arr !== dep) {
-				    // Hide 00:00:00 where appropriate
-				    arr = (arr === '00:00:00') ? '' : arr;
-				    dep = (dep === '00:00:00') ? '' : dep;
-
-				    let timeText = (arr && dep) ? `${arr} → ${dep}` :
-				                   (arr) ? `Arr: ${arr}` :
-				                   (dep) ? `Dep: ${dep}` : '';
-
-				    stationHTML += `<li><strong>${name}</strong><br><small>${timeText}</small></li>`;
-				  }
+		<script src="assets/js/jquery.min.js"></script>
+
+		<!-- UI: sticky header, mobile nav, reveals, year -->
+		<script>
+			const header = document.getElementById('site-header');
+			const onScroll = () => header.classList.toggle('is-stuck', window.scrollY > 40);
+			onScroll();
+			window.addEventListener('scroll', onScroll, { passive: true });
+
+			const toggle = document.getElementById('nav-toggle');
+			const links = document.getElementById('nav-links');
+			toggle.addEventListener('click', () => {
+				const open = links.classList.toggle('is-open');
+				toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+			});
+			links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+				links.classList.remove('is-open');
+				toggle.setAttribute('aria-expanded', 'false');
+			}));
+
+			const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+			const items = document.querySelectorAll('.reveal');
+			if (reduce || !('IntersectionObserver' in window)) {
+				items.forEach(el => el.classList.add('is-in'));
+			} else {
+				const io = new IntersectionObserver((entries, obs) => {
+					entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('is-in'); obs.unobserve(e.target); } });
+				}, { rootMargin: '0px 0px -6% 0px', threshold: 0.06 });
+				items.forEach(el => io.observe(el));
+			}
+			document.getElementById('year').textContent = new Date().getFullYear();
+		</script>
+
+		<!-- Weather widget loader -->
+		<script>
+			!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src='https://weatherwidget.io/js/widget.min.js';fjs.parentNode.insertBefore(js,fjs);}}(document,'script','weatherwidget-io-js');
+		</script>
+
+		<!-- Lunar phase widget -->
+		<script>(function(){var d=new Date().getDate();var m=document.querySelectorAll("#contain_moon div");var a=new XMLHttpRequest();var url="https://www.icalendar37.net/lunar/api/?lang=en&month="+(new Date().getMonth()+1)+"&year="+(new Date().getFullYear())+"&size=100&lightColor=rgb(240,244,240)&shadeColor=rgb(20,32,25)&t&LDZ="+new Date(new Date().getFullYear(),new Date().getMonth(),1)/1000+"";m[1].style.height="100px";a.onreadystatechange=function(){if(a.readyState==4&&a.status==200){var b=JSON.parse(a.responseText);m[1].innerHTML=b.phase[d].svg;if(typeof moon_widget_loaded=="function")moon_widget_loaded(b);m[2].innerHTML=b.phase[d].npWidget;m[3].innerHTML="<br>Next full moon<br>"+b.nextFullMoon}};a.open("GET",url,true);a.send()})()</script>
+
+		<!-- GOES 3-day X-ray plot (CanvasJS) -->
+		<script type='text/javascript'>
+			var goesDataShort;
+			var goesDataLong;
+			$.getJSON('https://services.swpc.noaa.gov/json/goes/primary/xrays-3-day.json', function(data) {
+
+				const energy = data.map(i => `${i.energy}`);
+				const obs_flux = data.map(i => `${i.observed_flux}`);
+				const times = data.map(i => `${i.time_tag}`);
+
+				var short = [];
+				var long = [];
+				var shortData = [];
+				var longData = [];
+
+				let idx = energy.indexOf('0.05-0.4nm');
+				while (idx != -1) {
+					short.push(obs_flux[idx])
+					idx = energy.indexOf('0.05-0.4nm', idx + 1);
+				};
+				for (const x1 of short.keys()){
+					var temp = {x:new Date(Date.parse(times[x1])), y:parseFloat(short[x1])};
+					shortData.push(temp);
+				};
+
+				let idx2 = energy.indexOf('0.1-0.8nm');
+				while (idx2 != -1) {
+					long.push(obs_flux[idx2])
+					idx2 = energy.indexOf('0.1-0.8nm', idx2 + 1);
+				};
+				for (const x2 of long.keys()){
+					var temp = {x:new Date(Date.parse(times[x2])), y:parseFloat(long[x2])};
+					longData.push(temp);
+				};
+
+				var chart = new CanvasJS.Chart("chartContainer", {
+					zoomEnabled: true,
+					zoomType: "xy",
+					exportEnabled: true,
+					backgroundColor: "transparent",
+					title: {
+						text: "GOES 3-Day X-Ray Flux",
+						fontFamily: "Chivo Mono, monospace",
+						fontColor: "#dbe4dd",
+						fontWeight: "normal",
+						fontSize: 15
+					},
+					axisX: {
+						valueFormatString: "HH:MM DD/MM",
+						title: "Time and Date",
+						titleFontColor: "#8fa398",
+						titleFontFamily: "Inter, sans-serif",
+						titleFontSize: 12,
+						labelFontColor: "#8fa398",
+						labelFontFamily: "Chivo Mono, monospace",
+						labelFontSize: 10,
+						lineColor: "rgba(210,232,220,0.18)",
+						tickColor: "rgba(210,232,220,0.18)",
+						gridColor: "rgba(210,232,220,0.06)"
+					},
+					axisY: {
+						logarithmic: true,
+						title: "Flare class",
+						titleFontColor: "#8fa398",
+						titleFontFamily: "Inter, sans-serif",
+						titleFontSize: 12,
+						labelFontColor: "#cdb06a",
+						labelFontFamily: "Chivo Mono, monospace",
+						labelFontSize: 11,
+						lineColor: "rgba(210,232,220,0.18)",
+						tickColor: "rgba(210,232,220,0.18)",
+						gridColor: "rgba(210,232,220,0.06)",
+						prefix: "",
+						suffix: "",
+						maximum: 0.0005,
+						minimum: 0.00000001,
+						labelFormatter: function ( e ) {
+							var ret;
+							switch(e.value){
+								case 0.00000001: ret = "A"; break;
+								case 0.0000001: ret = "B"; break;
+								case 0.000001: ret = "C"; break;
+								case 0.00001: ret = "M"; break;
+								case 0.0001: ret = "X"; break;
+							}
+							return ret;
+						}
+					},
+					toolTip: { shared: true },
+					legend: {
+						cursor: "pointer",
+						fontColor: "#dbe4dd",
+						fontFamily: "Chivo Mono, monospace",
+						fontSize: 12,
+						verticalAlign: "top",
+						horizontalAlign: "center",
+						dockInsidePlotArea: true,
+						itemclick: toogleDataSeries
+					},
+					data: [{
+						type:"line",
+						name: "GOES 0.05-0.4 nm",
+						color:'#6cc6d6',
+						showInLegend: true,
+						markerSize: 1,
+						yValueFormatString: "#.##########",
+						dataPoints: shortData
+					},
+					{
+						type: "line",
+						name: "GOES 0.1-0.8 nm",
+						color:'#e4cf96',
+						showInLegend: true,
+						markerSize: 1,
+						yValueFormatString: "#.##########",
+						dataPoints: longData
+					}]
 				});
-				stationHTML += `</ul>`;
-				document.getElementById("station-list").innerHTML = stationHTML;
-			})
+				chart.render();
 
-            .catch(error => {
-              marker.bindPopup(`${popupMessage}<br><br><em>Unable to load route.</em>`).openPopup();
-              console.error('Error fetching route:', error);
-            });
-        });
+				function toogleDataSeries(e){
+					if (typeof(e.dataSeries.visible) === "undefined" || e.dataSeries.visible) {
+						e.dataSeries.visible = false;
+					} else{
+						e.dataSeries.visible = true;
+					}
+					chart.render();
+				}
+			});
+		</script>
 
+		<!-- Solar info + arXiv feed -->
+		<script type='text/javascript'>
+			$.getJSON('https://api.sunrise-sunset.org/json?lat=53.3871&lng=-6.3375&date=today', function(data) {
+				$(".snoon").html(data.results.solar_noon);
+				$(".daylen").html(data.results.day_length);
+				$(".asttwibegin").html(data.results.astronomical_twilight_begin);
+				$(".asttwiend").html(data.results.astronomical_twilight_end);
 
-        window.trainMarkers.push(marker);
-      });
-    })
-    .catch(error => console.error('Error fetching train data:', error));
-}
+				var today = new Date();
+				var dd = String(today.getDate()).padStart(2, '0');
+				var mm = String(today.getMonth() + 1).padStart(2, '0');
+				var yyyy = today.getFullYear();
+				var todayStr = dd + '/' + mm + '/' + yyyy;
+				$(".todaydate").html(todayStr);
+			});
 
+			$.getJSON('https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/Dublin?unitGroup=metric&include=current&key=WUTWMSAENKK9ZK69JSY48FJSQ&contentType=json', function(data) {
+				$(".srise").html(data.currentConditions.sunrise);
+				$(".sset").html(data.currentConditions.sunset);
+				$(".mphse").html(data.currentConditions.moonphase);
+			});
 
-// Initial load
-loadTrains();
-//console.log('Map object:', trainmap);
+			// arXiv is proxied through my Flask API (CORS + caching) — see app.py /arxiv.
+			// Direct browser calls to export.arxiv.org are blocked (no CORS header) and
+			// discouraged by arXiv's own API terms.
+			(function () {
+				var ARXIV_FEED = "https://irishrail-api-737590149980.europe-west1.run.app/arxiv";
+				var slots = ["first", "second", "third"];
 
+				function authorName(entry) {
+					var a = entry.getElementsByTagName("author")[0];
+					if (!a) return "";
+					var n = a.getElementsByTagName("name")[0];
+					return n ? n.textContent.trim() : "";
+				}
+				function trimAbstract(text, n) {
+					var t = text.trim().substr(0, n);
+					return t.substr(0, Math.min(t.length, t.lastIndexOf(" ")));
+				}
+				function feedError() {
+					slots.forEach(function (s, i) {
+						$("." + s + "title").text("Feed unavailable");
+						$("." + s + "abstract").text("The arXiv feed could not be loaded right now — please check back later.");
+						$(".authorp" + (i + 1)).text("");
+						$(".link" + (i + 1)).html('<a href="https://arxiv.org" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;">Visit arXiv →</a>');
+					});
+				}
 
-// Refresh every 60 seconds
-setInterval(loadTrains, 60000);
+				var x = new XMLHttpRequest();
+				x.open("GET", ARXIV_FEED, true);
+				x.onreadystatechange = function () {
+					if (x.readyState !== 4) return;
+					if (x.status !== 200) { feedError(); return; }
+					try {
+						var doc = x.responseXML;
+						var entries = doc ? doc.getElementsByTagName("entry") : [];
+						if (!entries || entries.length === 0) { feedError(); return; }
 
-// Create a custom legend control
-const legend = L.control({ position: "topleft" });
+						slots.forEach(function (s, i) {
+							var entry = entries[i];
+							if (!entry) return;
+							var title = entry.getElementsByTagName("title")[0];
+							var summary = entry.getElementsByTagName("summary")[0];
+							var id = entry.getElementsByTagName("id")[0];
+							$("." + s + "title").text(title ? title.textContent.trim() : "");
+							$("." + s + "abstract").text(summary ? trimAbstract(summary.textContent, 270) : "");
+							$(".authorp" + (i + 1)).text(authorName(entry));
+							if (id) {
+								$(".link" + (i + 1)).html('<a href="' + id.textContent.trim() + '" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;">Read on arXiv →</a>');
+							}
+						});
+					} catch (err) {
+						console.error("arXiv parse error:", err);
+						feedError();
+					}
+				};
+				x.onerror = feedError;
+				x.send(null);
+			})();
+		</script>
 
-legend.onAdd = function (map) {
-  const div = L.DomUtil.create("div", "info_legend");
-  div.innerHTML = `
-    <h4>Legend</h4>
-    <div style="display: flex; align-items: center; margin-bottom: 4px;">
-      <img src="images/ictrain.png" width="24" style="margin-right: 6px;"> IC/Regional Service
-    </div>
-    <div style="display: flex; align-items: center;">
-      <img src="images/dart.png" width="24" style="margin-right: 6px;"> DART Service
-    </div>
-  `;
-  return div;
-};
+		<!-- Irish Rail live map (Leaflet) -->
+		<script>
+			const dartIcon = L.icon({ iconUrl: 'images/dart.png', iconSize: [18, 18], iconAnchor: [16, 16], popupAnchor: [0, -32] });
+			const icIcon = L.icon({ iconUrl: 'images/ictrain.png', iconSize: [18, 18], iconAnchor: [16, 16], popupAnchor: [0, -32] });
 
-legend.addTo(map);
+			// Dark base layer to match the dashboard theme
+			const dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+				maxZoom: 19,
+				subdomains: 'abcd',
+				attribution: '© OpenStreetMap contributors © CARTO'
+			});
+			const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+				maxZoom: 19,
+				attribution: 'Tiles © Esri & contributors'
+			});
 
-</script>
+			const map = L.map('trainmap', { center: [53.4495, -7.5030], zoom: 7, layers: [dark] });
+			const baseMaps = { "Dark": dark, "Satellite": satellite };
+			L.control.layers(baseMaps).addTo(map);
+
+			let stationLookup = {};
+			let routeMarkers = [];
+
+			function loadStations() {
+				fetch("https://irishrail-api-737590149980.europe-west1.run.app/stations")
+					.then(res => res.json())
+					.then(stations => {
+						stations.forEach(station => {
+							const name = station.StationDesc;
+							const lat = parseFloat(station.StationLatitude);
+							const lon = parseFloat(station.StationLongitude);
+							stationLookup[name] = { lat, lon };
+						});
+					})
+					.catch(err => console.error("Error loading stations:", err));
+			}
+			loadStations();
+
+			function clearRouteMarkers() {
+				routeMarkers.forEach(m => map.removeLayer(m));
+				routeMarkers = [];
+			}
+
+			window.trainMarkers = [];
+
+			function loadTrains() {
+				fetch('https://irishrail-api-737590149980.europe-west1.run.app/')
+					.then(res => res.json())
+					.then(trains => {
+						if (window.trainMarkers && Array.isArray(window.trainMarkers)) {
+							window.trainMarkers.forEach(marker => marker.remove());
+						}
+						window.trainMarkers = [];
+
+						trains.forEach(train => {
+							const lat = parseFloat(train.TrainLatitude);
+							const lon = parseFloat(train.TrainLongitude);
+							const code = train.TrainCode;
+							const message = train.PublicMessage;
+							const messageparsed = message.replace(/\\n/g, '<br>');
+
+							if (isNaN(lat) || isNaN(lon)) {
+								console.warn(`Skipping train ${code}: invalid coordinates.`);
+								return;
+							}
+							if (lat < 51.3 || lat > 55.5 || lon < -10.7 || lon > -5.3) {
+								console.warn(`Skipping train ${code}: out-of-bounds coordinates (${lat}, ${lon})`);
+								return;
+							}
+
+							const trainCode = train.TrainCode || '';
+							const isDART = trainCode.startsWith('E');
+							const icon = isDART ? dartIcon : icIcon;
+
+							const scheduledTimeMatch = message.match(/(\d{2}:\d{2})/i);
+							if (scheduledTimeMatch) {
+								const scheduledTimeStr = scheduledTimeMatch[1];
+								const [h, m] = scheduledTimeStr.split(':');
+								const now = new Date();
+								const sched = new Date(now);
+								sched.setHours(parseInt(h), parseInt(m), 0);
+								const diffMinutes = (sched - now) / 60000;
+								if (diffMinutes > 10) { return; }
+							}
+
+							const popupMessage = isDART
+								? `<strong>DART Service: ${code}</strong><br>${messageparsed}`
+								: `<strong>Train: ${code}</strong><br>${messageparsed}`;
+
+							const marker = L.marker([lat, lon], { icon: icon }).addTo(map).bindPopup(popupMessage);
+
+							marker.on('click', () => {
+								const today = new Date().toISOString().split('T')[0];
+								fetch(`https://irishrail-api-737590149980.europe-west1.run.app/trainroute?code=${code}&date=${today}`)
+									.then(res => res.json())
+									.then(route => {
+										clearRouteMarkers();
+										if (!Array.isArray(route) || route.length === 0) {
+											marker.bindPopup(`${popupMessage}<br><br><em>No route data available.</em>`).openPopup();
+											return;
+										}
+
+										const latlngs = [];
+										route.forEach(stop => {
+											const name = stop.LocationFullName;
+											const coords = stationLookup[name];
+											if (coords) {
+												const stopMarker = L.circleMarker([coords.lat, coords.lon], {
+													radius: 5, color: "#cdb06a", weight: 2, fillColor: "#cdb06a", fillOpacity: 0.85
+												}).addTo(map);
+												stopMarker.bindPopup(`<strong>${name}</strong><br>Scheduled: ${stop.ScheduledArrival || ''} - ${stop.ScheduledDeparture || ''}`);
+												routeMarkers.push(stopMarker);
+												latlngs.push([coords.lat, coords.lon]);
+											}
+										});
+
+										const polyline = L.polyline(latlngs, { color: "#6fd0a0", weight: 2, opacity: 0.7 }).addTo(map);
+										routeMarkers.push(polyline);
+
+										let stationHTML = `<ul>`;
+										route.forEach(stop => {
+											const name = stop.LocationFullName;
+											let arr = stop.ScheduledArrival || '';
+											let dep = stop.ScheduledDeparture || '';
+											if (arr !== dep) {
+												arr = (arr === '00:00:00') ? '' : arr;
+												dep = (dep === '00:00:00') ? '' : dep;
+												let timeText = (arr && dep) ? `${arr} → ${dep}` :
+													(arr) ? `Arr: ${arr}` :
+													(dep) ? `Dep: ${dep}` : '';
+												stationHTML += `<li><strong>${name}</strong><br><small>${timeText}</small></li>`;
+											}
+										});
+										stationHTML += `</ul>`;
+										document.getElementById("station-list").innerHTML = stationHTML;
+									})
+									.catch(error => {
+										marker.bindPopup(`${popupMessage}<br><br><em>Unable to load route.</em>`).openPopup();
+										console.error('Error fetching route:', error);
+									});
+							});
+
+							window.trainMarkers.push(marker);
+						});
+					})
+					.catch(error => console.error('Error fetching train data:', error));
+			}
+
+			loadTrains();
+			setInterval(loadTrains, 60000);
+
+			const legend = L.control({ position: "topleft" });
+			legend.onAdd = function (map) {
+				const div = L.DomUtil.create("div", "info_legend");
+				div.innerHTML = `
+					<h4>Legend</h4>
+					<div style="display:flex;align-items:center;margin-bottom:4px;"><img src="images/ictrain.png" width="22" style="margin-right:6px;"> IC / Regional</div>
+					<div style="display:flex;align-items:center;"><img src="images/dart.png" width="22" style="margin-right:6px;"> DART</div>
+				`;
+				return div;
+			};
+			legend.addTo(map);
+		</script>
 
 	</body>
 </html>

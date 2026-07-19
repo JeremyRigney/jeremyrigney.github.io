@@ -1,9 +1,5 @@
-<!DOCTYPE HTML>
-<!--
-	Website template: Stellar by HTML5 UP - html5up.net | @ajlkn
-	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
--->
-<html>
+<!DOCTYPE html>
+<html lang="en">
 	<head>
 		<title>Jeremy Rigney | Home</title>
 
@@ -17,31 +13,23 @@
 		}
 		</script>
 		<!-- Favicon-->
-        <link rel="icon" type="image/x-icon" href="images/favicon.png"/>
+		<link rel="icon" type="image/x-icon" href="images/favicon.png"/>
 		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		<link rel="stylesheet" href="assets/css/main.css" />
-		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
-		<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="theme-color" content="#06140e" />
 		<meta name="author" content="Jeremy Rigney">
 		<meta name="description" content="I hold a PhD in astrophysics from Queen's University Belfast. My research focused on observing the Sun and other stars using some of the largest and most advanced telescopes in the world to better understand stellar dynamics. Throughout my PhD I have presented my research at international conferences, and published peer reviewed research, collaborating with colleagues across the globe."/>
 		<meta name="keywords" content="Jeremy Rigney, Jeremy, astronomy ireland, irish astronomy, jeremy astronomy, jeremy science communication, science communication ireland, Jeremy Rigney astronomy, Dublin Institute for Advanced Studies, AOP, Armagh Observatory, Queen's University Belfast, Lindsay Scholar, jeremy dias, jeremy ireland, jeremy astronomy ireland, Birr Castle, jeremy birr castle">
-		<script type='text/javascript'>
-        	function toggleMenu() {
-        	    var menu = document.getElementById("menu");
-        	    if (menu.style.display === "flex") {
-        	        menu.style.display = "none";
-        	    } else {
-        	        menu.style.display = "flex";
-        	    }
-        	}
-    	</script>
 
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Chivo+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+		<link rel="stylesheet" href="assets/css/home.css" />
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
-    	<!--Cookie consent-->
-    	<script src="https://web.cmp.usercentrics.eu/modules/autoblocker.js"></script>
+		<!--Cookie consent-->
+		<script src="https://web.cmp.usercentrics.eu/modules/autoblocker.js"></script>
 		<script id="usercentrics-cmp" src="https://web.cmp.usercentrics.eu/ui/loader.js" data-settings-id="nt7NWEM4FPFze0" async></script>
-
 	</head>
 
 	<!-- Google tag (gtag.js) -->
@@ -50,242 +38,215 @@
 	  window.dataLayer = window.dataLayer || [];
 	  function gtag(){dataLayer.push(arguments);}
 	  gtag('js', new Date());
-
 	  gtag('config', 'G-6G0WFV4TS8');
 	</script>
-	
-	<body class="is-preload">
 
-		<!-- Wrapper -->
-			<div id="wrapper">
+	<body>
 
-				<!-- Header -->
-					<header id="header" class="alt">
-						<!--<span class="logo"><img src="images/logo.svg" alt="" /></span>-->
-						<h1>Dr. Jeremy Rigney</h1>
-						<p>Senior Data Scientist<!--<span id='mob_only'> & </span>--> &nbsp;·&nbsp; 
-						AI R&D<!--<span id='mob_only'> & </span>--> &nbsp;·&nbsp; 
-						   Astrophysicist<br/>
-						   <ul class="icons">
-								<!-- <li><a href="https://x.com/jeremyrigney" target="_blank" class="icon brands fa-x-twitter"><span class="label">Twitter / X</span></a></li> -->
-								<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" class="icon brands fa-linkedin"><span class="label">LinkedIn</span></a></li>
-								<li><a href="https://github.com/jeremyrigney" target="_blank" class="icon brands fa-github"><span class="label">GitHub</span></a></li>
-								<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target="_blank" class= "icon brands fa-google-scholar"><span class="label">Google Scholar</span></a></li>
-								<li><a href="https://www.instagram.com/jeremy.rigney/" target="_blank" class="icon brands fa-instagram"><span class="label">Instagram</span></a></li>
-							</ul>
-						</p>
-					</header>
+		<!-- Header -->
+		<header class="site-header" id="site-header">
+			<a class="brand" href="#top">Jeremy<span>.</span></a>
+			<nav class="nav-links" id="nav-links" aria-label="Primary">
+				<a href="#about">What I do</a>
+				<a href="#work">Work</a>
+				<a href="#education">Education</a>
+				<a href="https://jeremy.ie/dashboard">Dashboard</a>
+				<a href="cv.html">CV</a>
+				<a href="#contact" class="nav-cta">Contact</a>
+			</nav>
+			<button class="nav-toggle" id="nav-toggle" type="button" aria-label="Open menu" aria-controls="nav-links" aria-expanded="false">
+				<span></span><span></span><span></span>
+			</button>
+		</header>
 
-				<div class="hamburger" onclick="toggleMenu()">
-   				    <div class="bar"></div>
-   				    <div class="bar"></div>
-   				    <div class="bar"></div>
-   				</div>
-   				<div class="menu" id="menu">
-    			    <a href="#intro" class="active">About</a>
-					<a href="#first">Education</a>
-					<a href="#second">Experience</a>
-					<a href="#third">Public Speaking</a>
-					<a href="https://jeremy.ie/dashboard">Dashboard</a>
-					<a href="#cta">Contact</a>
-    			</div>
+		<main id="top">
 
-
-				<!-- Nav -->
-					<nav id="nav">
-						<ul>
-							<li><a href="#intro" class="active">About</a></li>
-							<li><a href="#first">Education</a></li>
-							<li><a href="#second">Experience</a></li>
-							<li><a href="#third">Public Speaking</a></li>
-							<li><a href="https://jeremy.ie/dashboard">Dashboard</a></li>
-							<li><a href="#cta">Contact</a></li>
+			<!-- Hero -->
+			<section class="hero">
+				<div class="wrap">
+					<p class="kicker reveal">Dr. Jeremy Rigney — Dublin, Ireland</p>
+					<h1 class="reveal">Data science, grounded in <em>scientific rigour.</em></h1>
+					<p class="hero-sub reveal">Senior Data Scientist &nbsp;·&nbsp; AI R&amp;D &nbsp;·&nbsp; Astrophysicist</p>
+					<p class="hero-lead reveal">I build data pipelines and models that turn complex, large-scale datasets into clear decisions — drawing on a PhD spent observing the Sun with some of the world's most advanced telescopes.</p>
+					<div class="hero-actions reveal">
+						<a href="cv.html" class="btn btn-primary">View CV</a>
+						<a href="https://jeremy.ie/dashboard" class="btn btn-ghost">Explore the Dashboard</a>
+						<ul class="socials">
+							<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a></li>
+							<li><a href="https://github.com/jeremyrigney" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a></li>
+							<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target="_blank" rel="noopener" aria-label="Google Scholar"><i class="fa-brands fa-google-scholar"></i></a></li>
+							<li><a href="https://www.instagram.com/jeremy.rigney/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a></li>
 						</ul>
-					</nav>
-
-
-				<!-- Main -->
-					<div id="main">
-
-						<!-- Introduction -->
-							<section id="intro" class="main">
-								<div class="spotlight">
-									<div class="content">
-										<header class="major">
-											<h2>Bio</h2>
-										</header> 
-										<p>I am a Senior Data Scientist at Optum. I hold a PhD in astrophysics from Queen's University Belfast. My research focused on observing the Sun and other stars using some of the largest and most advanced telescopes in the world to better understand stellar dynamics. Throughout my PhD I have presented my research at international conferences, and published peer reviewed research, collaborating with colleagues across the globe.</p>
-
-										<p>I am also an experienced science communicator, and have presented to groups of all ages. I have represented Ireland and won awards for science outreach and public engagement. </p>
-										<ul class="actions">
-											<li><a href="#first" class="button">Learn More</a></li>
-										</ul>
-									</div>
-									<span class="image"><img src="images/jr_profile.jpg" alt="Profile photo, out of focus galaxy in the background." title="Profile photo, out of focus galaxy in the background." /></span>
-								</div>
-							</section>
-
-						<!-- Second Section -->
-							<section id="second" class="main special">
-								<header class="major">
-									<h2>Skills and Experience</h2>
-									<p>I have developed extensive experience in data aquisition, data management and data science through<br />
-									internships, my degree and PhD. I am also highly skilled in public speaking and communication.</p>
-								</header>
-								<!--<ul class="statistics">
-									<li class="style1">
-										<span class="icon solid fa-code-branch"></span>
-										<strong>5,120</strong> Etiam
-									</li>
-									<li class="style2">
-										<span class="icon fa-folder-open"></span>
-										<strong>8,192</strong> Magna
-									</li>
-									<li class="style3">
-										<span class="icon solid fa-signal"></span>
-										<strong>2,048</strong> Tempus
-									</li>
-									<li class="style4">
-										<span class="icon solid fa-laptop"></span>
-										<strong>4,096</strong> Aliquam
-									</li>
-									<li class="style5">
-										<span class="icon fa-gem"></span>
-										<strong>1,024</strong> Nullam
-									</li>
-								</ul>-->
-
-
-
-								<p class="content">Throughout my PhD at Queen’s University Belfast, I have experience of leading collaborative research projects focused on space weather monitoring. I have developed and implemented large-scale data analysis pipelines in Python to process and visualise terabyte-scale astronomical datasets. My work has involved high-performance computing, statistical analysis of time-series and spatial data. From working as part of an Agile software development team to leading projects spanning multiple continents, I have been fortunate to gain valuable experience and skills that are transferrable across industry and academia.</p>
-
-
-								<span class="image"><a href="https://jeremy.ie/images/DSC_3674.jpg" target="_blank"><img src="images/DSC_3674.jpg" alt="Using a Celestron telescope within the House Dome at Dunsink Observatory." title = "Using a Celestron telescope within the House Dome at Dunsink Observatory. Image Credit: Chris Burger-Schlleiden" height="300px"/></a></span>
-								<span class="image"><a href="https://jeremy.ie/images/JR_Dunsink_Ryanair_Moon_signed.jpg" target="_blank"><img src="images/JR_Dunsink_Ryanair_Moon_signed.jpg" alt="Ryanair Flight  FR2970 from Tenerife to Edinburgh passing in front of a 50% illuminated moon." title = "Ryanair Flight  FR2970 from Tenerife to Edinburgh passing in front of a 50% illuminated moon." height="300px"/></a></span>
-								<span class="image"><a href="https://jeremy.ie/images/dunsink_poster_jr_signed.png" target="_blank"><img src="images/dunsink_poster_jr_signed.png" alt="Film photo I took of Dunsink Observatory edited to show JWST image of Casseopeia A in the background." title = "Film photo I took of Dunsink Observatory edited to show JWST image of Casseopeia A in the background." height="300px"/></a></span>
-								<span class="image"><a href="https://jeremy.ie/images/Sun_300523_nogrid.png" target="_blank"><img src="images/Sun_300523_nogrid.png" alt="Optical image of the Sun taken from a solar telescope at Dunsink Observatory." title = "Optical image of the Sun taken from a solar telescope at Dunsink Observatory." height="300px"/></a></span>
-								
-
-								
-								<footer class="major">
-									<ul class="actions special">
-										<li><a href="https://jeremy.ie/cv" class="button">Learn More</a></li>
-									</ul>
-								</footer>
-							</section>
-
-							<!-- Third Section -->
-							<section id="third" class="main special">
-								<header class="major">
-									<h2>Public Speaking</h2>
-								</header>
-
-
-								<p style='text-align:left;'>Public speaking was a significant aspect of my PhD. I have presented at scientific conferences, data school workshops, societies, public events and college groups. I have also won awards for my presentation skills. I am adept at distilling complex topics to a wide range of audiences.</p>
-
-								<span class="image main"><img src="images/public_speaking.png" alt="" /></span>
-
-								<footer class="major">
-									<ul class="actions special">
-										<li><a href="https://jeremy.ie/speaking" class="button">Learn More</a></li>
-									</ul>
-								</footer>
-							</section>
-
-
-						<!-- First Section -->
-							<section id="first" class="main special">
-								<header class="major">
-									<h2>Education</h2>
-								</header>
-								<ul class="features">
-									<li>
-										<!--<span class="image"><img src="images/qub_handshake_circle.jpg" alt="" height="220px" width="220px"/></span>-->
-										<h3>Queen's University Belfast</h3>
-										<span class= "style1 fa-solid fa-graduation-cap"></span> 
-										<p>2020 - 2024</br>Doctorate of Philosophy (PhD.) from the School of Mathematics and Physics</p>
-									</li>
-									<li>
-										<!--<span class="icon major style3 fa-copy"></span>-->
-										<h3>University College Dublin</h3>
-										<span class="style2 fa-solid fa-graduation-cap"> </span>
-										<p>2016 - 2020</br>BSc. (Honours) in Physics with Astronomy and Space Science</p>
-									</li>
-									<li>
-										<!--<span class="icon major style5 fa-gem"></span>-->
-										<h3>Internships</h3>
-										<span class= "style1 fa-solid fa-asterisk"></span> 
-										<p>2014 - 2019</br>Accepted to internships developing research and data science skills.</p>
-									</li>
-								</ul>
-								<footer class="major">
-									<ul class="actions special">
-										<li><a href="https://jeremy.ie/cv" class="button">View Full CV</a></li>
-									</ul>
-								</footer>
-							</section>
-
-
-						<!-- Get Started -->
-							<section class="main special">
-								<header class="major">
-									<h2>Projects</h2>
-									<p>I will be uploading projects I have been working on over the years <br />
-									to Github, Keep an eye on my profile for some appearing soon!</p>
-								</header>
-								<footer class="major">
-									<ul class="actions special">
-										<li><a href="https://github.com/jeremyrigney" class="button primary" target='_blank'>View My Projects</a></li>
-										<!-- <li><a href="https://jeremy.ie/cv" class="button">Learn More</a></li> -->
-									</ul>
-								</footer>
-							</section>
-
 					</div>
+				</div>
+			</section>
 
-				<!-- Footer -->
-					<footer id="footer">
-						<section id="cta">
-							<h2>Get in Touch</h2>
-							<p>I welcome opportunities to engage in public speaking, particularly at science festivals, open days, and similar events. Feel free to reach out with any enquiries.</p>
-							<ul class="actions">
-								<li><a href="https://jeremy.ie/speaking" class="button">See Previous Talks</a></li>
+			<!-- What I do -->
+			<section class="section" id="about">
+				<div class="wrap">
+					<div class="about-grid">
+						<div class="about-copy">
+							<p class="kicker reveal">01 — What I do</p>
+							<h2 class="reveal" style="font-size:clamp(1.9rem,4vw,3rem);max-width:20ch;">From terabyte-scale telescope data to production models.</h2>
+							<p class="reveal">I'm a <strong>Senior Data Scientist at Optum</strong>, with a PhD in astrophysics from Queen's University Belfast. My research centred on observing the Sun and other stars to better understand stellar dynamics — work that meant designing and running large-scale analysis pipelines end to end.</p>
+							<p class="reveal">I've led collaborative projects spanning multiple continents, worked in Agile software teams, and published peer-reviewed research. I'm also an experienced science communicator who has represented Ireland and won awards for public engagement.</p>
+						</div>
+						<ul class="capabilities">
+							<li class="reveal"><span class="cap-num">A</span><span class="cap-text">Large-scale data pipelines in Python</span></li>
+							<li class="reveal"><span class="cap-num">B</span><span class="cap-text">High-performance &amp; scientific computing</span></li>
+							<li class="reveal"><span class="cap-num">C</span><span class="cap-text">Time-series &amp; statistical analysis</span></li>
+							<li class="reveal"><span class="cap-num">D</span><span class="cap-text">AI research &amp; development</span></li>
+							<li class="reveal"><span class="cap-num">E</span><span class="cap-text">Science communication &amp; public speaking</span></li>
+						</ul>
+					</div>
+				</div>
+			</section>
+
+			<!-- Work -->
+			<section class="section section-alt" id="work">
+				<div class="wrap">
+					<div class="section-head">
+						<p class="kicker reveal">02 — Selected work</p>
+						<h2 class="reveal">A few places my work lives.</h2>
+					</div>
+					<div class="work-grid">
+						<a class="work-card reveal" href="https://jeremy.ie/dashboard">
+							<span class="work-card-media" style="background-image:url('images/Sun_300523_nogrid.png');"></span>
+							<span class="work-card-body">
+								<span class="tag">Live · Data</span>
+								<h3>Solar &amp; sky dashboard</h3>
+								<p>An interactive dashboard visualising solar and observational data.</p>
+								<span class="go">Open dashboard →</span>
+							</span>
+						</a>
+						<a class="work-card reveal" href="cv.html">
+							<span class="work-card-media" style="background-image:url('images/DSC_3674.jpg');"></span>
+							<span class="work-card-body">
+								<span class="tag">Research</span>
+								<h3>PhD &amp; publications</h3>
+								<p>Observational astrophysics, space-weather monitoring and peer-reviewed research.</p>
+								<span class="go">View full CV →</span>
+							</span>
+						</a>
+						<a class="work-card reveal" href="speaking.html">
+							<span class="work-card-media" style="background-image:url('images/public_speaking.png');"></span>
+							<span class="work-card-body">
+								<span class="tag">Outreach</span>
+								<h3>Public speaking</h3>
+								<p>Conference talks, festivals and public events — award-winning science communication.</p>
+								<span class="go">See talks →</span>
+							</span>
+						</a>
+						<a class="work-card reveal" href="https://github.com/jeremyrigney" target="_blank" rel="noopener">
+							<span class="work-card-media" style="background-image:url('images/gbt_img.jpg');"></span>
+							<span class="work-card-body">
+								<span class="tag">Code</span>
+								<h3>Projects on GitHub</h3>
+								<p>Code and experiments from research and personal projects.</p>
+								<span class="go">View profile →</span>
+							</span>
+						</a>
+					</div>
+				</div>
+			</section>
+
+			<!-- Education -->
+			<section class="section" id="education">
+				<div class="wrap">
+					<div class="section-head">
+						<p class="kicker reveal">03 — Experience &amp; Education</p>
+						<h2 class="reveal">Where it was built.</h2>
+					</div>
+					<div class="edu-grid">
+						<div class="edu-item reveal">
+							<span class="yr">2025 — 2026</span>
+							<h3>LexisNexis Risk Solutions</h3>
+							<p>Data Scientist — building data-driven models and analytics.</p>
+						</div>
+						<div class="edu-item reveal">
+							<span class="yr">2020 — 2024</span>
+							<h3>Queen's University Belfast</h3>
+							<p>PhD, School of Mathematics and Physics — observational astrophysics.</p>
+						</div>
+						<div class="edu-item reveal">
+							<span class="yr">2016 — 2020</span>
+							<h3>University College Dublin</h3>
+							<p>BSc (Hons) in Physics with Astronomy &amp; Space Science.</p>
+						</div>
+					</div>
+				</div>
+			</section>
+		</main>
+
+		<!-- Footer / Contact -->
+		<footer class="site-footer" id="contact">
+			<div class="wrap">
+				<div class="footer-grid">
+					<div>
+						<p class="kicker reveal">04 — Get in touch</p>
+						<h2 class="reveal">Let's talk data, research, or a talk.</h2>
+						<p class="footer-lead reveal">I welcome opportunities to engage in public speaking — particularly at science festivals, open days and similar events — as well as data and research collaborations. Feel free to reach out.</p>
+						<a href="speaking.html" class="btn btn-dark">See previous talks</a>
+					</div>
+					<dl class="footer-contact reveal">
+						<dt>Location</dt>
+						<dd>Dublin &bull; Ireland</dd>
+						<dt>Email</dt>
+						<dd><a href="mailto:jeremy.rigney@gmail.com">jeremy.rigney [at] gmail [dot] com</a></dd>
+						<dt>Elsewhere</dt>
+						<dd>
+							<ul class="socials" style="margin-top:0.6rem;">
+								<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a></li>
+								<li><a href="https://github.com/jeremyrigney" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a></li>
+								<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target="_blank" rel="noopener" aria-label="Google Scholar"><i class="fa-brands fa-google-scholar"></i></a></li>
+								<li><a href="https://www.instagram.com/jeremy.rigney/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a></li>
 							</ul>
-						</section>
-						<section>
-							<h2 style='color:#03220C;'>Contact Information</h2>
-							<dl class="alt">
-								<dt>Location</dt>
-								<dd>Dublin &bull; Ireland</dd>
-								<!--<dt>Phone</dt>
-								<dd>(000) 000-0000 x 0000</dd>-->
-								<dt>Email</dt>
-								<dd><a href="#">jeremy.rigney [at] gmail [dot] com</a></dd>
-							</dl>
-							<ul class="icons">
-								<li><a href="https://x.com/jeremyrigney" target='_blank' class="icon brands fa-x-twitter alt"><span class="label">Twitter</span></a></li>
-								<li><a href="https://www.instagram.com/jeremy.rigney/" target='_blank' class="icon brands fa-instagram alt"><span class="label">Instagram</span></a></li>
-								<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" class="icon brands fa-linkedin alt"><span class="label">LinkedIn</span></a></li>
-								<li><a href="https://github.com/jeremyrigney" target='_blank' class="icon brands fa-github alt"><span class="label">GitHub</span></a></li>
-								<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target='_blank' class="icon brands fa-google-scholar alt"><span class="label">Google Scholar</span></a></li>
-							</ul>
-						</section>
-						<p class="copyright">&copy;Template from <a href="https://html5up.net">HTML5 UP</a>.</p>
-					</footer>
-
-
-
+						</dd>
+					</dl>
+				</div>
+				<div class="footer-bottom">
+					<p>&copy; <span id="year">2026</span> Jeremy Rigney</p>
+					<p><a href="cv.html">CV</a> &nbsp;·&nbsp; <a href="https://jeremy.ie/dashboard">Dashboard</a> &nbsp;·&nbsp; <a href="speaking.html">Speaking</a></p>
+				</div>
 			</div>
+		</footer>
 
-		<!-- Scripts -->
-			<script src="assets/js/jquery.min.js"></script>
+		<script>
+			// Sticky header background
+			const header = document.getElementById('site-header');
+			const onScroll = () => header.classList.toggle('is-stuck', window.scrollY > 40);
+			onScroll();
+			window.addEventListener('scroll', onScroll, { passive: true });
 
-			<script src="assets/js/jquery.scrollex.min.js"></script>
-			<script src="assets/js/jquery.scrolly.min.js"></script>
-			<script src="assets/js/browser.min.js"></script>
-			<script src="assets/js/breakpoints.min.js"></script>
-			<script src="assets/js/util.js"></script>
-			<script src="assets/js/main.js"></script>
+			// Mobile nav
+			const toggle = document.getElementById('nav-toggle');
+			const links = document.getElementById('nav-links');
+			toggle.addEventListener('click', () => {
+				const open = links.classList.toggle('is-open');
+				toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+			});
+			links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+				links.classList.remove('is-open');
+				toggle.setAttribute('aria-expanded', 'false');
+			}));
+
+			// Scroll reveals
+			const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+			const items = document.querySelectorAll('.reveal');
+			if (reduce || !('IntersectionObserver' in window)) {
+				items.forEach(el => el.classList.add('is-in'));
+			} else {
+				const io = new IntersectionObserver((entries, obs) => {
+					entries.forEach(e => {
+						if (e.isIntersecting) { e.target.classList.add('is-in'); obs.unobserve(e.target); }
+					});
+				}, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+				items.forEach(el => io.observe(el));
+			}
+
+			// Current year
+			document.getElementById('year').textContent = new Date().getFullYear();
+		</script>
 
 	</body>
 </html>
