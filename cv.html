@@ -1,240 +1,404 @@
-<!DOCTYPE HTML>
-<!--
-	Stellar by HTML5 UP
-	html5up.net | @ajlkn
-	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
--->
-<html>
+<!DOCTYPE html>
+<html lang="en">
 	<head>
 		<title>Jeremy Rigney | Curriculum Vitae</title>
-		<meta charset="utf-8" />
+
 		<!-- Favicon-->
-        <link rel="icon" type="image/x-icon" href="images/favicon.png"/>
-		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		<link rel="stylesheet" href="assets/css/main.css" />
-		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+		<link rel="icon" type="image/x-icon" href="images/favicon.png"/>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="theme-color" content="#06140e" />
 		<meta name="author" content="Jeremy Rigney">
 		<meta name="description" content="I hold a PhD in astrophysics from Queen's University Belfast. My research focused on observing the Sun and other stars using some of the largest and most advanced telescopes in the world to better understand stellar dynamics. Throughout my PhD I have presented my research at international conferences, and published peer reviewed research, collaborating with colleagues across the globe."/>
-		<meta name="keywords" content="Jeremy Rigney, Jeremy, astronomy ireland, irish astronomy, jeremy astronomy, jeremy irish astronomy, jeremy science communication, science communication ireland, Jeremy Rigney astro, Dublin Institute for Advanced Studies, AOP, Armagh Observatory, Queen's University Belfast, Lindsay Scholar, jeremy queens, jeremy dias, jeremy armagh"/>
-		<script type='text/javascript'>
-        	function toggleMenu() {
-        	    var menu = document.getElementById("menu");
-        	    if (menu.style.display === "flex") {
-        	        menu.style.display = "none";
-        	    } else {
-        	        menu.style.display = "flex";
-        	    }
-        	}
-    	</script>
+		<meta name="keywords" content="Jeremy Rigney, Jeremy, astronomy ireland, irish astronomy, jeremy astronomy, jeremy science communication, science communication ireland, Jeremy Rigney astronomy, Dublin Institute for Advanced Studies, AOP, Armagh Observatory, Queen's University Belfast, Lindsay Scholar, jeremy dias, jeremy ireland">
+
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Chivo+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+		<link rel="stylesheet" href="assets/css/home.css" />
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+		<style>
+			/* ---------- CV-specific (built on home.css tokens) ---------- */
+			.cv-list { display: grid; gap: 1.3rem; }
+			.cv-entry {
+				padding: 1.8rem 2rem;
+				border: 1px solid var(--rule);
+				border-radius: var(--radius);
+				background: var(--paper);
+			}
+			.section-alt .cv-entry { background: #fff; }
+			.cv-entry-head {
+				display: flex;
+				flex-wrap: wrap;
+				justify-content: space-between;
+				align-items: baseline;
+				gap: 0.35rem 1.5rem;
+			}
+			.cv-entry .yr {
+				font-family: var(--font-mono);
+				font-size: 0.74rem;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+				color: var(--accent);
+				white-space: nowrap;
+			}
+			.cv-entry h3 { font-size: 1.35rem; }
+			.cv-entry .org { margin: 0.45rem 0 0; color: var(--ink-soft); font-weight: 500; }
+			.cv-entry .org strong { color: var(--ink); font-weight: 600; }
+			.cv-entry ul { margin: 1.1rem 0 0; padding-left: 1.15rem; color: var(--ink-soft); }
+			.cv-entry li { margin: 0 0 0.55rem; }
+			.cv-entry li:last-child { margin-bottom: 0; }
+			.cv-link {
+				color: var(--ink);
+				font-weight: 600;
+				text-decoration: underline;
+				text-decoration-color: var(--accent);
+				text-underline-offset: 0.18em;
+				text-decoration-thickness: 1.5px;
+				transition: color 180ms ease;
+			}
+			.cv-link:hover { color: var(--accent); }
+
+			/* Skills */
+			.skills-grid {
+				display: grid;
+				grid-template-columns: repeat(2, 1fr);
+				gap: 1.3rem;
+			}
+			.skill-card {
+				padding: 1.6rem 1.8rem;
+				border: 1px solid var(--rule);
+				border-radius: var(--radius);
+				background: #fff;
+			}
+			.skill-card h3 {
+				font-family: var(--font-mono);
+				font-size: 0.72rem;
+				font-weight: 600;
+				letter-spacing: 0.12em;
+				text-transform: uppercase;
+				color: var(--accent);
+			}
+			.skill-card p { margin: 0.7rem 0 0; color: var(--ink-soft); }
+
+			/* Awards */
+			.award-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+			.award-list li {
+				padding: 1.15rem 0;
+				border-bottom: 1px solid var(--rule);
+				display: flex;
+				gap: 1rem;
+				align-items: baseline;
+				color: var(--ink);
+			}
+			.award-list .award-yr { font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); letter-spacing: 0.06em; flex: none; }
+
+			/* Publications */
+			.pub-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+			.pub-list li { padding: 1.4rem 0; border-bottom: 1px solid var(--rule); }
+			.pub-title { display: block; font-weight: 600; color: var(--ink); }
+			.pub-meta { margin: 0.45rem 0 0; font-size: 0.9rem; color: var(--ink-faint); line-height: 1.55; }
+			.pub-meta strong { color: var(--ink-soft); }
+			.pub-meta em { color: var(--ink-soft); font-style: italic; }
+
+			@media screen and (max-width: 850px) {
+				.skills-grid { grid-template-columns: 1fr; }
+				.cv-entry { padding: 1.5rem 1.5rem; }
+			}
+		</style>
+
+		<!--Cookie consent-->
+		<script src="https://web.cmp.usercentrics.eu/modules/autoblocker.js"></script>
+		<script id="usercentrics-cmp" src="https://web.cmp.usercentrics.eu/ui/loader.js" data-settings-id="nt7NWEM4FPFze0" async></script>
 	</head>
-	<body class="is-preload">
 
-		<!-- Wrapper -->
-			<div id="wrapper">
+	<!-- Google tag (gtag.js) -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=G-6G0WFV4TS8"></script>
+	<script>
+	  window.dataLayer = window.dataLayer || [];
+	  function gtag(){dataLayer.push(arguments);}
+	  gtag('js', new Date());
+	  gtag('config', 'G-6G0WFV4TS8');
+	</script>
 
+	<body>
 
-				<div class="hamburger" onclick="toggleMenu()">
-   				    <div class="bar"></div>
-   				    <div class="bar"></div>
-   				    <div class="bar"></div>
-   				</div>
-   				<div class="menu" id="menu">
-					<a href="https://jeremy.ie" class="active">Home</a>
-					<a href="#first">Education</a>
-					<a href="#second">Experience</a>
-					<a href="#third">Technical Skills</a>
-					<a href="#fourth">Awards</a>
-					<a href="#fourth">Publications</a>
-					<a href="#cta">Contact</a>
-    			</div>
+		<!-- Header -->
+		<header class="site-header" id="site-header">
+			<a class="brand" href="https://jeremy.ie">Jeremy<span>.</span></a>
+			<nav class="nav-links" id="nav-links" aria-label="Primary">
+				<a href="https://jeremy.ie">Home</a>
+				<a href="#education">Education</a>
+				<a href="#experience">Experience</a>
+				<a href="#skills">Skills</a>
+				<a href="#publications">Publications</a>
+				<a href="#contact" class="nav-cta">Contact</a>
+			</nav>
+			<button class="nav-toggle" id="nav-toggle" type="button" aria-label="Open menu" aria-controls="nav-links" aria-expanded="false">
+				<span></span><span></span><span></span>
+			</button>
+		</header>
 
-				<!-- Nav -->
-					<nav id="nav">
-						<ul>
-							<li><a href="https://jeremy.ie" class="active">Home</a></li>
-							<li><a href="#first">Education</a></li>
-							<li><a href="#second">Experience</a></li>
-							<li><a href="#third">Technical Skills</a></li>
-							<li><a href="#fourth">Awards</a></li>
-							<li><a href="#fourth">Publications</a></li>
-							<li><a href="#cta">Contact</a></li>
+		<main id="top">
+
+			<!-- Hero -->
+			<section class="hero">
+				<div class="wrap">
+					<p class="kicker reveal">Curriculum Vitae</p>
+					<h1 class="reveal">Dr. <em>Jeremy</em> Rigney</h1>
+					<p class="hero-sub reveal">Senior Data Scientist &nbsp;·&nbsp; AI R&amp;D &nbsp;·&nbsp; Astrophysicist</p>
+					<p class="hero-lead reveal">A PhD physicist turned data scientist — building large-scale data pipelines and models, with a decade of Python and a research record spanning international, peer-reviewed astrophysics.</p>
+					<div class="hero-actions reveal">
+						<a href="JeremyRigneyCV.pdf" class="btn btn-primary" download="JeremyRigney_CV">Download full CV</a>
+						<a href="https://jeremy.ie" class="btn btn-ghost">Back to home</a>
+						<ul class="socials">
+							<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a></li>
+							<li><a href="https://github.com/jeremyrigney" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a></li>
+							<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target="_blank" rel="noopener" aria-label="Google Scholar"><i class="fa-brands fa-google-scholar"></i></a></li>
+							<li><a href="https://www.instagram.com/jeremy.rigney/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a></li>
 						</ul>
-					</nav>
-
-				<!-- Main -->
-					<div id="main">
-
-						<!-- Content -->
-							<section id="first" class="main">
-
-								<h1 class="cvtitle">Curriculum Vitae</h1> 
-								<!-- <span class="image main"><img src="images/cv_title_image.png" alt="" /></span> -->
-							</br>
-
-							<ul class="actions special">
-								<li><a href="JeremyRigneyCV.pdf" class="button" download="JeremyRigney_CV">Download Full CV</a></li>
-							</ul>
-							<header class="major">
-										
-										
-								<h2 class="cvtitle">Education</h2>
-							</header>	
-								<h3 style="margin-bottom:5px;">Doctorate of Philosophy</h3><h5 style="margin-bottom:0px;">Astrophysics</h5><h5 style="margin-bottom:0px;">Queen's University Belfast</h5><h5>(2020 - 2024)</h5>
-								<p>
-									<ul>
-										<li>2020 Eric Lindsay Scholarship, jointly hosted by Dublin Institute for Advanced Studies and Armagh Observatory and Planetarium.</li>
-										<li>Designed and operated high-throughput data pipelines processing &gt;100TB of time-series data from multi-instrument sensor arrays.</li>
-										<li>Managed real-time data acquisition as Chief Observer, overseeing streams of up to 3 GB/s with a focus on data integrity, storage, and downstream signal processing.</li>
-										<li>Engineered feature extraction and anomaly detection systems to identify rare signals in high-noise environments.</li>
-										<li>Implemented parallelised, containerised workflows (Slurm, Singularity) to ensure repeatable, audited data processing in high-compute environments.</li>
-										<li>Validated complex models by comparing simulated datasets against empirical measurements.</li>
-										<li>Published peer-reviewed research in leading international journals (Nature Astronomy and Astronomy &amp; Astrophysics).</li>
-										<li>Award-Winning Science Communicator: Recognized for excellence in translating highly technical astrophysical and mathematical concepts for diverse, non-specialist audiences.</li>
-									</ul>
-								</p>
-						
-								<h3 style="margin-bottom:5px;">Bachelor of Science (Honours)</h3><h5 style="margin-bottom:0px;">Physics with Astronomy and Space Science</h5><h5 style="margin-bottom:0px;">University College Dublin</h5><h5>(2016 - 2020)</h5>
-								<p>
-								<ul>
-									<li>Relevant coursework: Probability and Statistics, Databases and Information Systems (SQL), Applied Mathematics, Linear Algebra, Calculus</li>
-									<li>Undergraduate Physics Project Report: Currently Unavailable<!--<a href='FYP_JeremyRigneyUCD.pdf'>Star Formation in the Circumnuclear Ring of NGC 4736</a>--></li>
-								</ul>
-								</p>
-							</section>
-
-
-													<!-- Second Section -->
-							<section id="second" class="main">
-								<header class="major">
-									<h2 class ="cvtitle">Experience</h2>
-								</header>
-									<h3 style="margin-bottom:5px;">Senior Data Scientist</h3><h5 style="margin-bottom:0px;">Optum</h5><h5>(Mar. 2026 – Present)</h5>
-									<li></li>
-									<h3 style="margin-bottom:5px;">Data Scientist</h3><h5 style="margin-bottom:0px;">LexisNexis Risk Solutions</h5><h5>(Jul. 2025 – Mar. 2026)</h5>
-									<li></li>
-
-									<h3 style="margin-bottom:5px;">PhD Researcher</h3><h5 style="margin-bottom:0px;">Queen's University Belfast</h5><h5>(Sept. 2020 – Dec. 2024)</h5>
-									<ul>
-										<li>Designed and operated high-throughput data pipelines processing &gt;100TB of time-series data from multi-instrument sensor arrays.</li>
-										<li>Managed real-time data acquisition as Chief Observer, overseeing streams of up to 3 GB/s with a focus on data integrity, storage, and downstream signal processing.</li>
-										<li>Engineered feature extraction and anomaly detection systems to identify rare signals in high-noise environments.</li>
-										<li>Implemented parallelised, containerised workflows (Slurm, Singularity) to ensure repeatable, audited data processing in high-compute environments.</li>
-										<li>Validated complex models by comparing simulated datasets against empirical measurements.</li>
-										<li>Award-Winning Science Communicator: Recognized for excellence in translating highly technical astrophysical and mathematical concepts for diverse, non-specialist audiences.</li>
-									</ul>
-
-								
-							</section>
-
-
-							
-							<!-- Second Section -->
-							<section id="third" class="main">
-								<header class="major">
-									<h2 class ="cvtitle">Technical Skills</h2>
-								</header>
-									<ul>
-										<li><b>AI &amp; Machine Learning:</b> LLMs/li>
-										<li><b>Data Privacy &amp; Security:</b> Data Anonymisation/De-identification, GDPR-compliant Data Design</li>
-										<li><b>Programming:</b> Python (8+ years), SQL (Advanced), Bash, R</li>
-										<li><b>Data Engineering:</b> Azure, High-volume ETL, Parquet, Batch/Stream Processing, AWS</li>
-										<li><b>Specialised Analysis:</b> Time-series signal processing, Sensor fusion, Multi-channel data analysis</li>
-										<li><b>Software Practices:</b> Production-grade Python (PEP8, Type Hinting, Docstrings), Modular Design, Unit Testing (PyTest), CI/CD Workflows, Docker, Git-flow</li>
-									</ul>
-
-								
-							</section>
-
-								<!-- Awards Section -->
-							<section id="fourth" class="main">
-								<header class="major">
-									<h2 class ="cvtitle">Awards</h2>
-								</header>
-									<ul>
-										<li>Institute of Physics Three-Minute Wonder UK and Ireland Audience Award 2024 (Royal Institution, London, United Kingdom)</li>
-										<li> IOP Rosse Medal for Best Postgraduate Presentation 2024 (IOP Irish HQ, Dublin, Ireland)</li>
-										<li>Peter Curran Award for Best Postgraduate Presentation 2022 (Irish National Astronomy Meeting, Dublin Ireland)</li>
-									</ul>
-
-								
-							</section>
-
-
-							</section>
-
-								<!-- Publications Section -->
-							<section id="fifth" class="main">
-								<header class="major">
-									<h2 class ="cvtitle">Publications</h2>
-								</header>
-									<ul>
-										<li><b>Multiwavelength observations of flaring activity on the Sun and M dwarf stars</b></br>
-										<h5><b>Jeremy Rigney </b><i> PhD Thesis, Queen's University Belfast, 2024</i></h5></li>
-
-										<li><b>Radio signatures of star–planet interactions, exoplanets and space weather</b></br>
-										<h5>Callingham J. R., Pope B. J. S., Kavanagh, R. D., Bellotti, S., Daley-Yates, S., Damasso, M., Grießmeier, J.-M., Güdel, M., Günther, M., Kao, M. M., Klein, B., Mahadevan, S., Morin, J., Nichols, J. D., Osten, R. A., Perez-Torres, M., Pineda, J. S., <b>Rigney, J.</b>, Saur, J., Stefánsson, G., Turner, J. D., Vedantham, H, Vidotto, A. A., Villadsen, J. & Zarka, P. </br><i>Nature Astronomy, 2024</i></h5></li>
-										
-										<li><b>Tracking the motion of a shock along a channel in the low solar corona</b></br>
-										<h5><b>Jeremy Rigney</b>, Peter T Gallagher, Gavin Ramsay, J Gerry Doyle, David M Long, Oleg Stepanyuk, Kamen Kosarev</br><i>Astronomy and Astrophysics, 2024</i></h5></li>
-
-										<li><b>Searching for stellar flares from low-mass stars using ASKAP and TESS</b></br>
-										<h5><b>Jeremy Rigney</b>, Gavin Ramsay, Eoin P Carley, J Gerry Doyle, Peter T Gallagher, Yuanming Wang, Joshua Pritchard, Tara Murphy, Emil Lenc, David L Kaplan. </br><i>Monthly Notices of the Royal Astronomical Society, 2022</i></h5></li>
-
-										<li><b>First results from the REAL-time Transient Acquisition backend (REALTA) at the Irish LOFAR station</b></br>
-										<h5>PC Murphy, Paul Callanan, J McCauley, DJ McKenna, D Ó Fionnagáin, CK Louis, MP Redman, LA Cañizares, EP Carley, SA Maloney, B Coghlan, Mark Daly, J Scully, J Dooley, V Gajjar, C Giese, A Brennan, EF Keane, CA Maguire, J Quinn, S Mooney, AM Ryan, J Walsh, CM Jackman, A Golden, TP Ray, JG Doyle, <b>J Rigney</b>, M Burton, PT Gallagher</br><i>Astronomy and Astrophysics, 2021</i></h5></li>
-										
-										<li><b>Comparing Game Based Learning, using a student created game, to Traditional Classroom Methods</b></br>
-										<h5><b>Jeremy Rigney</b>, Niall Murray. </br><i>Information Technology & Telecommunications Conference Proceedings, 2014</i></h5></li>
-
-
-										
-									</ul>
-
-								
-							</section>
-
 					</div>
+				</div>
+			</section>
 
-				<!-- Footer -->
-					<footer id="footer">
-						<section id="cta">
-							<h2>Get in Touch</h2>
-							<p>I welcome opportunities to engage in public speaking, particularly at science festivals, open days, and similar events. Feel free to reach out with any enquiries.</p>
-							<ul class="actions">
-								<li><a href="speaking.html" class="button">See Previous Talks</a></li>
+			<!-- Education -->
+			<section class="section" id="education">
+				<div class="wrap">
+					<div class="section-head">
+						<p class="kicker reveal">01 — Education</p>
+						<h2 class="reveal">Where it was built.</h2>
+					</div>
+					<div class="cv-list">
+						<div class="cv-entry reveal">
+							<div class="cv-entry-head">
+								<h3>Doctorate of Philosophy — Astrophysics</h3>
+								<span class="yr">2020 — 2024</span>
+							</div>
+							<p class="org"><strong>Queen's University Belfast</strong> · School of Mathematics and Physics</p>
+							<ul>
+								<li>2020 Eric Lindsay Scholarship, jointly hosted by <a class="cv-link" href="https://www.dias.ie" target="_blank" rel="noopener">Dublin Institute for Advanced Studies</a> and <a class="cv-link" href="https://www.armagh.space" target="_blank" rel="noopener">Armagh Observatory and Planetarium</a>.</li>
+								<li>Designed and operated high-throughput data pipelines processing &gt;100TB of time-series data from multi-instrument sensor arrays.</li>
+								<li>Managed real-time data acquisition as Chief Observer, overseeing streams of up to 3 GB/s with a focus on data integrity, storage, and downstream signal processing.</li>
+								<li>Engineered feature extraction and anomaly detection systems to identify rare signals in high-noise environments.</li>
+								<li>Implemented parallelised, containerised workflows (Slurm, Singularity) to ensure repeatable, audited data processing in high-compute environments.</li>
+								<li>Validated complex models by comparing simulated datasets against empirical measurements.</li>
+								<li>Published peer-reviewed research in leading international journals (Nature Astronomy and Astronomy &amp; Astrophysics).</li>
+								<li>Award-winning science communicator, recognised for translating highly technical astrophysical and mathematical concepts for diverse, non-specialist audiences.</li>
 							</ul>
-						</section>
-						<section>
-							<h2 style='color:#03220C;'>Contact Information</h2>
-							<dl class="alt">
-								<dt>Location</dt>
-								<dd>Dublin &bull; Ireland</dd>
-								<!--<dt>Phone</dt>
-								<dd>(000) 000-0000 x 0000</dd>-->
-								<dt>Email</dt>
-								<dd><a href="#">jeremy.rigney [at] gmail [dot] com</a></dd>
-							</dl>
-							<ul class="icons">
-								<li><a href="https://x.com/jeremyrigney" target='_blank' class="icon brands fa-x-twitter alt"><span class="label">Twitter</span></a></li>
-								<li><a href="https://www.instagram.com/jeremy.rigney/" target='_blank' class="icon brands fa-instagram alt"><span class="label">Instagram</span></a></li>
-								<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" class="icon brands fa-linkedin alt"><span class="label">LinkedIn</span></a></li>
-								<li><a href="https://github.com/jeremyrigney" target='_blank' class="icon brands fa-github alt"><span class="label">GitHub</span></a></li>
-								<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target='_blank' class="icon brands fa-google-scholar alt"><span class="label">Google Scholar</span></a></li>
+						</div>
+						<div class="cv-entry reveal">
+							<div class="cv-entry-head">
+								<h3>Bachelor of Science (Honours) — Physics with Astronomy &amp; Space Science</h3>
+								<span class="yr">2016 — 2020</span>
+							</div>
+							<p class="org"><strong>University College Dublin</strong></p>
+							<ul>
+								<li>Relevant coursework: Probability and Statistics, Databases and Information Systems (SQL), Applied Mathematics, Linear Algebra, Calculus.</li>
 							</ul>
-						</section>
-						<p class="copyright">&copy;Template from <a href="https://html5up.net">HTML5 UP</a>.</p>
-					</footer>
+						</div>
+					</div>
+				</div>
+			</section>
 
+			<!-- Experience -->
+			<section class="section section-alt" id="experience">
+				<div class="wrap">
+					<div class="section-head">
+						<p class="kicker reveal">02 — Experience</p>
+						<h2 class="reveal">A few places my work lives.</h2>
+					</div>
+					<div class="cv-list">
+						<div class="cv-entry reveal">
+							<div class="cv-entry-head">
+								<h3>Senior Data Scientist</h3>
+								<span class="yr">Mar 2026 — Present</span>
+							</div>
+							<p class="org"><strong>Optum</strong></p>
+						</div>
+						<div class="cv-entry reveal">
+							<div class="cv-entry-head">
+								<h3>Data Scientist</h3>
+								<span class="yr">Jul 2025 — Mar 2026</span>
+							</div>
+							<p class="org"><strong>LexisNexis Risk Solutions</strong></p>
+						</div>
+						<div class="cv-entry reveal">
+							<div class="cv-entry-head">
+								<h3>PhD Researcher</h3>
+								<span class="yr">Sep 2020 — Dec 2024</span>
+							</div>
+							<p class="org"><strong>Queen's University Belfast</strong></p>
+							<ul>
+								<li>Designed and operated high-throughput data pipelines processing &gt;100TB of time-series data from multi-instrument sensor arrays.</li>
+								<li>Managed real-time data acquisition as Chief Observer, overseeing streams of up to 3 GB/s with a focus on data integrity, storage, and downstream signal processing.</li>
+								<li>Engineered feature extraction and anomaly detection systems to identify rare signals in high-noise environments.</li>
+								<li>Implemented parallelised, containerised workflows (Slurm, Singularity) to ensure repeatable, audited data processing in high-compute environments.</li>
+								<li>Validated complex models by comparing simulated datasets against empirical measurements.</li>
+								<li>Award-winning science communicator, recognised for translating highly technical astrophysical and mathematical concepts for diverse, non-specialist audiences.</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- Technical Skills -->
+			<section class="section" id="skills">
+				<div class="wrap">
+					<div class="section-head">
+						<p class="kicker reveal">03 — Technical Skills</p>
+						<h2 class="reveal">The toolkit.</h2>
+					</div>
+					<div class="skills-grid">
+						<div class="skill-card reveal">
+							<h3>AI &amp; Machine Learning</h3>
+							<p>Large Language Models (LLMs), applied ML for anomaly detection and signal classification.</p>
+						</div>
+						<div class="skill-card reveal">
+							<h3>Programming</h3>
+							<p>Python (8+ years), SQL (Advanced), Bash, R.</p>
+						</div>
+						<div class="skill-card reveal">
+							<h3>Data Engineering</h3>
+							<p>Azure, AWS, high-volume ETL, Parquet, batch &amp; stream processing.</p>
+						</div>
+						<div class="skill-card reveal">
+							<h3>Specialised Analysis</h3>
+							<p>Time-series signal processing, sensor fusion, multi-channel data analysis.</p>
+						</div>
+						<div class="skill-card reveal">
+							<h3>Data Privacy &amp; Security</h3>
+							<p>Data anonymisation / de-identification, GDPR-compliant data design.</p>
+						</div>
+						<div class="skill-card reveal">
+							<h3>Software Practices</h3>
+							<p>Production-grade Python (PEP8, type hinting, docstrings), modular design, unit testing (PyTest), CI/CD, Docker, Git-flow.</p>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- Awards -->
+			<section class="section section-alt" id="awards">
+				<div class="wrap">
+					<div class="section-head">
+						<p class="kicker reveal">04 — Awards</p>
+						<h2 class="reveal">Recognition.</h2>
+					</div>
+					<ul class="award-list">
+						<li class="reveal"><span class="award-yr">2024</span><span>Institute of Physics Three-Minute Wonder UK &amp; Ireland Audience Award (Royal Institution, London, United Kingdom).</span></li>
+						<li class="reveal"><span class="award-yr">2024</span><span>IOP Rosse Medal for Best Postgraduate Presentation (IOP Irish HQ, Dublin, Ireland).</span></li>
+						<li class="reveal"><span class="award-yr">2022</span><span>Peter Curran Award for Best Postgraduate Presentation (Irish National Astronomy Meeting, Dublin, Ireland).</span></li>
+					</ul>
+				</div>
+			</section>
+
+			<!-- Publications -->
+			<section class="section" id="publications">
+				<div class="wrap">
+					<div class="section-head">
+						<p class="kicker reveal">05 — Publications</p>
+						<h2 class="reveal">Peer-reviewed research.</h2>
+					</div>
+					<ul class="pub-list">
+						<li class="reveal">
+							<span class="pub-title">Multiwavelength observations of flaring activity on the Sun and M dwarf stars</span>
+							<p class="pub-meta"><strong>Jeremy Rigney</strong> · <em>PhD Thesis, Queen's University Belfast, 2024</em></p>
+						</li>
+						<li class="reveal">
+							<span class="pub-title">Radio signatures of star–planet interactions, exoplanets and space weather</span>
+							<p class="pub-meta">Callingham J. R., Pope B. J. S., Kavanagh R. D., Bellotti S., Daley-Yates S., Damasso M., Grießmeier J.-M., Güdel M., Günther M., Kao M. M., Klein B., Mahadevan S., Morin J., Nichols J. D., Osten R. A., Perez-Torres M., Pineda J. S., <strong>Rigney J.</strong>, Saur J., Stefánsson G., Turner J. D., Vedantham H., Vidotto A. A., Villadsen J. &amp; Zarka P. · <em>Nature Astronomy, 2024</em></p>
+						</li>
+						<li class="reveal">
+							<span class="pub-title">Tracking the motion of a shock along a channel in the low solar corona</span>
+							<p class="pub-meta"><strong>Jeremy Rigney</strong>, Peter T. Gallagher, Gavin Ramsay, J. Gerry Doyle, David M. Long, Oleg Stepanyuk, Kamen Kosarev · <em>Astronomy &amp; Astrophysics, 2024</em></p>
+						</li>
+						<li class="reveal">
+							<span class="pub-title">Searching for stellar flares from low-mass stars using ASKAP and TESS</span>
+							<p class="pub-meta"><strong>Jeremy Rigney</strong>, Gavin Ramsay, Eoin P. Carley, J. Gerry Doyle, Peter T. Gallagher, Yuanming Wang, Joshua Pritchard, Tara Murphy, Emil Lenc, David L. Kaplan · <em>Monthly Notices of the Royal Astronomical Society, 2022</em></p>
+						</li>
+						<li class="reveal">
+							<span class="pub-title">First results from the REAL-time Transient Acquisition backend (REALTA) at the Irish LOFAR station</span>
+							<p class="pub-meta">P. C. Murphy, Paul Callanan, J. McCauley, D. J. McKenna, D. Ó Fionnagáin, C. K. Louis, M. P. Redman, L. A. Cañizares, E. P. Carley, S. A. Maloney, B. Coghlan, Mark Daly, J. Scully, J. Dooley, V. Gajjar, C. Giese, A. Brennan, E. F. Keane, C. A. Maguire, J. Quinn, S. Mooney, A. M. Ryan, J. Walsh, C. M. Jackman, A. Golden, T. P. Ray, J. G. Doyle, <strong>J. Rigney</strong>, M. Burton, P. T. Gallagher · <em>Astronomy &amp; Astrophysics, 2021</em></p>
+						</li>
+						<li class="reveal">
+							<span class="pub-title">Comparing Game Based Learning, using a student created game, to Traditional Classroom Methods</span>
+							<p class="pub-meta"><strong>Jeremy Rigney</strong>, Niall Murray · <em>Information Technology &amp; Telecommunications Conference Proceedings, 2014</em></p>
+						</li>
+					</ul>
+				</div>
+			</section>
+		</main>
+
+		<!-- Footer / Contact -->
+		<footer class="site-footer" id="contact">
+			<div class="wrap">
+				<div class="footer-grid">
+					<div>
+						<p class="kicker reveal">06 — Get in touch</p>
+						<h2 class="reveal">Let's talk data, research, or a talk.</h2>
+						<p class="footer-lead reveal">I welcome opportunities to engage in public speaking — particularly at science festivals, open days and similar events — as well as data and research collaborations. Feel free to reach out.</p>
+						<a href="speaking.html" class="btn btn-dark">See previous talks</a>
+					</div>
+					<dl class="footer-contact reveal">
+						<dt>Location</dt>
+						<dd>Dublin &bull; Ireland</dd>
+						<dt>Email</dt>
+						<dd><a href="mailto:jeremy.rigney@gmail.com">jeremy.rigney [at] gmail [dot] com</a></dd>
+						<dt>Elsewhere</dt>
+						<dd>
+							<ul class="socials" style="margin-top:0.6rem;">
+								<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a></li>
+								<li><a href="https://github.com/jeremyrigney" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a></li>
+								<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target="_blank" rel="noopener" aria-label="Google Scholar"><i class="fa-brands fa-google-scholar"></i></a></li>
+								<li><a href="https://www.instagram.com/jeremy.rigney/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a></li>
+							</ul>
+						</dd>
+					</dl>
+				</div>
+				<div class="footer-bottom">
+					<p>&copy; <span id="year">2026</span> Jeremy Rigney</p>
+					<p><a href="https://jeremy.ie">Home</a> &nbsp;·&nbsp; <a href="https://jeremy.ie/dashboard">Dashboard</a> &nbsp;·&nbsp; <a href="speaking.html">Speaking</a></p>
+				</div>
 			</div>
+		</footer>
 
-		<!-- Scripts -->
-			<script src="assets/js/jquery.min.js"></script>
-			<script src="assets/js/jquery.scrollex.min.js"></script>
-			<script src="assets/js/jquery.scrolly.min.js"></script>
-			<script src="assets/js/browser.min.js"></script>
-			<script src="assets/js/breakpoints.min.js"></script>
-			<script src="assets/js/util.js"></script>
-			<script src="assets/js/main.js"></script>
+		<script>
+			// Sticky header background
+			const header = document.getElementById('site-header');
+			const onScroll = () => header.classList.toggle('is-stuck', window.scrollY > 40);
+			onScroll();
+			window.addEventListener('scroll', onScroll, { passive: true });
+
+			// Mobile nav
+			const toggle = document.getElementById('nav-toggle');
+			const links = document.getElementById('nav-links');
+			toggle.addEventListener('click', () => {
+				const open = links.classList.toggle('is-open');
+				toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+			});
+			links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+				links.classList.remove('is-open');
+				toggle.setAttribute('aria-expanded', 'false');
+			}));
+
+			// Scroll reveals
+			const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+			const items = document.querySelectorAll('.reveal');
+			if (reduce || !('IntersectionObserver' in window)) {
+				items.forEach(el => el.classList.add('is-in'));
+			} else {
+				const io = new IntersectionObserver((entries, obs) => {
+					entries.forEach(e => {
+						if (e.isIntersecting) { e.target.classList.add('is-in'); obs.unobserve(e.target); }
+					});
+				}, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+				items.forEach(el => io.observe(el));
+			}
+
+			// Current year
+			document.getElementById('year').textContent = new Date().getFullYear();
+		</script>
 
 	</body>
 </html>

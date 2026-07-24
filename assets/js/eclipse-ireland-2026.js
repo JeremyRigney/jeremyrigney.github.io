@@ -512,23 +512,27 @@
     // Real geometry for the 12 Aug 2026 total eclipse, from NASA GSFC path
     // tables (eclipse.gsfc.nasa.gov), sampled every ~4 minutes of UT across the
     // Iceland → North Atlantic → Spain segment. [lat, lon] in decimal degrees.
+    // The three lines share a terminus in the western Mediterranean, where the
+    // path ends at sunset — so the band tapers to a point offshore instead of
+    // being cut off by a flat chord across northern Spain.
     var centreLine = [
       [68.24, -26.41], [66.19, -25.63], [64.17, -24.76], [62.18, -23.79],
       [60.22, -22.74], [58.27, -21.57], [56.32, -20.29], [54.36, -18.85],
       [52.37, -17.21], [50.33, -15.32], [48.21, -13.05], [45.94, -10.19],
-      [43.37, -6.19], [41.82, -3.19], [39.41, 2.95]
+      [43.37, -6.19], [41.82, -3.19], [39.41, 2.95], [38.40, 4.60]
     ];
     var northLimit = [
       [68.73, -22.95], [66.63, -22.44], [64.57, -21.77], [62.55, -20.96],
       [60.55, -20.02], [58.56, -18.94], [56.57, -17.71], [54.56, -16.30],
       [52.52, -14.65], [50.42, -12.69], [48.21, -10.27], [45.80, -7.08],
-      [42.91, -2.09], [40.67, 3.30]
+      [42.91, -2.09], [40.67, 3.30], [39.40, 4.20], [38.40, 4.60]
     ];
     var southLimit = [
       [67.72, -29.63], [65.70, -28.63], [63.73, -27.58], [61.78, -26.48],
       [59.86, -25.32], [57.95, -24.08], [56.04, -22.74], [54.12, -21.28],
       [52.18, -19.65], [50.20, -17.80], [48.15, -15.64], [45.98, -13.01],
-      [43.61, -9.55], [42.26, -7.24], [40.68, -4.04]
+      [43.61, -9.55], [42.26, -7.24], [40.68, -4.04], [39.60, 0.60],
+      [38.70, 3.80], [38.40, 4.60]
     ];
     // Catmull-Rom spline: turn the sparse NASA anchor points into a dense, smooth
     // curve so the band and centre line read as flowing arcs, not straight chords.
@@ -568,10 +572,10 @@
       { latlng: [64.13, -21.90], name: 'Reykjavík', sub: 'Iceland', total: true, meta: '≈1 min of totality · ~17:48 UT', dir: 'right' },
       { latlng: [43.36, -8.41], name: 'A Coruña', sub: 'N. Spain', total: true, meta: 'Totality at sunset · ~18:29 UT (20:29 CEST)', dir: 'left' },
       { latlng: [40.42, -3.70], name: 'Madrid', sub: 'Spain', cover: 99, meta: '~99% covered · just south of the path', dir: 'right' },
-      { latlng: [53.35, -6.26], name: 'Dublin', sub: 'Ireland', cover: 90, meta: '~90% covered · maximum ~19:11 IST', dir: 'left' },
-      { latlng: [51.51, -0.13], name: 'London', sub: 'England', cover: 90, meta: '~90% covered', dir: 'top' },
-      { latlng: [48.85, 2.35], name: 'Paris', sub: 'France', cover: 91, meta: '~91% covered', dir: 'right' },
-      { latlng: [38.72, -9.14], name: 'Lisbon', sub: 'Portugal', cover: 84, meta: '~84% covered', dir: 'left' }
+      { latlng: [53.35, -6.26], name: 'Dublin', sub: 'Ireland', cover: 95, meta: '~95% covered · maximum ~19:11 IST', dir: 'left' },
+      { latlng: [51.51, -0.13], name: 'London', sub: 'England', cover: 91, meta: '~91% covered', dir: 'top' },
+      { latlng: [48.85, 2.35], name: 'Paris', sub: 'France', cover: 92, meta: '~92% covered', dir: 'right' },
+      { latlng: [38.72, -9.14], name: 'Lisbon', sub: 'Portugal', cover: 95, meta: '~95% covered', dir: 'left' }
     ];
 
     // On touch devices, one-finger drag would trap the reader on the map instead
@@ -599,7 +603,7 @@
       maxZoom: 8
     }).addTo(map);
 
-    map.fitBounds([[37.5, -29.0], [68.5, 5.0]], { padding: [10, 10] });
+    map.fitBounds([[37.5, -29.0], [68.5, 6.0]], { padding: [10, 10] });
     map.setMaxBounds([[31, -42], [74, 18]]);
 
     // ----- Partial-coverage shading -----

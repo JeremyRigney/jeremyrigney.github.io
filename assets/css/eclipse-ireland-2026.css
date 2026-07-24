@@ -762,23 +762,20 @@ a {
 }
 
 .ph-screen {
-  fill: #211a30;
+  fill: #1c1629;
+  stroke-linejoin: round;
 }
 
 .ph-screen-top {
-  fill: #39304f;
+  stroke: rgba(247, 241, 228, 0.1);
+  stroke-width: 1;
+  stroke-linejoin: round;
 }
 
 .ph-card {
   fill: #241d33;
-}
-
-.ph-card-edge {
-  fill: #14101f;
-}
-
-.ph-card-shine {
-  fill: rgba(247, 241, 228, 0.18);
+  stroke: rgba(247, 241, 228, 0.16);
+  stroke-width: 1;
 }
 
 .ph-hole {

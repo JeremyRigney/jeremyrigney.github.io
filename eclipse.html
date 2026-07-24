@@ -108,7 +108,7 @@
         <div>
           <p class="section-kicker reveal">01 — What Is It</p>
           <h2 class="reveal">A geometric alignment of Sun, Moon, and Earth</h2>
-          <p class="dropcap reveal">A solar eclipse happens when the Moon passes between Earth and the Sun. In a partial eclipse, the Moon does not completely cover the Sun from your location, so a crescent of sunlight remains visible. The exact shape depends on where you are standing and the local timing of the alignment — no two vantage points see quite the same event.</p>
+          <p class="dropcap reveal">A solar eclipse happens when the Moon passes between Earth and the Sun. In a partial eclipse, the Moon does not completely cover the Sun from your location, so a crescent of sunlight remains visible. The exact shape depends on where you are standing and the local timing of the alignment. No two vantage points see quite the same event.</p>
         </div>
         <div class="what-visual reveal">
           <svg class="align-diagram" viewBox="0 0 480 230" role="img" aria-label="Diagram of the Moon passing directly between the Earth and the Sun">
@@ -157,7 +157,7 @@
         <div>
           <p class="section-kicker reveal">02 — When It Happens</p>
           <h2 class="reveal">Late afternoon to early evening over Ireland</h2>
-          <p class="reveal">On August 12th, from Dublin, the partial eclipse runs from first contact at <strong>18:13</strong> to final contact at <strong>20:05&nbsp;IST</strong>, with maximum eclipse at <strong>19:11</strong> — the Sun sitting low to the west-north-west, so a clear horizon matters.</p>
+          <p class="reveal">On August 12th, from Dublin, the partial eclipse runs from first contact at <strong>18:13</strong> to final contact at <strong>20:05&nbsp;IST</strong>, with maximum eclipse at <strong>19:11</strong>. The Sun will be sitting low to the west-north-west, so a clear horizon matters.</p>
         </div>
         <ol class="phase-list stagger">
           <li class="reveal">
@@ -170,7 +170,7 @@
           </li>
           <li class="reveal">
             <svg class="phase-glyph" viewBox="0 0 40 40" aria-hidden="true"><circle class="pg-sun" cx="20" cy="20" r="13" /><circle class="pg-moon" cx="20" cy="22" r="13" /></svg>
-            <span class="phase-num">03</span><span class="phase-copy">Maximum — roughly 98% coverage from this viewpoint.</span>
+            <span class="phase-num">03</span><span class="phase-copy">Maximum — roughly 95% coverage from this viewpoint.</span>
           </li>
           <li class="reveal">
             <svg class="phase-glyph" viewBox="0 0 40 40" aria-hidden="true"><circle class="pg-sun" cx="20" cy="20" r="13" /><circle class="pg-moon" cx="13" cy="29" r="13" /></svg>
@@ -253,7 +253,7 @@
       <div class="section-wrap">
         <p class="section-kicker reveal">04 — Path of Totality</p>
         <h2 class="reveal">Where the Sun goes fully dark</h2>
-        <p class="reveal">Ireland only ever sees a partial eclipse. The narrow track of <strong>totality</strong> — where the Moon blots the Sun out completely — sweeps down out of the Arctic, crosses <strong>western Iceland</strong>, races over the North Atlantic and makes landfall in <strong>northern Spain</strong> around sunset. To stand in the Moon's full shadow, that band is where you would need to be.</p>
+        <p class="reveal">Ireland only ever sees a partial eclipse. The narrow track of <strong>totality</strong>, where the Moon blots the Sun out completely, sweeps down out of the Arctic, crosses <strong>western Iceland</strong>, races over the North Atlantic and makes landfall in <strong>northern Spain</strong> around sunset. To stand in the Moon's full shadow, that band is where you would need to be.</p>
 
         <figure class="totality-map-figure reveal">
           <div id="totality-map" class="totality-map" role="img" aria-label="Map of the 12 August 2026 total solar eclipse. A band of totality runs from western Iceland, south across the North Atlantic, to northern Spain. Ireland lies east of the band and sees only a deep partial eclipse.">
@@ -294,6 +294,10 @@
                 <stop offset="0%" stop-color="rgba(232, 134, 63, 0.55)" />
                 <stop offset="100%" stop-color="rgba(232, 134, 63, 0)" />
               </radialGradient>
+              <linearGradient id="ph-panel-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#3a3151" />
+                <stop offset="100%" stop-color="#282139" />
+              </linearGradient>
               <mask id="ph-sun-mask">
                 <circle cx="272" cy="54" r="17" fill="#fff" />
                 <circle cx="281" cy="45" r="16.4" fill="#000" />
@@ -328,19 +332,17 @@
 
             <polygon points="156,151 104,281 208,281" fill="url(#ph-cone-grad)" />
 
-            <rect class="ph-screen" x="42" y="278" width="228" height="21" rx="6" />
-            <rect class="ph-screen-top" x="42" y="278" width="228" height="4" rx="2" />
-            <ellipse cx="156" cy="289" rx="56" ry="12" fill="url(#ph-pool)" />
+            <polygon class="ph-screen" points="55,300 257,300 254,310 58,310" />
+            <polygon class="ph-screen-top" points="80,270 232,270 257,300 55,300" fill="url(#ph-panel-grad)" />
+            <ellipse cx="156" cy="289" rx="54" ry="11" fill="url(#ph-pool)" />
 
             <g filter="url(#ph-soft)">
               <circle class="ph-crescent" cx="155" cy="289" r="12" mask="url(#ph-img-mask)" />
             </g>
 
-            <g transform="rotate(-9 156 149)">
-              <rect class="ph-card-edge" x="74" y="153" width="150" height="6" rx="3" />
-              <rect class="ph-card" x="74" y="141" width="150" height="14" rx="4" />
-              <rect class="ph-card-shine" x="82" y="144" width="120" height="3" rx="1.5" />
-              <circle class="ph-hole" cx="156" cy="148" r="3.4" />
+            <g transform="rotate(-9 156 148)">
+              <rect class="ph-card" x="74" y="141" width="150" height="13" rx="4" />
+              <circle class="ph-hole" cx="156" cy="147.5" r="3.4" />
             </g>
           </svg>
 
