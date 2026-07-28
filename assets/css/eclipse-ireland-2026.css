@@ -1469,10 +1469,55 @@ a {
     display: none;
   }
 
-  /* The stack becomes two columns here; the control is a block of its own. */
+  /*
+   * The stack becomes two columns here, and the hero card is competing with the
+   * eclipse animation for a short viewport — so the control collapses to two
+   * rows: the button, then the picker with Reset tucked beside it.
+   */
   .location-control {
     grid-column: 1 / -1;
     max-width: none;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.4rem 0.5rem;
+    margin-top: 0.35rem;
+    padding-top: 0.6rem;
+  }
+
+  /* Rows are placed explicitly rather than by source order, so an error
+     message appearing between the picker and Reset in the DOM cannot push
+     Reset onto a row of its own. */
+  .location-btn {
+    grid-area: 1 / 1 / 2 / -1;
+    padding: 0.45rem 0.7rem;
+  }
+
+  /* Reset only exists once a location is set; while it is hidden the auto
+     column collapses and the picker takes the full width on its own. */
+  .location-select {
+    grid-area: 2 / 1 / 3 / 2;
+  }
+
+  .location-reset {
+    grid-area: 2 / 2 / 3 / 3;
+    white-space: nowrap;
+  }
+
+  /* Success text repeats the picker's own label plus the Coverage and Window
+     rows immediately above it. Errors are the only thing here that is not
+     stated somewhere else, so they are the only thing kept. */
+  .location-status {
+    display: none;
+  }
+
+  .location-status.is-error {
+    display: block;
+    grid-area: 3 / 1 / 4 / -1;
+  }
+
+  .location-note {
+    grid-area: 4 / 1 / 5 / -1;
+    font-size: 0.55rem;
+    line-height: 1.4;
   }
 
   .section-wrap.split {

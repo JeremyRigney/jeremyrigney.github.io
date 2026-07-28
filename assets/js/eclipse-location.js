@@ -522,11 +522,22 @@
       return null;
     }
 
+    /*
+     * Errors are marked so the narrow layout can keep showing them while
+     * hiding the success line, which only repeats the name in the select and
+     * the figures in the Coverage and Window rows directly above.
+     */
+    function say(message, isError) {
+      status.textContent = message;
+      status.className = 'location-status' + (isError ? ' is-error' : '');
+    }
+
     function announce(place) {
       var loc = apply(place);
-      status.textContent = loc.circ.visible
+      say(loc.circ.visible
         ? loc.label + ' — ' + loc.mapMeta
-        : loc.label + ' — the eclipse is not visible from there.';
+        : loc.label + ' — the eclipse is not visible from there.',
+      !loc.circ.visible);
       reset.hidden = false;
       return loc;
     }
@@ -545,13 +556,13 @@
 
     button.addEventListener('click', function () {
       if (!navigator.geolocation) {
-        status.textContent = 'This browser cannot share a location — choose a place below instead.';
+        say('This browser cannot share a location — choose a place below instead.', true);
         select.focus();
         return;
       }
       button.disabled = true;
       button.textContent = 'Locating…';
-      status.textContent = '';
+      say('', false);
 
       navigator.geolocation.getCurrentPosition(function (pos) {
         button.disabled = false;
@@ -569,9 +580,9 @@
       }, function (err) {
         button.disabled = false;
         button.textContent = 'Use my location';
-        status.textContent = err && err.code === 1
+        say(err && err.code === 1
           ? 'Location permission declined — choose a place below instead.'
-          : 'Could not get a location — choose a place below instead.';
+          : 'Could not get a location — choose a place below instead.', true);
         select.focus();
       }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
     });
@@ -593,7 +604,7 @@
         window.localStorage.removeItem(STORAGE_KEY);
       } catch (err) { /* ignore */ }
       select.value = '';
-      status.textContent = '';
+      say('', false);
       reset.hidden = true;
       resetToDefaults();
       apply({
