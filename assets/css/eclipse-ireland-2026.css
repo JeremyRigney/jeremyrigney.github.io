@@ -377,6 +377,137 @@ a {
   max-width: 16rem;
 }
 
+/* ---------- Viewing-location control ---------- */
+
+/* The one piece of interactive chrome in the cover-line stack. Injected by
+   eclipse-location.js, so it is simply absent when JavaScript is off — which is
+   correct, since it could not do anything then anyway. */
+.location-control {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.55rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(253, 247, 234, 0.18);
+  max-width: 16rem;
+  /* A grid item defaults to min-width:auto, so the select's intrinsic width —
+     set by its longest option label — would otherwise widen the whole
+     cover-line card past the viewport on narrow screens. */
+  min-width: 0;
+}
+
+.location-btn,
+.location-reset {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.location-btn {
+  padding: 0.5rem 0.7rem;
+  color: #140f22;
+  background: var(--accent-ember);
+  border: 1px solid var(--accent-ember);
+  font-weight: 600;
+}
+
+.location-btn:hover:not(:disabled) {
+  background: #f4a05c;
+  border-color: #f4a05c;
+}
+
+.location-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.location-select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  padding: 0.4rem 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: #fdf7ea;
+  background: rgba(15, 12, 32, 0.75);
+  border: 1px solid rgba(253, 247, 234, 0.28);
+  border-radius: 6px;
+  cursor: pointer;
+  /* The native control renders its own arrow; suppressing the OS chrome here
+     keeps it from painting a light-mode widget onto the dusk palette. */
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, rgba(253, 247, 234, 0.7) 50%),
+    linear-gradient(135deg, rgba(253, 247, 234, 0.7) 50%, transparent 50%);
+  background-position: calc(100% - 15px) calc(50% + 1px), calc(100% - 10px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 1.8rem;
+}
+
+/* Option lists are painted by the OS, so they need explicit colours or they
+   inherit the page's light body text onto a light native menu. */
+.location-select option,
+.location-select optgroup {
+  color: #17130f;
+  background: #f7f1e4;
+}
+
+.location-btn:focus-visible,
+.location-reset:focus-visible,
+.location-select:focus-visible {
+  outline: 2px solid var(--accent-ember);
+  outline-offset: 2px;
+}
+
+.location-status {
+  margin: 0;
+  font-size: 0.66rem;
+  line-height: 1.45;
+  color: var(--accent-ember);
+}
+
+.location-status:empty {
+  display: none;
+}
+
+.location-reset {
+  justify-self: start;
+  padding: 0.3rem 0.55rem;
+  color: rgba(253, 247, 234, 0.75);
+  background: transparent;
+  border: 1px solid rgba(253, 247, 234, 0.3);
+}
+
+.location-reset:hover {
+  color: #fdf7ea;
+  border-color: rgba(253, 247, 234, 0.6);
+}
+
+.location-note {
+  margin: 0;
+  font-size: 0.6rem;
+  line-height: 1.45;
+  color: rgba(253, 247, 234, 0.45);
+}
+
+.u-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ---------- Eclipse canvas ---------- */
 
 .eclipse-canvas {
@@ -1015,6 +1146,20 @@ a {
 
 /* ---------- Path of totality map ---------- */
 
+/* Verdict on the reader's own location: are they inside the band or not.
+   Hidden until a location has been chosen. */
+.totality-verdict {
+  margin-top: 1.1rem;
+  padding: 0.85rem 1.05rem;
+  border-left: 3px solid var(--accent-ember);
+  background: rgba(232, 134, 63, 0.09);
+  border-radius: 0 8px 8px 0;
+}
+
+.totality-verdict[hidden] {
+  display: none;
+}
+
 .totality-map-figure {
   margin: 2.4rem 0 0;
 }
@@ -1080,6 +1225,23 @@ a {
   background: rgba(43, 39, 71, 0.95);
   border-color: var(--accent-ember);
   box-shadow: 0 0 0 1px rgba(20, 15, 34, 0.6);
+}
+
+/* The reader's own position — the dot the "Viewing location" legend refers to.
+   Cream rather than ember so it reads as "you", not "another city". */
+.totality-marker.is-user {
+  width: 16px;
+  height: 16px;
+  background: #fdf7ea;
+  border: 3px solid var(--accent-flame);
+  box-shadow: 0 0 0 1px rgba(20, 15, 34, 0.75), 0 0 14px 3px rgba(253, 247, 234, 0.55);
+}
+
+.totality-map .totality-tip.is-user {
+  color: #140f22;
+  background: #fdf7ea;
+  border-color: #fdf7ea;
+  font-weight: 700;
 }
 
 /* Coverage-contour labels floating on the shaded partial bands. */
@@ -1305,6 +1467,12 @@ a {
 
   .coverline-note {
     display: none;
+  }
+
+  /* The stack becomes two columns here; the control is a block of its own. */
+  .location-control {
+    grid-column: 1 / -1;
+    max-width: none;
   }
 
   .section-wrap.split {

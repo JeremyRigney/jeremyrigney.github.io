@@ -6,6 +6,42 @@
     gsap.registerPlugin(ScrollTrigger);
   }
 
+  /* ---------- Shared viewing location ---------- */
+
+  /*
+   * The modules below are otherwise independent, but several of them show the
+   * same location-dependent numbers — the countdown, the scroll scene's phase
+   * clock, the coverage stat and the map marker. This is the one piece of state
+   * they share, so a location change lands everywhere at once instead of each
+   * module re-deriving it.
+   *
+   * eclipse-location.js publishes here; nothing in this file ever sets it.
+   * Payload shape is documented in that file.
+   */
+  var eclipseLocation = (function () {
+    var current = null;
+    var listeners = [];
+    return {
+      get: function () {
+        return current;
+      },
+      subscribe: function (fn) {
+        listeners.push(fn);
+        // Late subscribers still get the state that was set before they arrived.
+        if (current) {
+          fn(current);
+        }
+      },
+      set: function (location) {
+        current = location;
+        for (var i = 0; i < listeners.length; i += 1) {
+          listeners[i](location);
+        }
+      }
+    };
+  })();
+  window.eclipseLocation = eclipseLocation;
+
   /* ---------- Header: hidden on the splash, reveals after the hero ---------- */
 
   (function headerReveal() {
@@ -74,14 +110,27 @@
     if (!el) {
       return;
     }
-    // First contact: 18:12:56 Irish Summer Time (UTC+1) = 17:12:56 UTC.
-    var target = new Date('2026-08-12T18:12:56+01:00').getTime();
+    // First contact over Dublin: 18:12:53 Irish Summer Time (UTC+1).
+    var target = new Date('2026-08-12T18:12:53+01:00').getTime();
+    var unavailable = false;
+
+    eclipseLocation.subscribe(function (loc) {
+      unavailable = !loc.circ.visible || !loc.circ.firstContact;
+      if (!unavailable) {
+        target = loc.circ.firstContact.getTime();
+      }
+      render();
+    });
 
     function pad(n) {
       return (n < 10 ? '0' : '') + n;
     }
 
     function render() {
+      if (unavailable) {
+        el.textContent = '—';
+        return;
+      }
       var diff = target - Date.now();
       if (diff <= 0) {
         el.textContent = 'Underway';
@@ -118,6 +167,7 @@
     var sunRadius = 0;
     function measureDiscs() {
       sunRadius = moon.offsetWidth / 2;
+      applyPeakCoverage();
     }
 
     var timeByPhase = {
@@ -141,10 +191,52 @@
     var MOON_TRAVEL_X = -650;
     var MOON_DROP_Y = 28;
     // Arc amplitude. Entry/exit sit at MOON_DROP_Y; at maximum the Moon lifts to a
-    // vertical miss of (MOON_DROP_Y - MOON_ARC_Y) ≈ 4px, so the discs very nearly
-    // coincide and peak obscuration reads ~96% (a hair off perfect centre).
+    // vertical miss of (MOON_DROP_Y - MOON_ARC_Y), which is what sets peak
+    // obscuration. Derived from the location's real obscuration in
+    // applyPeakCoverage() rather than hand-tuned, so the picture and the readout
+    // can never disagree.
     var MOON_ARC_Y = 24;
     var MAX_ECLIPSE_PROGRESS = Math.acos(1 - 2 * (-MOON_START_X / MOON_TRAVEL_X)) / Math.PI;
+
+    // Peak obscuration for the current viewing location, in percent. Dublin's
+    // computed value is the default; eclipse-location.js replaces it.
+    var peakCoverage = 94;
+
+    /*
+     * Overlap fraction of two equal circles whose centres are `ratio` radii
+     * apart — the same lens area as coverageFromGeometry, but scale-free, so it
+     * can be inverted once and reused at any rendered disc size.
+     */
+    function equalCircleFraction(ratio) {
+      if (ratio >= 2) {
+        return 0;
+      }
+      if (ratio <= 0) {
+        return 1;
+      }
+      return (2 * Math.acos(ratio / 2) - (ratio / 2) * Math.sqrt(4 - ratio * ratio)) / Math.PI;
+    }
+
+    // Invert the above: how many radii apart the discs must sit to hide exactly
+    // `percent` of the Sun. Bisection — the function is monotonic on [0, 2].
+    function missRatioFor(percent) {
+      var goal = clamp(percent, 0, 100) / 100;
+      var lo = 0;
+      var hi = 2;
+      for (var i = 0; i < 48; i += 1) {
+        var mid = (lo + hi) / 2;
+        if (equalCircleFraction(mid) > goal) {
+          lo = mid;
+        } else {
+          hi = mid;
+        }
+      }
+      return (lo + hi) / 2;
+    }
+
+    function applyPeakCoverage() {
+      MOON_ARC_Y = MOON_DROP_Y - missRatioFor(peakCoverage) * sunRadius;
+    }
 
     function clamp(value, min, max) {
       return Math.min(Math.max(value, min), max);
@@ -179,12 +271,12 @@
         return 0;
       }
       if (d <= 0) {
-        return 98;
+        return peakCoverage;
       }
       // Lens (intersection) area of two equal circles, radius r, centres d apart.
       var overlap = 2 * r * r * Math.acos(d / (2 * r)) - (d / 2) * Math.sqrt(4 * r * r - d * d);
       var fraction = overlap / (Math.PI * r * r);
-      return Math.min(98, Math.round(98 * fraction));
+      return Math.min(Math.round(peakCoverage), Math.round(100 * fraction));
     }
 
     function phaseFromProgress(progress) {
@@ -270,6 +362,37 @@
       measureDiscs();
       queueAnimation();
     }
+
+    eclipseLocation.subscribe(function (loc) {
+      peakCoverage = loc.circ.visible ? loc.circ.obscuration : 0;
+      applyPeakCoverage();
+
+      // Rebuild the phase clock from the real contact times. "Deep" and "exit"
+      // have no formal definition, so they sit midway between the contacts they
+      // fall between — the same intent as the original hand-written estimates.
+      var c = loc.circ;
+      if (c.visible && c.firstContact && c.lastContact) {
+        var midIn = new Date((c.firstContact.getTime() + c.maxEclipse.getTime()) / 2);
+        var midOut = new Date((c.maxEclipse.getTime() + c.lastContact.getTime()) / 2);
+        var pre = new Date(c.firstContact.getTime() - 8 * 60000);
+        var zone = loc.tzAbbrev ? ' ' + loc.tzAbbrev : '';
+        timeByPhase = {
+          pre: '~' + loc.formatTime(pre) + zone,
+          first: loc.formatTime(c.firstContact) + zone,
+          deep: '~' + loc.formatTime(midIn) + zone,
+          max: loc.formatTime(c.maxEclipse) + zone,
+          exit: '~' + loc.formatTime(midOut) + zone,
+          end: loc.formatTime(c.lastContact) + zone
+        };
+      } else {
+        timeByPhase = {
+          pre: 'Not visible', first: 'Not visible', deep: 'Not visible',
+          max: 'Not visible', exit: 'Not visible', end: 'Not visible'
+        };
+      }
+
+      applyState(renderedProgress);
+    });
 
     measureDiscs();
     applyState(renderedProgress);
@@ -368,24 +491,48 @@
     var target = parseInt(el.getAttribute('data-count-to'), 10);
     var unit = el.querySelector('.stat-unit');
     var unitHtml = unit ? unit.outerHTML : '';
+    // The count-up runs once, on first scroll-in. After that the element has to
+    // stay writable, because the location can change at any point — including
+    // long after the animation has finished.
+    var counted = false;
+    var tween = null;
 
     function render(value) {
       el.innerHTML = Math.round(value) + unitHtml;
     }
 
+    eclipseLocation.subscribe(function (loc) {
+      target = loc.circ.visible ? Math.round(loc.circ.obscuration) : 0;
+      el.setAttribute('data-count-to', target);
+      if (counted) {
+        render(target);
+      } else if (tween) {
+        // The tween recorded its end value when it was built, so a location
+        // picked before the stat scrolls into view would otherwise count up to
+        // the previous number. invalidate() makes GSAP re-read it.
+        tween.vars.value = target;
+        tween.invalidate();
+      }
+    });
+
     if (!hasGsap || reducedMotion) {
+      counted = true;
       render(target);
       return;
     }
 
     render(0);
     var counter = { value: 0 };
-    gsap.to(counter, {
+    tween = gsap.to(counter, {
       value: target,
       duration: 1.6,
       ease: 'power2.out',
       onUpdate: function () {
         render(counter.value);
+      },
+      onComplete: function () {
+        counted = true;
+        render(target);
       },
       scrollTrigger: {
         trigger: el,
@@ -565,17 +712,17 @@
     // Close the band: smoothed northern limit, then smoothed southern limit back.
     var band = smooth(northLimit).concat(smooth(southLimit).reverse());
 
-    // Obscuration percentages are approximate, from NASA/timeanddate local
-    // circumstances for 12 Aug 2026 — enough to show how coverage falls off with
-    // distance from the path. `total` cities sit inside the band.
+    // Obscuration figures below are computed from the NASA Besselian elements by
+    // eclipse-besselian.js, so they agree with everything else on the page.
+    // `total` cities sit inside the band.
     var cities = [
-      { latlng: [64.13, -21.90], name: 'Reykjavík', sub: 'Iceland', total: true, meta: '≈1 min of totality · ~17:48 UT', dir: 'right' },
-      { latlng: [43.36, -8.41], name: 'A Coruña', sub: 'N. Spain', total: true, meta: 'Totality at sunset · ~18:29 UT (20:29 CEST)', dir: 'left' },
-      { latlng: [40.42, -3.70], name: 'Madrid', sub: 'Spain', cover: 99, meta: '~99% covered · just south of the path', dir: 'right' },
-      { latlng: [53.35, -6.26], name: 'Dublin', sub: 'Ireland', cover: 95, meta: '~95% covered · maximum ~19:11 IST', dir: 'left' },
-      { latlng: [51.51, -0.13], name: 'London', sub: 'England', cover: 91, meta: '~91% covered', dir: 'top' },
-      { latlng: [48.85, 2.35], name: 'Paris', sub: 'France', cover: 92, meta: '~92% covered', dir: 'right' },
-      { latlng: [38.72, -9.14], name: 'Lisbon', sub: 'Portugal', cover: 95, meta: '~95% covered', dir: 'left' }
+      { latlng: [64.13, -21.90], name: 'Reykjavík', sub: 'Iceland', total: true, meta: '≈57 s of totality · maximum 17:48 GMT', dir: 'right' },
+      { latlng: [43.36, -8.41], name: 'A Coruña', sub: 'N. Spain', total: true, meta: '≈75 s of totality at sunset · maximum 20:28 CEST', dir: 'left' },
+      { latlng: [40.42, -3.70], name: 'Madrid', sub: 'Spain', cover: 100, meta: '99.96% covered, but no totality — a whisker south of the path · maximum 20:32 CEST', dir: 'right' },
+      { latlng: [53.35, -6.26], name: 'Dublin', sub: 'Ireland', cover: 94, meta: '~94% covered · maximum 19:10 IST', dir: 'left' },
+      { latlng: [51.51, -0.13], name: 'London', sub: 'England', cover: 91, meta: '~91% covered · maximum 19:13 BST', dir: 'top' },
+      { latlng: [48.85, 2.35], name: 'Paris', sub: 'France', cover: 92, meta: '~92% covered · maximum 20:17 CEST', dir: 'right' },
+      { latlng: [38.72, -9.14], name: 'Lisbon', sub: 'Portugal', cover: 94, meta: '~94% covered · maximum 19:36 WEST', dir: 'left' }
     ];
 
     // On touch devices, one-finger drag would trap the reader on the map instead
@@ -759,6 +906,61 @@
           '<span class="totality-popup-tag">' + (city.total ? 'Totality — ' : 'Partial — ') + city.sub + '</span>' +
           '<span class="totality-popup-meta">' + city.meta + '</span>'
         );
+    });
+
+    /* ----- Marker for the reader's own viewing location ----- */
+
+    // This is what the "Viewing location" swatch in the legend refers to; until
+    // a location is chosen there is nothing on the map for it to point at.
+    var userMarker = null;
+
+    eclipseLocation.subscribe(function (loc) {
+      if (userMarker) {
+        map.removeLayer(userMarker);
+        userMarker = null;
+      }
+      if (!loc.circ.visible) {
+        return;
+      }
+
+      var total = !!loc.circ.isTotal;
+      var label = total ? 'You — total' : 'You — ' + Math.round(loc.circ.obscuration) + '%';
+      userMarker = L.marker(loc.latlng, {
+        icon: L.divIcon({
+          className: '',
+          html: '<div class="totality-marker is-user"></div>',
+          iconSize: [16, 16],
+          iconAnchor: [8, 8]
+        }),
+        keyboard: false,
+        zIndexOffset: 1000
+      })
+        .addTo(map)
+        .bindTooltip(label, {
+          permanent: true,
+          direction: 'bottom',
+          className: 'totality-tip is-user',
+          offset: [0, 10]
+        })
+        .bindPopup(
+          '<span class="totality-popup-name">' + loc.label + '</span>' +
+          '<span class="totality-popup-tag">' + (total ? 'Totality' : 'Partial') + ' — your viewing location</span>' +
+          '<span class="totality-popup-meta">' + loc.mapMeta + '</span>'
+        );
+
+      // The map is normally penned into the North Atlantic / Europe frame. A
+      // reader outside it (the eclipse is partial as far west as the Americas)
+      // would otherwise have a marker they could never pan to, so widen the
+      // limit enough to reach them.
+      var limit = map.options.maxBounds;
+      if (limit && !limit.contains(loc.latlng)) {
+        map.setMaxBounds(L.latLngBounds(limit.getSouthWest(), limit.getNorthEast()).extend(loc.latlng).pad(0.1));
+      }
+
+      // Only move the map if the reader would otherwise not see their own marker.
+      if (!map.getBounds().pad(-0.08).contains(loc.latlng)) {
+        map.flyTo(loc.latlng, Math.max(map.getZoom(), 4), { duration: 1.1 });
+      }
     });
 
     // Keep the rendered size correct once layout settles and on resize.
