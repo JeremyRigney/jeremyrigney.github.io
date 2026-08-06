@@ -1,0 +1,858 @@
+/*
+ * /f1 — next race circuit page.
+ *
+ * Deliberately off-palette from the rest of jeremy.ie, the same way
+ * eclipse-ireland-2026.css is: this one is built to read like a circuit print,
+ * charcoal ground with a single accent line. What it does share is the site's font
+ * trio and the .wrap / .kicker / .reveal conventions.
+ *
+ * That accent is per-circuit rather than fixed — see --accent below, and
+ * CIRCUIT_COLOURS in f1-circuit.js for the palette itself.
+ *
+ * The poster's title face is a heavy geometric sans; Chivo Mono 700 uppercase on
+ * wide tracking gets close enough to it that a fourth webfont isn't worth the load.
+ */
+
+:root {
+  --coal: #111214;
+  --coal-deep: #0a0b0c;
+  --panel: #17191c;
+  --panel-alt: #1d2024;
+  --line: rgba(236, 238, 240, 0.14);
+  --line-strong: rgba(236, 238, 240, 0.28);
+  --ink: #eceef0;
+  --ink-soft: #9aa0a6;
+  --ink-faint: #6b7178;
+  --f1-red: #e8112d;
+  --f1-red-soft: #ff4055;
+  /*
+   * The live accent, repointed at the current circuit's colour by f1-circuit.js.
+   * Three tones: --accent-deep is the circuit's colour as given, for large fills
+   * where its mass carries it; --accent is lifted to 3:1 against the ground, for
+   * rules and borders; --accent-soft to 5:1, for text. Defaulting them to the F1 red
+   * means the page still reads correctly before the script runs, or if it never does.
+   */
+  --accent: var(--f1-red);
+  --accent-soft: var(--f1-red-soft);
+  --accent-deep: var(--f1-red);
+  --accent-rgb: 232, 17, 45;
+  --chalk: #f6f7f8;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Chivo Mono", "Courier New", monospace;
+  --maxw: 1180px;
+  --radius: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--coal);
+  color: var(--ink);
+  font-family: var(--font-body);
+  letter-spacing: -0.006em;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+}
+
+.wrap {
+  width: 100%;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 1.4rem;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+}
+
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+  transition: opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ---------- Header ---------- */
+
+.site-header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 30;
+  height: 3.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 1.4rem;
+  background: rgba(17, 18, 20, 0.82);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 420ms ease;
+}
+
+/* Hidden over the opening frame so the track has the screen to itself. */
+.site-header.is-hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-header {
+    transition: none;
+  }
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.masthead {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.02rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--chalk);
+  text-decoration: none;
+}
+
+.masthead-dot {
+  color: var(--accent-soft);
+}
+
+.byline {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.byline a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.byline a:hover {
+  color: var(--chalk);
+}
+
+.round-meta {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.site-nav {
+  display: flex;
+  gap: 1.3rem;
+}
+
+.site-nav a {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid transparent;
+}
+
+.site-nav a:hover {
+  color: var(--chalk);
+  border-bottom-color: var(--accent);
+}
+
+.nav-toggle {
+  display: none;
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.nav-toggle span {
+  display: block;
+  width: 1.05rem;
+  height: 1.5px;
+  margin: 0.22rem auto;
+  background: var(--ink);
+}
+
+@media (max-width: 860px) {
+  .round-meta {
+    display: none;
+  }
+
+  .nav-toggle {
+    display: block;
+  }
+
+  .site-nav {
+    position: fixed;
+    inset: 3.9rem 0 auto 0;
+    flex-direction: column;
+    gap: 0;
+    padding: 0.6rem 1.4rem 1.2rem;
+    background: rgba(17, 18, 20, 0.97);
+    border-bottom: 1px solid var(--line);
+    transform: translateY(-8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms ease, transform 220ms ease;
+  }
+
+  .site-nav.is-open {
+    transform: none;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .site-nav a {
+    padding: 0.68rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+/* ---------- The scene ---------- */
+
+/*
+ * A tall section with a sticky viewport-height stage inside it. Scroll distance
+ * through the section is the animation timeline; f1-circuit.js reads it directly
+ * rather than going through a scroll library. 520vh gives each of the five phases
+ * roughly a screen of travel, which is slow enough to read.
+ */
+#scene {
+  position: relative;
+  height: 520vh;
+}
+
+.scene-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+}
+
+#circuit-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Vignette, so the poster plate reads as printed rather than as a screenshot. */
+.scene-sticky::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    120% 90% at 50% 45%,
+    rgba(10, 11, 12, 0) 45%,
+    rgba(10, 11, 12, 0.72) 100%
+  );
+}
+
+.scene-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 5.2rem 1.6rem 1.6rem;
+  pointer-events: none;
+}
+
+.scene-overlay a,
+.scene-overlay button {
+  pointer-events: auto;
+}
+
+.circuit-title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: clamp(1.9rem, 6.2vw, 4.1rem);
+  line-height: 1.02;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--chalk);
+  text-shadow: 0 2px 30px rgba(10, 11, 12, 0.85);
+}
+
+.circuit-eyebrow {
+  margin: 0 0 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+.circuit-sub {
+  margin: 0.7rem 0 0;
+  max-width: 34ch;
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  text-shadow: 0 2px 20px rgba(10, 11, 12, 0.9);
+}
+
+/* The readout rail, bottom of the stage: countdown and live elevation figures. */
+.scene-readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1.6rem 2.4rem;
+}
+
+.readout {
+  min-width: 0;
+}
+
+.readout-value {
+  display: block;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: clamp(1.15rem, 2.6vw, 1.85rem);
+  letter-spacing: -0.01em;
+  color: var(--chalk);
+  font-variant-numeric: tabular-nums;
+}
+
+.readout-label {
+  display: block;
+  margin-top: 0.28rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.readout-lead .readout-value {
+  color: var(--accent-soft);
+}
+
+/*
+ * Phase cues. The scene fades these in and out by toggling .is-on, so the
+ * transitions live here rather than being redrawn on the canvas every frame.
+ */
+.scene-cue {
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+.scene-cue.is-on {
+  opacity: 1;
+}
+
+.scroll-hint {
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.scroll-hint-arrow {
+  font-size: 0.95rem;
+  color: var(--accent-soft);
+  animation: hint-bob 2.2s ease-in-out infinite;
+}
+
+@keyframes hint-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(5px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-hint-arrow {
+    animation: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .scene-overlay {
+    padding: 4.6rem 1.1rem 1.2rem;
+  }
+
+  .scene-readout {
+    gap: 1rem 1.5rem;
+  }
+}
+
+/* ---------- Content sections ---------- */
+
+.section {
+  padding: 5.5rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.section-dark {
+  background: var(--coal-deep);
+}
+
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 0 0 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+.kicker::before {
+  content: "";
+  width: 2.1rem;
+  height: 1px;
+  background: var(--accent);
+  flex: none;
+}
+
+.section-title {
+  margin: 0 0 1rem;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(1.7rem, 3.6vw, 2.5rem);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: var(--chalk);
+}
+
+.section-lead {
+  margin: 0 0 2.4rem;
+  max-width: 62ch;
+  font-size: 1.02rem;
+  line-height: 1.62;
+  color: var(--ink-soft);
+}
+
+/* ---------- Vitals plate (the poster footer) ---------- */
+
+.vitals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.vital {
+  padding: 1.5rem 1.3rem;
+  background: var(--panel);
+}
+
+.vital-value {
+  display: block;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 1.6rem;
+  letter-spacing: -0.02em;
+  color: var(--chalk);
+  font-variant-numeric: tabular-nums;
+}
+
+.vital-unit {
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+}
+
+.vital-label {
+  display: block;
+  margin-top: 0.42rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ---------- Elevation profile ---------- */
+
+.profile-frame {
+  position: relative;
+  padding: 1.6rem 1.3rem 1.2rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+#profile-canvas {
+  display: block;
+  width: 100%;
+  height: 280px;
+}
+
+.profile-note {
+  margin: 1rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+
+/* ---------- Result cards ---------- */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.1rem;
+}
+
+.card {
+  padding: 1.6rem 1.5rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.card-dt {
+  margin: 0 0 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.card-headline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.55rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--chalk);
+}
+
+.card-sub {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.card-time {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-soft);
+}
+
+/* Win tallies, as a bar list. */
+.tally {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tally li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.6rem 0.9rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.tally li:last-child {
+  border-bottom: 0;
+}
+
+.tally-name {
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+
+.tally-count {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.tally-bar {
+  grid-column: 1 / -1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0.85;
+}
+
+/* ---------- Weekend schedule ---------- */
+
+.schedule {
+  display: grid;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.schedule-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 1rem 1.3rem;
+  background: var(--panel);
+}
+
+.schedule-row.is-race {
+  background: var(--panel-alt);
+}
+
+.schedule-name {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.schedule-row.is-race .schedule-name {
+  color: var(--accent-soft);
+}
+
+.schedule-time {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--chalk);
+}
+
+/* ---------- Season strip ---------- */
+
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0.7rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.calendar li {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  transition: border-color 160ms ease, opacity 160ms ease;
+}
+
+/*
+ * Each round links to ?circuit=<id>. The padding lives on the link rather than the
+ * card so the whole card is the target, not just the text inside it.
+ */
+.calendar-link {
+  display: block;
+  padding: 0.95rem 1rem;
+  color: inherit;
+  text-decoration: none;
+  border-radius: inherit;
+}
+
+.calendar-link:focus-visible {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 2px;
+}
+
+.calendar li.is-next {
+  border-color: var(--accent);
+  background: linear-gradient(
+    180deg,
+    rgba(var(--accent-rgb), 0.14),
+    rgba(var(--accent-rgb), 0.03)
+  );
+}
+
+.calendar li.is-done {
+  opacity: 0.44;
+}
+
+/* After .is-done deliberately, so a dimmed past round lifts back up on hover. */
+.calendar li:hover {
+  border-color: var(--accent);
+  opacity: 1;
+}
+
+.calendar-round {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.calendar li.is-next .calendar-round {
+  color: var(--accent-soft);
+}
+
+.calendar-name {
+  display: block;
+  margin: 0.3rem 0 0.15rem;
+  font-size: 0.9rem;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.calendar-date {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+}
+
+/* ---------- Sources ---------- */
+
+.sources {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.85rem;
+  max-width: 72ch;
+}
+
+.sources li {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.sources a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.sources a:hover {
+  color: var(--chalk);
+  border-bottom-color: var(--accent);
+}
+
+.caveat {
+  margin: 2rem 0 0;
+  padding: 1.2rem 1.3rem;
+  max-width: 72ch;
+  background: var(--panel);
+  border-left: 2px solid var(--accent);
+  border-radius: 0 10px 10px 0;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+/* ---------- Footer ---------- */
+
+.site-footer {
+  padding: 3rem 0 4rem;
+  border-top: 1px solid var(--line);
+  background: var(--coal-deep);
+}
+
+.site-footer p {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}
+
+.site-footer a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.site-footer a:hover {
+  color: var(--chalk);
+}
+
+/* Shown only when the circuit data fails to load. */
+.scene-error {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.scene-error.is-on {
+  display: flex;
+}
