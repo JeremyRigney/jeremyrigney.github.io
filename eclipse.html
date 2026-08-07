@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <link rel="stylesheet" href="assets/css/eclipse-ireland-2026.css?v=20260728" />
+  <link rel="stylesheet" href="assets/css/eclipse-ireland-2026.css?v=20260807" />
 </head>
 <body>
   <header class="site-header" id="site-header">
@@ -28,6 +28,7 @@
       <a href="#what">What</a>
       <a href="#timing">Timing</a>
       <a href="#stat">Coverage</a>
+      <a href="#skyposition">Sky</a>
       <a href="#totality">Totality</a>
       <a href="#safety">Safety</a>
       <a href="#references">Sources</a>
@@ -254,9 +255,122 @@
       </div>
     </section>
 
+    <section id="skyposition" class="content-section">
+      <div class="section-wrap split split-sky">
+        <div class="sky-copy">
+          <p class="section-kicker reveal">04 — Where In The Sky</p>
+          <h2 class="reveal">The eclipse track above your horizon</h2>
+          <p class="reveal">From <span id="sky-place" data-default="Dublin">Dublin</span>, the eclipsed Sun stays low in the <span id="sky-direction-word" data-default="west-north-west">west-north-west</span> sky, centered around <strong id="sky-bearing-value" data-default="288°">288°</strong> azimuth. In directional terms that is <strong id="sky-bearing-offset" data-default="West 18° North">West 18° North</strong>.</p>
+          <ul class="sky-notes stagger">
+            <li class="reveal"><span class="sky-note-label">First contact</span><span class="sky-note-value"><strong id="sky-alt-first" data-default="11°">11°</strong> altitude</span></li>
+            <li class="reveal"><span class="sky-note-label">Maximum eclipse</span><span class="sky-note-value"><strong id="sky-alt-max" data-default="8°">8°</strong> altitude</span></li>
+            <li class="reveal"><span class="sky-note-label">Final contact</span><span class="sky-note-value"><strong id="sky-alt-last" data-default="4°">4°</strong> altitude</span></li>
+          </ul>
+          <p class="sky-copy-note reveal" id="sky-altitude-note" data-default="A clear western horizon matters. Low cloud or buildings can hide part of the event even when local coverage is high.">A clear western horizon matters. Low cloud or buildings can hide part of the event even when local coverage is high.</p>
+        </div>
+
+        <figure class="sky-visual reveal">
+          <!-- A small planetarium view. The grid, cardinal marks and field of
+               view are drawn by eclipse-ireland-2026.js and refitted to each
+               location; the markup below is the no-script default for Dublin. -->
+          <svg class="sky-frame" id="sky-frame-svg" viewBox="0 0 460 330" role="img" aria-label="Simulated sky view toward the eclipsed Sun, with an altitude-azimuth grid, the horizon, and markers for first contact, maximum eclipse and final contact.">
+            <defs>
+              <!-- The cover sky, compressed so its warm band lands on this
+                   frame's horizon — same dusk palette, shorter run. -->
+              <linearGradient id="sky-dome-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#191430" />
+                <stop offset="28%" stop-color="#2b2547" />
+                <stop offset="52%" stop-color="#45385f" />
+                <stop offset="74%" stop-color="#7a4e5e" />
+                <stop offset="90%" stop-color="#b3653f" />
+                <stop offset="100%" stop-color="#cf7c3d" />
+              </linearGradient>
+              <linearGradient id="sky-haze-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="rgba(250, 190, 122, 0)" />
+                <stop offset="100%" stop-color="rgba(250, 190, 122, 0.22)" />
+              </linearGradient>
+              <linearGradient id="sky-ground-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#241d33" />
+                <stop offset="100%" stop-color="#130e20" />
+              </linearGradient>
+              <radialGradient id="sky-halo-grad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="rgba(255, 224, 178, 0.5)" />
+                <stop offset="42%" stop-color="rgba(244, 158, 90, 0.22)" />
+                <stop offset="100%" stop-color="rgba(232, 134, 63, 0)" />
+              </radialGradient>
+              <filter id="sky-sun-glow" x="-150%" y="-150%" width="400%" height="400%">
+                <feGaussianBlur stdDeviation="2" result="b" />
+                <feMerge>
+                  <feMergeNode in="b" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              <clipPath id="sky-dome-clip">
+                <rect id="sky-dome-clip-rect" x="28" y="18" width="404" height="234" />
+              </clipPath>
+              <clipPath id="sky-frame-clip">
+                <rect x="28" y="18" width="404" height="278" rx="5" />
+              </clipPath>
+              <!-- The Moon's bite out of the Sun at maximum; the offset is set
+                   from the local obscuration. -->
+              <mask id="sky-max-mask">
+                <circle id="sky-max-mask-sun" cx="230" cy="147.7" r="14" fill="#fff" />
+                <circle id="sky-max-mask-moon" cx="230" cy="156" r="14.5" fill="#000" />
+              </mask>
+            </defs>
+
+            <g clip-path="url(#sky-dome-clip)">
+              <rect id="sky-dome-rect" x="28" y="18" width="404" height="234" fill="url(#sky-dome-grad)" />
+              <g id="sky-stars" class="sky-stars"></g>
+              <rect id="sky-haze-rect" x="28" y="158" width="404" height="94" fill="url(#sky-haze-grad)" />
+              <g id="sky-grid" class="sky-grid"></g>
+            </g>
+
+            <g clip-path="url(#sky-frame-clip)">
+              <rect id="sky-ground-rect" x="28" y="252" width="404" height="44" fill="url(#sky-ground-grad)" />
+              <g id="sky-grid-below" class="sky-grid-below"></g>
+              <g id="sky-cardinals" class="sky-cardinals"></g>
+              <g id="sky-grid-labels" class="sky-grid-labels"></g>
+              <circle id="sky-sun-halo" class="sky-sun-halo" cx="230" cy="147.7" r="46" fill="url(#sky-halo-grad)" />
+              <path id="sky-path-below" class="sky-path-below" d="" />
+              <path id="sky-path-line" class="sky-path-line" d="M 125.7 108.6 L 156.6 118.6 L 187.9 129.0 L 210.1 137.2 L 230 147.7 L 262.6 160.7 L 295.2 173.8 L 321.3 186.9 L 347.4 199.8" />
+
+              <g id="sky-marker-first" class="sky-marker sky-marker-first">
+                <circle class="sky-marker-dot" id="sky-dot-first" cx="125.7" cy="108.6" r="4.2" />
+                <text class="sky-marker-label" id="sky-label-first" x="125.7" y="95.6" text-anchor="middle">First</text>
+              </g>
+              <g id="sky-marker-max" class="sky-marker sky-marker-max">
+                <circle class="sky-corona" id="sky-max-corona" cx="230" cy="147.7" r="19" />
+                <!-- Ghost of the full solar disc, so a 94% crescent still reads
+                     as a marker and not as a stray hairline. -->
+                <circle class="sky-sun-disc" id="sky-max-disc" cx="230" cy="147.7" r="14" />
+                <!-- Glow on the group, not the disc: a filter on the masked
+                     element gets cut away by its own mask. -->
+                <g filter="url(#sky-sun-glow)">
+                  <circle class="sky-marker-dot sky-marker-dot-max" id="sky-dot-max" cx="230" cy="147.7" r="14" mask="url(#sky-max-mask)" />
+                </g>
+                <text class="sky-marker-label sky-marker-label-max" id="sky-label-max" x="230" y="123.7" text-anchor="middle">Maximum</text>
+              </g>
+              <g id="sky-marker-last" class="sky-marker sky-marker-last">
+                <circle class="sky-marker-dot" id="sky-dot-last" cx="347.4" cy="199.8" r="4.2" />
+                <text class="sky-marker-label" id="sky-label-last" x="347.4" y="186.8" text-anchor="middle">Last</text>
+              </g>
+            </g>
+
+            <line class="sky-horizon" id="sky-horizon-line" x1="28" y1="252" x2="432" y2="252" />
+            <rect class="sky-window" x="28" y="18" width="404" height="278" rx="5" />
+            <text class="sky-hud" x="38" y="32">12 Aug 2026</text>
+            <text class="sky-hud sky-hud-end" id="sky-hud-fov" x="422" y="32" text-anchor="end">FOV 31°</text>
+            <text class="sky-ground-direction" id="sky-ground-direction" x="230" y="320" text-anchor="middle">West-north-west · 288°</text>
+          </svg>
+          <figcaption id="sky-figcaption" data-default="Sky path for this viewpoint: the eclipsed Sun runs low across the western sky from first to final contact.">Sky path for this viewpoint: the eclipsed Sun runs low across the western sky from first to final contact.</figcaption>
+        </figure>
+      </div>
+    </section>
+
     <section id="totality" class="content-section alt map-section">
       <div class="section-wrap">
-        <p class="section-kicker reveal">04 — Path of Totality</p>
+        <p class="section-kicker reveal">05 — Path of Totality</p>
         <h2 class="reveal">Where the Sun goes fully dark</h2>
         <p class="reveal">Ireland only ever sees a partial eclipse. The narrow track of <strong>totality</strong>, where the Moon blots the Sun out completely, sweeps down out of the Arctic, crosses <strong>western Iceland</strong>, races over the North Atlantic and makes landfall in <strong>northern Spain</strong> around sunset. To stand in the Moon's full shadow, that band is where you would need to be. For precise location coverage consult <a id="tad-link" data-default="https://www.timeanddate.com/eclipse/map/2026-august-12?n=%4053.10025%2C-7.91428" href="https://www.timeanddate.com/eclipse/map/2026-august-12?n=%4053.10025%2C-7.91428">timeanddate.com</a></p>
         <p class="reveal totality-verdict" id="totality-verdict" hidden></p>
@@ -360,7 +474,7 @@
         </div>
 
         <div class="safety-copy">
-          <p class="section-kicker reveal">05 — Eye Safety</p>
+          <p class="section-kicker reveal">06 — Eye Safety</p>
           <h2 class="reveal">Never view the Sun directly without proper protection</h2>
           <ul class="safety-list stagger">
             <li class="reveal">Use certified solar viewers that meet ISO&nbsp;12312-2.</li>
@@ -375,7 +489,7 @@
 
     <section id="references" class="content-section alt">
       <div class="section-wrap">
-        <p class="section-kicker reveal">06 — Local Circumstances &amp; Resources</p>
+        <p class="section-kicker reveal">07 — Local Circumstances &amp; Resources</p>
         <h2 class="reveal">Verify exact local circumstances before the event</h2>
         <p class="reveal">Times and coverage on this page are illustrative. Cloud cover and a clear west-north-west horizon decide what you actually see — so check the live forecast and the official eclipse resources close to the day.</p>
 
@@ -424,7 +538,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="assets/js/eclipse-besselian.js?v=20260728"></script>
-  <script src="assets/js/eclipse-ireland-2026.js?v=20260728"></script>
+  <script src="assets/js/eclipse-ireland-2026.js?v=20260807"></script>
   <script src="assets/js/eclipse-location.js?v=20260728"></script>
 </body>
 </html>

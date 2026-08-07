@@ -542,6 +542,493 @@
     });
   })();
 
+  /* ---------- Viewer sky frame ---------- */
+
+  /*
+   * A small planetarium view of the track: alt-azimuth grid, cardinal marks and
+   * a horizon, drawn the way Stellarium frames a scene.
+   *
+   * The field of view is fitted to the track rather than fixed. This eclipse
+   * happens within a few degrees of the horizon over Ireland, and a fixed
+   * horizon-to-zenith frame spends nine tenths of its height on empty sky while
+   * squashing the part that matters into the bottom edge. Fitting also keeps
+   * the projection square — one degree of altitude is one degree of azimuth —
+   * so the track's slope is the slope you would actually see.
+   */
+  (function skyFrame() {
+    var SVG_NS = 'http://www.w3.org/2000/svg';
+
+    var frame = document.getElementById('sky-frame-svg');
+    var path = document.getElementById('sky-path-line');
+    var pathBelow = document.getElementById('sky-path-below');
+    var grid = document.getElementById('sky-grid');
+    var gridBelow = document.getElementById('sky-grid-below');
+    var gridLabels = document.getElementById('sky-grid-labels');
+    var domeRect = document.getElementById('sky-dome-rect');
+    var domeClipRect = document.getElementById('sky-dome-clip-rect');
+    var hazeRect = document.getElementById('sky-haze-rect');
+    var groundRect = document.getElementById('sky-ground-rect');
+    var horizonLine = document.getElementById('sky-horizon-line');
+    var cardinals = document.getElementById('sky-cardinals');
+    var stars = document.getElementById('sky-stars');
+    var halo = document.getElementById('sky-sun-halo');
+    var corona = document.getElementById('sky-max-corona');
+    var maxDisc = document.getElementById('sky-max-disc');
+    var maskSun = document.getElementById('sky-max-mask-sun');
+    var maskMoon = document.getElementById('sky-max-mask-moon');
+    var hudFov = document.getElementById('sky-hud-fov');
+    var dotFirst = document.getElementById('sky-dot-first');
+    var dotMax = document.getElementById('sky-dot-max');
+    var dotLast = document.getElementById('sky-dot-last');
+    var labelFirst = document.getElementById('sky-label-first');
+    var labelMax = document.getElementById('sky-label-max');
+    var labelLast = document.getElementById('sky-label-last');
+    var groundDirection = document.getElementById('sky-ground-direction');
+
+    if (!frame || !path || !pathBelow || !grid || !gridBelow || !gridLabels || !cardinals
+      || !stars || !domeRect || !domeClipRect || !hazeRect || !groundRect || !horizonLine
+      || !halo || !corona || !maxDisc || !maskSun || !maskMoon || !hudFov || !dotFirst || !dotMax
+      || !dotLast || !labelFirst || !labelMax || !labelLast || !groundDirection
+      || !window.EclipseLocal) {
+      return;
+    }
+
+    /* Frame geometry, in viewBox units. */
+    var CX = 230;
+    var FRAME_X0 = 28;
+    var FRAME_X1 = 432;
+    var FRAME_Y0 = 18;
+    var HORIZON_Y = 252;
+    var GROUND_Y1 = 296;
+    var HALF_W = CX - FRAME_X0;
+    var SKY_H = HORIZON_Y - FRAME_Y0;
+    var SUN_R = 14;
+    var MOON_RATIO = 1.034;
+
+    var CARDINALS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+      'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+
+    /* Dublin in round numbers — what the frame shows before a location is set. */
+    var DEFAULT_TRACK = {
+      centreAzimuth: 288,
+      direction: 'west-north-west',
+      obscuration: 94,
+      isTotal: false,
+      points: [
+        { azimuthDeg: 280.0, altitudeDeg: 11.0 },
+        { azimuthDeg: 282.4, altitudeDeg: 10.2 },
+        { azimuthDeg: 284.8, altitudeDeg: 9.4 },
+        { azimuthDeg: 286.5, altitudeDeg: 8.6 },
+        { azimuthDeg: 288.0, altitudeDeg: 8.0 },
+        { azimuthDeg: 290.5, altitudeDeg: 7.0 },
+        { azimuthDeg: 293.0, altitudeDeg: 6.0 },
+        { azimuthDeg: 295.0, altitudeDeg: 5.0 },
+        { azimuthDeg: 297.0, altitudeDeg: 4.0 }
+      ],
+      firstPoint: { azimuthDeg: 280, altitudeDeg: 11 },
+      maxPoint: { azimuthDeg: 288, altitudeDeg: 8 },
+      lastPoint: { azimuthDeg: 297, altitudeDeg: 4 }
+    };
+
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function bearingDelta(fromDeg, toDeg) {
+      var delta = toDeg - fromDeg;
+      while (delta <= -180) {
+        delta += 360;
+      }
+      while (delta > 180) {
+        delta -= 360;
+      }
+      return delta;
+    }
+
+    function sentenceCase(text) {
+      return text.charAt(0).toUpperCase() + text.slice(1);
+    }
+
+    function clear(node) {
+      while (node.firstChild) {
+        node.removeChild(node.firstChild);
+      }
+    }
+
+    function add(parent, name, attrs, className, text) {
+      var node = document.createElementNS(SVG_NS, name);
+      Object.keys(attrs).forEach(function (key) {
+        node.setAttribute(key, attrs[key]);
+      });
+      if (className) {
+        node.setAttribute('class', className);
+      }
+      if (text !== undefined) {
+        node.textContent = text;
+      }
+      parent.appendChild(node);
+      return node;
+    }
+
+    /*
+     * Centre-to-centre distance that leaves `percent` of the solar disc covered,
+     * in units of the drawn solar radius — the same geometry as the coverage
+     * figure, so the two crescents on the page agree.
+     */
+    function moonOffset(percent) {
+      var goal = clamp(percent, 0, 100) / 100;
+      var rMoon = MOON_RATIO;
+
+      function covered(d) {
+        if (d >= 1 + rMoon) {
+          return 0;
+        }
+        if (d <= rMoon - 1) {
+          return 1;
+        }
+        var a = 2 * Math.acos((d * d + 1 - rMoon * rMoon) / (2 * d));
+        var b = 2 * Math.acos((d * d + rMoon * rMoon - 1) / (2 * d * rMoon));
+        return (0.5 * (a - Math.sin(a)) + 0.5 * rMoon * rMoon * (b - Math.sin(b))) / Math.PI;
+      }
+
+      var lo = 0;
+      var hi = 1 + rMoon;
+      for (var i = 0; i < 40; i += 1) {
+        var mid = (lo + hi) / 2;
+        if (covered(mid) > goal) {
+          lo = mid;
+        } else {
+          hi = mid;
+        }
+      }
+      return (lo + hi) / 2;
+    }
+
+    /*
+     * Zoom so the whole track fits with a margin, then read the field of view
+     * back off the scale. Bounded either way: never so tight that a horizon-
+     * skimming track fills the frame edge to edge, never so wide that the grid
+     * turns to hatching.
+     *
+     * The horizon rides up the frame when part of the track happens after
+     * sunset, so those locations get room to show the Sun going down mid-
+     * eclipse instead of a line squashed against the bottom edge.
+     */
+    function fitView(points) {
+      var maxAz = 0;
+      var maxAlt = -90;
+      var minAlt = 90;
+      points.forEach(function (p) {
+        maxAz = Math.max(maxAz, Math.abs(p.delta));
+        maxAlt = Math.max(maxAlt, p.alt);
+        minAlt = Math.min(minAlt, p.alt);
+      });
+      var needAz = Math.max(maxAz * 1.2 + 2, 5);
+      var needAbove = Math.max(maxAlt * 1.45 + 2, 5);
+      var needBelow = Math.max(-minAlt * 1.25 + 1.5, 0);
+      var fullH = GROUND_Y1 - FRAME_Y0;
+
+      var scale = Math.min(HALF_W / needAz, SKY_H / needAbove, fullH / (needAbove + needBelow));
+      scale = clamp(scale, fullH / 120, SKY_H / 12);
+      var horizonY = Math.min(HORIZON_Y, GROUND_Y1 - needBelow * scale);
+      if (needAbove * scale > horizonY - FRAME_Y0) {
+        scale = (horizonY - FRAME_Y0) / needAbove;
+        horizonY = Math.min(HORIZON_Y, GROUND_Y1 - needBelow * scale);
+      }
+      return { scale: scale, halfAz: HALF_W / scale, horizonY: horizonY };
+    }
+
+    function setHorizon(view) {
+      var y = view.horizonY;
+      var skyH = y - FRAME_Y0;
+      domeRect.setAttribute('height', skyH.toFixed(1));
+      domeClipRect.setAttribute('height', skyH.toFixed(1));
+      hazeRect.setAttribute('y', (y - skyH * 0.4).toFixed(1));
+      hazeRect.setAttribute('height', (skyH * 0.4).toFixed(1));
+      groundRect.setAttribute('y', y.toFixed(1));
+      groundRect.setAttribute('height', (GROUND_Y1 - y).toFixed(1));
+      horizonLine.setAttribute('y1', y.toFixed(1));
+      horizonLine.setAttribute('y2', y.toFixed(1));
+    }
+
+    function project(view, delta, alt) {
+      return {
+        x: clamp(CX + delta * view.scale, FRAME_X0, FRAME_X1),
+        y: clamp(view.horizonY - alt * view.scale, FRAME_Y0, GROUND_Y1 - 8),
+        below: alt < 0
+      };
+    }
+
+    /* Grid spacing that keeps roughly four to eight lines across the frame. */
+    function gridStep(fovDeg) {
+      if (fovDeg > 70) {
+        return 15;
+      }
+      if (fovDeg > 34) {
+        return 10;
+      }
+      if (fovDeg > 16) {
+        return 5;
+      }
+      if (fovDeg > 7) {
+        return 2;
+      }
+      return 1;
+    }
+
+    function buildGrid(view, centreAz) {
+      clear(grid);
+      clear(gridBelow);
+      clear(gridLabels);
+      var horizonY = view.horizonY;
+      // Off the whole frame, not just the sky: when the horizon rides up, the
+      // degrees on show are mostly below it.
+      var step = gridStep((GROUND_Y1 - FRAME_Y0) / view.scale);
+      var alt;
+      var az;
+      var y;
+
+      for (alt = step; horizonY - alt * view.scale > FRAME_Y0; alt += step) {
+        y = horizonY - alt * view.scale;
+        add(grid, 'line', { x1: FRAME_X0, y1: y.toFixed(1), x2: FRAME_X1, y2: y.toFixed(1) }, 'sky-grid-line');
+        // The topmost line can sit under the date readout; drop its label rather
+        // than print the two on top of each other.
+        if (y > FRAME_Y0 + 24) {
+          add(gridLabels, 'text', { x: FRAME_X0 + 7, y: (y - 3.5).toFixed(1) }, 'sky-grid-label', alt + '°');
+        }
+      }
+
+      // Below the horizon the grid keeps going, faintly, so a track that sets
+      // partway through can still be read off it.
+      for (alt = -step; horizonY - alt * view.scale < GROUND_Y1 - 4; alt -= step) {
+        y = horizonY - alt * view.scale;
+        add(gridBelow, 'line', { x1: FRAME_X0, y1: y.toFixed(1), x2: FRAME_X1, y2: y.toFixed(1) }, 'sky-grid-line');
+        add(gridLabels, 'text', { x: FRAME_X0 + 7, y: (y - 3.5).toFixed(1) }, 'sky-grid-label sky-grid-label-below', alt + '°');
+      }
+
+      // Azimuth lines sit on absolute bearings, so they stay put as the frame
+      // recentres — the readout that tells you where to stand and look.
+      var start = Math.ceil((centreAz - view.halfAz) / step) * step;
+      var lastLabelX = -Infinity;
+      for (az = start; az <= centreAz + view.halfAz + 0.0001; az += step) {
+        var x = CX + bearingDelta(centreAz, az) * view.scale;
+        var bearing = ((Math.round(az) % 360) + 360) % 360;
+        var major = bearing % 45 === 0;
+        add(grid, 'line', { x1: x.toFixed(1), y1: FRAME_Y0, x2: x.toFixed(1), y2: horizonY.toFixed(1) },
+          major ? 'sky-grid-line sky-grid-line-major' : 'sky-grid-line');
+        if (x > FRAME_X0 + 13 && x < FRAME_X1 - 13 && x - lastLabelX > 30) {
+          add(gridLabels, 'text', { x: x.toFixed(1), y: (horizonY + 13).toFixed(1), 'text-anchor': 'middle' },
+            'sky-grid-label sky-grid-label-az', bearing + '°');
+          lastLabelX = x;
+        }
+      }
+    }
+
+    function buildCardinals(view, centreAz) {
+      clear(cardinals);
+      var horizonY = view.horizonY;
+      for (var i = 0; i < 16; i += 1) {
+        var az = i * 22.5;
+        var delta = bearingDelta(centreAz, az);
+        if (Math.abs(delta) > view.halfAz) {
+          continue;
+        }
+        var x = CX + delta * view.scale;
+        if (x < FRAME_X0 + 11 || x > FRAME_X1 - 11) {
+          continue;
+        }
+        var major = i % 4 === 0;
+        add(cardinals, 'line',
+          { x1: x.toFixed(1), y1: horizonY.toFixed(1), x2: x.toFixed(1), y2: (horizonY + 4).toFixed(1) },
+          major ? 'sky-cardinal-tick sky-cardinal-tick-major' : 'sky-cardinal-tick');
+        add(cardinals, 'text', { x: x.toFixed(1), y: (horizonY + 29).toFixed(1), 'text-anchor': 'middle' },
+          major ? 'sky-cardinal sky-cardinal-major' : 'sky-cardinal', CARDINALS[i]);
+      }
+    }
+
+    /* Fixed star field — decoration, so it is seeded rather than random and
+       does not reshuffle every time the location changes. */
+    function buildStars() {
+      var seed = 20260812;
+      function rnd() {
+        seed = (seed * 1664525 + 1013904223) % 4294967296;
+        return seed / 4294967296;
+      }
+      for (var i = 0; i < 74; i += 1) {
+        var x = FRAME_X0 + rnd() * (FRAME_X1 - FRAME_X0);
+        // Biased upward: the low sky is washed out by the sunset.
+        var height = Math.pow(rnd(), 1.7);
+        var y = FRAME_Y0 + (1 - height) * SKY_H;
+        add(stars, 'circle', {
+          cx: x.toFixed(1),
+          cy: y.toFixed(1),
+          r: (0.35 + rnd() * 0.7).toFixed(2),
+          opacity: (0.1 + rnd() * 0.32 * height).toFixed(3)
+        }, 'sky-star');
+      }
+    }
+
+    function setMarker(dot, label, p, text) {
+      dot.setAttribute('cx', p.x.toFixed(1));
+      dot.setAttribute('cy', p.y.toFixed(1));
+      label.setAttribute('x', p.x.toFixed(1));
+      label.setAttribute('y', (p.y - (dot === dotMax ? 24 : 13)).toFixed(1));
+      label.textContent = text;
+      var opacity = p.below ? '0.45' : '1';
+      dot.style.opacity = opacity;
+      label.style.opacity = opacity;
+    }
+
+    /* Split the track at the horizon so the part that happens after sunset can
+       be drawn as what it is: below the ground, and not for watching. */
+    function trackPaths(view, points) {
+      var walk = [];
+      var i;
+      for (i = 0; i < points.length; i += 1) {
+        if (i > 0 && (points[i - 1].alt < 0) !== (points[i].alt < 0)) {
+          var a = points[i - 1];
+          var b = points[i];
+          var f = a.alt / (a.alt - b.alt);
+          walk.push({ delta: a.delta + (b.delta - a.delta) * f, alt: 0, edge: true });
+        }
+        walk.push(points[i]);
+      }
+
+      var runs = [];
+      var run = null;
+      for (i = 0; i < walk.length; i += 1) {
+        var p = walk[i];
+        var xy = project(view, p.delta, p.alt);
+        var above = p.alt >= 0;
+        if (!run) {
+          run = { above: above, pts: [xy] };
+        } else if (p.edge) {
+          run.pts.push(xy);
+          runs.push(run);
+          run = { above: !run.above, pts: [xy] };
+        } else if (above === run.above) {
+          run.pts.push(xy);
+        } else {
+          runs.push(run);
+          run = { above: above, pts: [xy] };
+        }
+      }
+      if (run) {
+        runs.push(run);
+      }
+
+      var out = { above: '', below: '' };
+      runs.forEach(function (item) {
+        if (item.pts.length < 2) {
+          return;
+        }
+        var d = item.pts.map(function (pt, index) {
+          return (index === 0 ? 'M ' : 'L ') + pt.x.toFixed(1) + ' ' + pt.y.toFixed(1);
+        }).join(' ');
+        out[item.above ? 'above' : 'below'] += (out[item.above ? 'above' : 'below'] ? ' ' : '') + d;
+      });
+      return out;
+    }
+
+    function renderTrack(track) {
+      var centreAz = track.centreAzimuth;
+
+      function toLocal(point) {
+        return {
+          delta: clamp(bearingDelta(centreAz, point.azimuthDeg), -89, 89),
+          alt: point.altitudeDeg
+        };
+      }
+
+      var points = track.points.map(toLocal);
+      var view = fitView(points.concat([toLocal(track.firstPoint), toLocal(track.lastPoint)]));
+
+      setHorizon(view);
+      buildGrid(view, centreAz);
+      buildCardinals(view, centreAz);
+      hudFov.textContent = 'FOV ' + Math.round(view.halfAz * 2) + '°';
+
+      var d = trackPaths(view, points);
+      path.setAttribute('d', d.above);
+      pathBelow.setAttribute('d', d.below);
+
+      var firstP = project(view, toLocal(track.firstPoint).delta, track.firstPoint.altitudeDeg);
+      var maxLocal = toLocal(track.maxPoint);
+      var maxP = project(view, maxLocal.delta, track.maxPoint.altitudeDeg);
+      var lastP = project(view, toLocal(track.lastPoint).delta, track.lastPoint.altitudeDeg);
+
+      setMarker(dotFirst, labelFirst, firstP, 'First');
+      setMarker(dotMax, labelMax, maxP, 'Maximum');
+      setMarker(dotLast, labelLast, lastP, 'Last');
+
+      // The Sun at maximum, cut by the Moon to the crescent this location sees.
+      var offset = moonOffset(track.obscuration) * SUN_R;
+      maskSun.setAttribute('cx', maxP.x.toFixed(1));
+      maskSun.setAttribute('cy', maxP.y.toFixed(1));
+      maskMoon.setAttribute('cx', maxP.x.toFixed(1));
+      maskMoon.setAttribute('cy', (maxP.y + offset).toFixed(1));
+      maxDisc.setAttribute('cx', maxP.x.toFixed(1));
+      maxDisc.setAttribute('cy', maxP.y.toFixed(1));
+      corona.setAttribute('cx', maxP.x.toFixed(1));
+      corona.setAttribute('cy', maxP.y.toFixed(1));
+      corona.style.opacity = track.isTotal ? '1' : '0';
+
+      halo.setAttribute('cx', maxP.x.toFixed(1));
+      halo.setAttribute('cy', maxP.y.toFixed(1));
+      halo.style.opacity = (clamp(0.95 - track.obscuration / 100 * 0.6, 0.25, 0.95)
+        * (maxP.below ? 0.35 : 1)).toFixed(2);
+
+      groundDirection.textContent = sentenceCase(track.direction) + ' · ' + Math.round(centreAz) + '°';
+    }
+
+    function describeFrame(loc, samples) {
+      return 'Sky view for ' + loc.label + ', looking ' + samples.maxPoint.direction
+        + ': first contact ' + Math.round(samples.firstPoint.altitudeDeg)
+        + ' degrees above the horizon, maximum eclipse at '
+        + Math.round(samples.maxPoint.altitudeDeg) + ' degrees, final contact at '
+        + Math.round(samples.lastPoint.altitudeDeg) + ' degrees.';
+    }
+
+    function renderFallback() {
+      renderTrack(DEFAULT_TRACK);
+      frame.setAttribute('aria-label', 'Simulated sky view of an indicative eclipse track over Ireland, '
+        + 'with an altitude-azimuth grid and markers for first contact, maximum eclipse and final contact.');
+    }
+
+    function renderForLocation(loc) {
+      var circ = loc.circ;
+      if (!circ.visible || !window.EclipseLocal.sampleSkyPath) {
+        renderFallback();
+        return;
+      }
+
+      var samples = window.EclipseLocal.sampleSkyPath(loc.lat, loc.lon, 0, 8);
+      if (!samples || !samples.points || samples.points.length < 2
+        || !samples.firstPoint || !samples.maxPoint || !samples.lastPoint) {
+        renderFallback();
+        return;
+      }
+
+      renderTrack({
+        centreAzimuth: samples.maxPoint.azimuthDeg,
+        direction: samples.maxPoint.direction,
+        obscuration: circ.obscuration,
+        isTotal: circ.isTotal,
+        points: samples.points,
+        firstPoint: samples.firstPoint,
+        maxPoint: samples.maxPoint,
+        lastPoint: samples.lastPoint
+      });
+      frame.setAttribute('aria-label', describeFrame(loc, samples));
+    }
+
+    buildStars();
+    // Draw the default first: subscribing replays any location already picked,
+    // and that render must not be overwritten by the fallback.
+    renderFallback();
+    eclipseLocation.subscribe(renderForLocation);
+  })();
+
   /* ---------- Magnetic nav / cta hover ---------- */
 
   (function magneticHover() {

@@ -374,8 +374,93 @@
     };
   }
 
+  /*
+   * Sample the Sun's apparent sky position through the local eclipse window.
+   * Returns points suitable for a static path visual (altitude/azimuth per step).
+   */
+  function sampleSkyPath(latDeg, lonDegEast, altitudeM, stepMinutes) {
+    var observer = observerGeocentric(latDeg, altitudeM);
+    var max = solveMaximum(observer, lonDegEast);
+    var stateAtMax = max.state;
+    var magnitude = (stateAtMax.L1 - stateAtMax.separation) / (stateAtMax.L1 + stateAtMax.L2);
+
+    if (magnitude <= 0) {
+      return {
+        visible: false,
+        points: [],
+        firstPoint: null,
+        maxPoint: null,
+        lastPoint: null
+      };
+    }
+
+    var firstT = solveContact(max.t, observer, lonDegEast, 'L1', -1);
+    var lastT = solveContact(max.t, observer, lonDegEast, 'L1', 1);
+    if (firstT === null || lastT === null || !isFinite(firstT) || !isFinite(lastT) || lastT <= firstT) {
+      return {
+        visible: true,
+        points: [],
+        firstPoint: null,
+        maxPoint: null,
+        lastPoint: null
+      };
+    }
+
+    var stepHours = Math.max(1, stepMinutes || 10) / 60;
+    var points = [];
+
+    function pushPoint(t, phase) {
+      var h = horizontal(evaluate(t, observer, lonDegEast), latDeg);
+      points.push({
+        t: t,
+        time: toDate(t),
+        phase: phase,
+        altitudeDeg: h.altitude,
+        azimuthDeg: h.azimuth,
+        direction: compassName(h.azimuth),
+        aboveHorizon: isUp(h.altitude)
+      });
+    }
+
+    pushPoint(firstT, 'first');
+
+    var t;
+    for (t = firstT + stepHours; t < lastT; t += stepHours) {
+      pushPoint(t, 'path');
+    }
+
+    pushPoint(max.t, 'max');
+    pushPoint(lastT, 'last');
+
+    points.sort(function (a, b) { return a.t - b.t; });
+
+    var firstPoint = null;
+    var maxPoint = null;
+    var lastPoint = null;
+    for (var i = 0; i < points.length; i += 1) {
+      if (points[i].phase === 'first' && !firstPoint) {
+        firstPoint = points[i];
+      }
+      if (points[i].phase === 'max' && !maxPoint) {
+        maxPoint = points[i];
+      }
+      if (points[i].phase === 'last') {
+        lastPoint = points[i];
+      }
+    }
+
+    return {
+      visible: true,
+      points: points,
+      firstPoint: firstPoint,
+      maxPoint: maxPoint,
+      lastPoint: lastPoint
+    };
+  }
+
   root.EclipseLocal = {
     circumstances: circumstances,
+    sampleSkyPath: sampleSkyPath,
     elements: ELEMENTS,
     compassName: compassName
   };

@@ -145,6 +145,62 @@
     return h > 0 ? h + 'h ' + m + 'm' : m + 'm';
   }
 
+  function formatAltitude(value) {
+    if (value === null || value === undefined || !isFinite(value)) {
+      return '—';
+    }
+    return Math.round(value) + '°';
+  }
+
+  function normalizedDelta(fromDeg, toDeg) {
+    var delta = toDeg - fromDeg;
+    while (delta <= -180) {
+      delta += 360;
+    }
+    while (delta > 180) {
+      delta -= 360;
+    }
+    return delta;
+  }
+
+  // Phrase azimuth as a primary cardinal with angular offset for quick scanning.
+  function cardinalOffsetLabel(azimuthDeg) {
+    if (!isFinite(azimuthDeg)) {
+      return '—';
+    }
+
+    var az = (azimuthDeg % 360 + 360) % 360;
+    var primary;
+    var base;
+
+    if (az >= 45 && az < 135) {
+      primary = 'East';
+      base = 90;
+    } else if (az >= 135 && az < 225) {
+      primary = 'South';
+      base = 180;
+    } else {
+      primary = 'West';
+      base = 270;
+    }
+
+    var delta = normalizedDelta(base, az);
+    var amount = Math.round(Math.abs(delta));
+    if (amount === 0) {
+      return primary;
+    }
+
+    var toward;
+    if (primary === 'East') {
+      toward = delta > 0 ? 'South' : 'North';
+    } else if (primary === 'South') {
+      toward = delta > 0 ? 'West' : 'East';
+    } else {
+      toward = delta > 0 ? 'North' : 'South';
+    }
+    return primary + ' ' + amount + '° ' + toward;
+  }
+
   /*
    * Sunset, to the nearest five minutes.
    *
@@ -316,10 +372,13 @@
   function updateCopy(loc) {
     var circ = loc.circ;
     var abbrev = zoneAbbrev(loc.timeZone, circ.maxEclipse);
+    var skyAzimuth = Math.round(circ.sunAzimuthDeg) + '°';
+    var skyOffset = cardinalOffsetLabel(circ.sunAzimuthDeg);
 
     setText('issue-location', loc.label);
     setText('telemetry-coords', loc.coordsLabel);
     setText('t-place', loc.label);
+    setText('sky-place', loc.label);
 
     var tad = 'https://www.timeanddate.com/eclipse/map/2026-august-12?n=%40'
       + loc.lat.toFixed(5) + '%2C' + loc.lon.toFixed(5);
@@ -336,6 +395,14 @@
       setText('t-last', '—');
       setText('t-max', '—');
       setText('t-direction', 'horizon');
+      setText('sky-direction-word', 'not visible');
+      setText('sky-bearing-value', '—');
+      setText('sky-bearing-offset', '—');
+      setText('sky-alt-first', '—');
+      setText('sky-alt-max', '—');
+      setText('sky-alt-last', '—');
+      setText('sky-altitude-note', 'The eclipse does not rise above the horizon from this location.');
+      setText('sky-figcaption', 'Sky path unavailable — the eclipse is not visible from this location.');
       setText('phase-max-copy', 'Maximum — the eclipse is not visible from this location.');
       setText('stat-caption', 'The eclipse is not visible from ' + loc.label + '. Pick a location in Europe, the North Atlantic or the Americas to see local figures.');
       setText('stat-duration', '—');
@@ -356,6 +423,25 @@
     setText('t-last', loc.formatTime(circ.lastContact) + (abbrev ? ' ' + abbrev : ''));
     setText('t-max', loc.formatTime(circ.maxEclipse));
     setText('t-direction', circ.direction);
+    setText('sky-direction-word', circ.direction);
+    setText('sky-bearing-value', skyAzimuth);
+    setText('sky-bearing-offset', skyOffset);
+    setText('sky-alt-first', formatAltitude(circ.sunAltitudeAtFirstDeg));
+    setText('sky-alt-max', formatAltitude(circ.sunAltitudeDeg));
+    setText('sky-alt-last', formatAltitude(circ.sunAltitudeAtLastDeg));
+
+    var skyNote = 'A clear ' + circ.direction + ' horizon matters. Low cloud or buildings can hide part of the event even when local coverage is high.';
+    if (circ.sunAltitudeDeg < 6) {
+      skyNote = 'At maximum, the Sun is only ' + Math.round(circ.sunAltitudeDeg)
+        + '° up. You need a truly open ' + circ.direction + ' horizon.';
+    }
+    if (!circ.sunUp && circ.horizonCrossing) {
+      skyNote = 'The Sun sets during the eclipse from this location, so part of the path falls below the horizon.';
+    }
+    setText('sky-altitude-note', skyNote);
+
+    setText('sky-figcaption', 'Sky path from ' + loc.label + ': the eclipsed Sun tracks low through the '
+      + circ.direction + ' sky, peaking near ' + skyAzimuth + ' azimuth.');
 
     setText('phase-max-copy', circ.isTotal
       ? 'Maximum — totality, ' + Math.round(circ.centralDurationSeconds) + ' seconds of it from this viewpoint.'
@@ -431,7 +517,9 @@
   function resetToDefaults() {
     ['issue-location', 'telemetry-coords', 't-place', 't-kind', 't-first', 't-last',
       't-max', 't-direction', 'phase-max-copy', 'stat-caption', 'stat-duration',
-      'max-figcaption'].forEach(function (id) {
+      'max-figcaption', 'sky-place', 'sky-direction-word', 'sky-bearing-value',
+      'sky-bearing-offset', 'sky-alt-first', 'sky-alt-max', 'sky-alt-last',
+      'sky-altitude-note', 'sky-figcaption'].forEach(function (id) {
       setText(id, null);
     });
     setHref('tad-link', null);

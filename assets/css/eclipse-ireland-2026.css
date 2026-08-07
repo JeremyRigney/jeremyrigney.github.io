@@ -862,6 +862,260 @@ a {
   align-items: center;
 }
 
+/* ---------- Sky position section ---------- */
+
+.split-sky {
+  align-items: center;
+}
+
+.sky-copy {
+  max-width: 38rem;
+}
+
+.sky-notes {
+  margin: 1.15rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.sky-notes li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.9rem;
+  border-left: 3px solid var(--accent-ember);
+  padding: 0.5rem 0 0.5rem 0.85rem;
+  color: var(--ink-soft);
+}
+
+.sky-note-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.sky-note-value {
+  font-size: 0.98rem;
+  white-space: nowrap;
+}
+
+.sky-note-value strong {
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+  font-weight: 520;
+  color: var(--ink);
+}
+
+.sky-copy-note {
+  margin-top: 1rem !important;
+  font-size: 0.96rem !important;
+}
+
+.sky-visual {
+  margin: 0;
+}
+
+.sky-frame {
+  display: block;
+  width: 100%;
+  max-width: 30rem;
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+  filter: drop-shadow(0 16px 34px rgba(23, 19, 15, 0.2));
+}
+
+.sky-window {
+  fill: none;
+  stroke: rgba(247, 241, 228, 0.2);
+  stroke-width: 1;
+}
+
+/* Alt-azimuth grid — present enough to measure against, faint enough that the
+   track stays the subject. */
+.sky-grid-line {
+  stroke: rgba(226, 218, 240, 0.13);
+  stroke-width: 0.7;
+}
+
+.sky-grid-line-major {
+  stroke: rgba(226, 218, 240, 0.24);
+}
+
+.sky-grid-below .sky-grid-line {
+  stroke: rgba(226, 218, 240, 0.09);
+}
+
+.sky-grid-label {
+  fill: rgba(240, 232, 248, 0.42);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.06em;
+}
+
+.sky-grid-label-az {
+  fill: rgba(240, 232, 248, 0.38);
+  font-size: 7.5px;
+}
+
+.sky-grid-label-below {
+  fill: rgba(240, 232, 248, 0.26);
+}
+
+.sky-star {
+  fill: #fdf7ea;
+}
+
+.sky-horizon {
+  stroke: rgba(253, 247, 234, 0.72);
+  stroke-width: 1.2;
+}
+
+.sky-cardinal-tick {
+  stroke: rgba(253, 247, 234, 0.35);
+  stroke-width: 1;
+}
+
+.sky-cardinal-tick-major {
+  stroke: rgba(253, 247, 234, 0.7);
+}
+
+.sky-cardinal {
+  fill: rgba(247, 241, 228, 0.5);
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.12em;
+}
+
+.sky-cardinal-major {
+  fill: rgba(253, 247, 234, 0.86);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sky-hud {
+  fill: rgba(240, 232, 248, 0.4);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.sky-ground-direction {
+  fill: var(--ink-faint);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sky-path-line {
+  fill: none;
+  stroke: #f8b06c;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 7px rgba(248, 176, 108, 0.55));
+}
+
+/* The stretch that runs after sunset: the geometry continues, the view does not. */
+.sky-path-below {
+  fill: none;
+  stroke: rgba(248, 176, 108, 0.42);
+  stroke-width: 1.6;
+  stroke-dasharray: 3 5;
+  stroke-linecap: round;
+}
+
+.sky-marker-dot {
+  fill: #fff3dc;
+  stroke: rgba(207, 69, 32, 0.9);
+  stroke-width: 1.4;
+  filter: url(#sky-sun-glow);
+}
+
+.sky-marker-dot-max {
+  fill: #fff6e6;
+  stroke: none;
+  /* The wrapping group carries the glow — see the markup. */
+  filter: none;
+}
+
+/* The Moon's disc: dark, faintly rimmed. It also mutes the track line running
+   underneath, so the crescent on top stays the brightest thing in the frame. */
+.sky-sun-disc {
+  fill: rgba(19, 14, 32, 0.55);
+  stroke: rgba(255, 215, 154, 0.42);
+  stroke-width: 1;
+}
+
+.sky-corona {
+  fill: none;
+  stroke: rgba(255, 236, 205, 0.7);
+  stroke-width: 1.2;
+  filter: url(#sky-sun-glow);
+  opacity: 0;
+}
+
+.sky-marker-label {
+  fill: rgba(247, 241, 228, 0.84);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sky-marker-label-max {
+  fill: #ffc98a;
+  font-weight: 600;
+}
+
+#sky-figcaption {
+  margin: 0.6rem auto 0;
+  max-width: 24rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+@media (max-width: 980px) {
+  .sky-frame {
+    max-width: 25rem;
+  }
+}
+
+@media (max-width: 860px) {
+  .sky-visual {
+    order: -1;
+    margin-bottom: 0.4rem;
+  }
+
+  .sky-notes li {
+    align-items: center;
+  }
+}
+
+@media (max-width: 460px) {
+  .sky-notes li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .sky-note-value {
+    white-space: normal;
+  }
+}
+
 .safety-visual {
   display: flex;
   flex-direction: column;
