@@ -145,11 +145,20 @@
     return h > 0 ? h + 'h ' + m + 'm' : m + 'm';
   }
 
-  function formatAltitude(value) {
+  /*
+   * One row of the altitude list. Altitudes go negative wherever the eclipse
+   * runs on after sunset, and a bare "-12°" under a heading of "altitude" reads
+   * as a typo, so the sign is carried by the unit instead of the number.
+   */
+  function setAltitudeRow(valueId, unitId, value) {
     if (value === null || value === undefined || !isFinite(value)) {
-      return '—';
+      setText(valueId, '—');
+      setText(unitId, 'altitude');
+      return;
     }
-    return Math.round(value) + '°';
+    var below = value < 0;
+    setText(valueId, Math.round(Math.abs(value)) + '°');
+    setText(unitId, below ? 'below horizon' : 'altitude');
   }
 
   function normalizedDelta(fromDeg, toDeg) {
@@ -275,6 +284,15 @@
     }
   }
 
+  /* The azimuth half of the lede sentence: meaningless where there is no
+     eclipse at all, so it is dropped rather than filled with em dashes. */
+  function showBearingClause(show) {
+    var el = byId('sky-bearing-clause');
+    if (el) {
+      el.hidden = !show;
+    }
+  }
+
   function setHref(id, value) {
     var el = byId(id);
     if (!el) {
@@ -395,13 +413,12 @@
       setText('t-last', '—');
       setText('t-max', '—');
       setText('t-direction', 'horizon');
-      setText('sky-direction-word', 'not visible');
-      setText('sky-bearing-value', '—');
-      setText('sky-bearing-offset', '—');
-      setText('sky-alt-first', '—');
-      setText('sky-alt-max', '—');
-      setText('sky-alt-last', '—');
-      setText('sky-altitude-note', 'The eclipse does not rise above the horizon from this location.');
+      setText('sky-lede', 'the Sun is not eclipsed at all.');
+      showBearingClause(false);
+      setAltitudeRow('sky-alt-first', 'sky-alt-first-unit', null);
+      setAltitudeRow('sky-alt-max', 'sky-alt-max-unit', null);
+      setAltitudeRow('sky-alt-last', 'sky-alt-last-unit', null);
+      setText('sky-altitude-note', 'The Moon\'s shadow never touches this part of the world, so there is no eclipse here to look for.');
       setText('sky-figcaption', 'Sky path unavailable — the eclipse is not visible from this location.');
       setText('phase-max-copy', 'Maximum — the eclipse is not visible from this location.');
       setText('stat-caption', 'The eclipse is not visible from ' + loc.label + '. Pick a location in Europe, the North Atlantic or the Americas to see local figures.');
@@ -423,25 +440,55 @@
     setText('t-last', loc.formatTime(circ.lastContact) + (abbrev ? ' ' + abbrev : ''));
     setText('t-max', loc.formatTime(circ.maxEclipse));
     setText('t-direction', circ.direction);
-    setText('sky-direction-word', circ.direction);
+
+    /*
+     * Everywhere east of the track the eclipse runs on, or entirely, after
+     * sunset. The geometry is still worth reporting there, but it has to be
+     * described as what it is — an eclipse under the horizon — rather than as a
+     * Sun low in the sky. Section 05 already draws this distinction; section 04
+     * has to agree with it.
+     */
+    var neverUp = !circ.sunUp
+      && (circ.sunAltitudeAtFirstDeg === null || circ.sunAltitudeAtFirstDeg <= 0)
+      && (circ.sunAltitudeAtLastDeg === null || circ.sunAltitudeAtLastDeg <= 0);
+
+    var lede;
+    if (neverUp) {
+      lede = 'the eclipse runs its whole course below the ' + circ.direction + ' horizon';
+    } else if (circ.sunAltitudeDeg < 20) {
+      lede = 'the eclipsed Sun stays low in the ' + circ.direction + ' sky';
+    } else {
+      lede = 'the eclipsed Sun sits in the ' + circ.direction + ' sky';
+    }
+    setText('sky-lede', lede);
+    showBearingClause(true);
     setText('sky-bearing-value', skyAzimuth);
     setText('sky-bearing-offset', skyOffset);
-    setText('sky-alt-first', formatAltitude(circ.sunAltitudeAtFirstDeg));
-    setText('sky-alt-max', formatAltitude(circ.sunAltitudeDeg));
-    setText('sky-alt-last', formatAltitude(circ.sunAltitudeAtLastDeg));
+    setAltitudeRow('sky-alt-first', 'sky-alt-first-unit', circ.sunAltitudeAtFirstDeg);
+    setAltitudeRow('sky-alt-max', 'sky-alt-max-unit', circ.sunAltitudeDeg);
+    setAltitudeRow('sky-alt-last', 'sky-alt-last-unit', circ.sunAltitudeAtLastDeg);
 
     var skyNote = 'A clear ' + circ.direction + ' horizon matters. Low cloud or buildings can hide part of the event even when local coverage is high.';
-    if (circ.sunAltitudeDeg < 6) {
+    if (neverUp) {
+      skyNote = 'The Sun has already set here before the eclipse begins, so none of it is visible from this location — '
+        + 'these figures describe where the eclipse happens, not what you could watch.';
+    } else if (circ.horizonCrossing) {
+      skyNote = 'The Sun sets during the eclipse from this location, so part of the path falls below the horizon.';
+    } else if (circ.sunAltitudeDeg < 0.5) {
+      skyNote = 'At maximum, the Sun sits right on the ' + circ.direction
+        + ' horizon. You need a completely open view in that direction.';
+    } else if (circ.sunAltitudeDeg < 6) {
       skyNote = 'At maximum, the Sun is only ' + Math.round(circ.sunAltitudeDeg)
         + '° up. You need a truly open ' + circ.direction + ' horizon.';
     }
-    if (!circ.sunUp && circ.horizonCrossing) {
-      skyNote = 'The Sun sets during the eclipse from this location, so part of the path falls below the horizon.';
-    }
     setText('sky-altitude-note', skyNote);
 
-    setText('sky-figcaption', 'Sky path from ' + loc.label + ': the eclipsed Sun tracks low through the '
-      + circ.direction + ' sky, peaking near ' + skyAzimuth + ' azimuth.');
+    setText('sky-figcaption', neverUp
+      ? 'Sky path from ' + loc.label + ': the eclipse runs its course below the horizon, off toward the '
+        + circ.direction + ' at around ' + skyAzimuth + ' azimuth.'
+      : 'Sky path from ' + loc.label + ': the eclipsed Sun tracks '
+        + (circ.sunAltitudeDeg < 20 ? 'low ' : '') + 'through the '
+        + circ.direction + ' sky, peaking near ' + skyAzimuth + ' azimuth.');
 
     setText('phase-max-copy', circ.isTotal
       ? 'Maximum — totality, ' + Math.round(circ.centralDurationSeconds) + ' seconds of it from this viewpoint.'
@@ -517,11 +564,13 @@
   function resetToDefaults() {
     ['issue-location', 'telemetry-coords', 't-place', 't-kind', 't-first', 't-last',
       't-max', 't-direction', 'phase-max-copy', 'stat-caption', 'stat-duration',
-      'max-figcaption', 'sky-place', 'sky-direction-word', 'sky-bearing-value',
-      'sky-bearing-offset', 'sky-alt-first', 'sky-alt-max', 'sky-alt-last',
+      'max-figcaption', 'sky-place', 'sky-lede', 'sky-bearing-value',
+      'sky-bearing-offset', 'sky-alt-first', 'sky-alt-first-unit', 'sky-alt-max',
+      'sky-alt-max-unit', 'sky-alt-last', 'sky-alt-last-unit',
       'sky-altitude-note', 'sky-figcaption'].forEach(function (id) {
       setText(id, null);
     });
+    showBearingClause(true);
     setHref('tad-link', null);
     setHref('tad-card-link', null);
 

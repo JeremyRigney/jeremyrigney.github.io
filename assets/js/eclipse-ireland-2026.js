@@ -608,26 +608,31 @@
     var CARDINALS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
       'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
 
-    /* Dublin in round numbers — what the frame shows before a location is set. */
+    /*
+     * Dublin — what the frame shows before a location is set. Sampled from
+     * EclipseLocal at 15-minute steps and rounded to a tenth of a degree, so
+     * the no-location frame matches the one the solver draws a moment later
+     * rather than snapping to a different track once Dublin is published.
+     */
     var DEFAULT_TRACK = {
-      centreAzimuth: 288,
-      direction: 'west-north-west',
+      centreAzimuth: 275.2,
+      direction: 'west',
       obscuration: 94,
       isTotal: false,
       points: [
-        { azimuthDeg: 280.0, altitudeDeg: 11.0 },
-        { azimuthDeg: 282.4, altitudeDeg: 10.2 },
-        { azimuthDeg: 284.8, altitudeDeg: 9.4 },
-        { azimuthDeg: 286.5, altitudeDeg: 8.6 },
-        { azimuthDeg: 288.0, altitudeDeg: 8.0 },
-        { azimuthDeg: 290.5, altitudeDeg: 7.0 },
-        { azimuthDeg: 293.0, altitudeDeg: 6.0 },
-        { azimuthDeg: 295.0, altitudeDeg: 5.0 },
-        { azimuthDeg: 297.0, altitudeDeg: 4.0 }
+        { azimuthDeg: 263.5, altitudeDeg: 23.3 },
+        { azimuthDeg: 266.6, altitudeDeg: 21.1 },
+        { azimuthDeg: 269.6, altitudeDeg: 18.8 },
+        { azimuthDeg: 272.6, altitudeDeg: 16.6 },
+        { azimuthDeg: 275.2, altitudeDeg: 14.7 },
+        { azimuthDeg: 278.5, altitudeDeg: 12.1 },
+        { azimuthDeg: 281.5, altitudeDeg: 9.9 },
+        { azimuthDeg: 284.4, altitudeDeg: 7.7 },
+        { azimuthDeg: 285.8, altitudeDeg: 6.7 }
       ],
-      firstPoint: { azimuthDeg: 280, altitudeDeg: 11 },
-      maxPoint: { azimuthDeg: 288, altitudeDeg: 8 },
-      lastPoint: { azimuthDeg: 297, altitudeDeg: 4 }
+      firstPoint: { azimuthDeg: 263.5, altitudeDeg: 23.3 },
+      maxPoint: { azimuthDeg: 275.2, altitudeDeg: 14.7 },
+      lastPoint: { azimuthDeg: 285.8, altitudeDeg: 6.7 }
     };
 
     function clamp(value, min, max) {
@@ -981,12 +986,20 @@
       groundDirection.textContent = sentenceCase(track.direction) + ' · ' + Math.round(centreAz) + '°';
     }
 
+    /* Altitudes go negative once the eclipse runs past sunset, and "minus three
+       degrees above the horizon" is not a thing a screen reader should say. */
+    function altPhrase(deg) {
+      var rounded = Math.round(deg);
+      return rounded < 0
+        ? Math.abs(rounded) + ' degrees below the horizon'
+        : rounded + ' degrees above the horizon';
+    }
+
     function describeFrame(loc, samples) {
       return 'Sky view for ' + loc.label + ', looking ' + samples.maxPoint.direction
-        + ': first contact ' + Math.round(samples.firstPoint.altitudeDeg)
-        + ' degrees above the horizon, maximum eclipse at '
-        + Math.round(samples.maxPoint.altitudeDeg) + ' degrees, final contact at '
-        + Math.round(samples.lastPoint.altitudeDeg) + ' degrees.';
+        + ': first contact ' + altPhrase(samples.firstPoint.altitudeDeg)
+        + ', maximum eclipse ' + altPhrase(samples.maxPoint.altitudeDeg)
+        + ', final contact ' + altPhrase(samples.lastPoint.altitudeDeg) + '.';
     }
 
     function renderFallback() {

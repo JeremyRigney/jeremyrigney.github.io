@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <link rel="stylesheet" href="assets/css/eclipse-ireland-2026.css?v=20260807" />
+  <link rel="stylesheet" href="assets/css/eclipse-ireland-2026.css?v=20260808" />
 </head>
 <body>
   <header class="site-header" id="site-header">
@@ -260,13 +260,18 @@
         <div class="sky-copy">
           <p class="section-kicker reveal">04 — Where In The Sky</p>
           <h2 class="reveal">The eclipse track above your horizon</h2>
-          <p class="reveal">From <span id="sky-place" data-default="Dublin">Dublin</span>, the eclipsed Sun stays low in the <span id="sky-direction-word" data-default="west-north-west">west-north-west</span> sky, centered around <strong id="sky-bearing-value" data-default="288°">288°</strong> azimuth. In directional terms that is <strong id="sky-bearing-offset" data-default="West 18° North">West 18° North</strong>.</p>
+          <!-- The lede clause is set as a whole because its wording, not just the
+               direction, changes with the location: somewhere the eclipse runs
+               entirely after sunset cannot be described as a Sun in the sky. -->
+          <p class="reveal">From <span id="sky-place" data-default="Dublin">Dublin</span>, <span id="sky-lede" data-default="the eclipsed Sun stays low in the west sky">the eclipsed Sun stays low in the west sky</span><span id="sky-bearing-clause">, centered around <strong id="sky-bearing-value" data-default="275°">275°</strong> azimuth. In directional terms that is <strong id="sky-bearing-offset" data-default="West 5° North">West 5° North</strong>.</span></p>
           <ul class="sky-notes stagger">
-            <li class="reveal"><span class="sky-note-label">First contact</span><span class="sky-note-value"><strong id="sky-alt-first" data-default="11°">11°</strong> altitude</span></li>
-            <li class="reveal"><span class="sky-note-label">Maximum eclipse</span><span class="sky-note-value"><strong id="sky-alt-max" data-default="8°">8°</strong> altitude</span></li>
-            <li class="reveal"><span class="sky-note-label">Final contact</span><span class="sky-note-value"><strong id="sky-alt-last" data-default="4°">4°</strong> altitude</span></li>
+            <!-- Each row carries its own unit, so a contact that happens after
+                 sunset reads "12° below horizon" rather than "-12° altitude". -->
+            <li class="reveal"><span class="sky-note-label">First contact</span><span class="sky-note-value"><strong id="sky-alt-first" data-default="23°">23°</strong> <span id="sky-alt-first-unit" data-default="altitude">altitude</span></span></li>
+            <li class="reveal"><span class="sky-note-label">Maximum eclipse</span><span class="sky-note-value"><strong id="sky-alt-max" data-default="15°">15°</strong> <span id="sky-alt-max-unit" data-default="altitude">altitude</span></span></li>
+            <li class="reveal"><span class="sky-note-label">Final contact</span><span class="sky-note-value"><strong id="sky-alt-last" data-default="7°">7°</strong> <span id="sky-alt-last-unit" data-default="altitude">altitude</span></span></li>
           </ul>
-          <p class="sky-copy-note reveal" id="sky-altitude-note" data-default="A clear western horizon matters. Low cloud or buildings can hide part of the event even when local coverage is high.">A clear western horizon matters. Low cloud or buildings can hide part of the event even when local coverage is high.</p>
+          <p class="sky-copy-note reveal" id="sky-altitude-note" data-default="A clear west horizon matters. Low cloud or buildings can hide part of the event even when local coverage is high.">A clear west horizon matters. Low cloud or buildings can hide part of the event even when local coverage is high.</p>
         </div>
 
         <figure class="sky-visual reveal">
@@ -314,8 +319,8 @@
               <!-- The Moon's bite out of the Sun at maximum; the offset is set
                    from the local obscuration. -->
               <mask id="sky-max-mask">
-                <circle id="sky-max-mask-sun" cx="230" cy="147.7" r="14" fill="#fff" />
-                <circle id="sky-max-mask-moon" cx="230" cy="156" r="14.5" fill="#000" />
+                <circle id="sky-max-mask-sun" cx="230" cy="155.9" r="14" fill="#fff" />
+                <circle id="sky-max-mask-moon" cx="230" cy="157.9" r="14.5" fill="#000" />
               </mask>
             </defs>
 
@@ -331,37 +336,37 @@
               <g id="sky-grid-below" class="sky-grid-below"></g>
               <g id="sky-cardinals" class="sky-cardinals"></g>
               <g id="sky-grid-labels" class="sky-grid-labels"></g>
-              <circle id="sky-sun-halo" class="sky-sun-halo" cx="230" cy="147.7" r="46" fill="url(#sky-halo-grad)" />
+              <circle id="sky-sun-halo" class="sky-sun-halo" cx="230" cy="155.9" r="46" fill="url(#sky-halo-grad)" />
               <path id="sky-path-below" class="sky-path-below" d="" />
-              <path id="sky-path-line" class="sky-path-line" d="M 125.7 108.6 L 156.6 118.6 L 187.9 129.0 L 210.1 137.2 L 230 147.7 L 262.6 160.7 L 295.2 173.8 L 321.3 186.9 L 347.4 199.8" />
+              <path id="sky-path-line" class="sky-path-line" d="M 153.5 99.6 L 173.8 114.0 L 193.4 129.1 L 213.0 143.5 L 230.0 155.9 L 251.6 172.9 L 271.2 187.3 L 290.2 201.6 L 299.3 208.2" />
 
               <g id="sky-marker-first" class="sky-marker sky-marker-first">
-                <circle class="sky-marker-dot" id="sky-dot-first" cx="125.7" cy="108.6" r="4.2" />
-                <text class="sky-marker-label" id="sky-label-first" x="125.7" y="95.6" text-anchor="middle">First</text>
+                <circle class="sky-marker-dot" id="sky-dot-first" cx="153.5" cy="99.6" r="4.2" />
+                <text class="sky-marker-label" id="sky-label-first" x="153.5" y="86.6" text-anchor="middle">First</text>
               </g>
               <g id="sky-marker-max" class="sky-marker sky-marker-max">
-                <circle class="sky-corona" id="sky-max-corona" cx="230" cy="147.7" r="19" />
+                <circle class="sky-corona" id="sky-max-corona" cx="230" cy="155.9" r="19" />
                 <!-- Ghost of the full solar disc, so a 94% crescent still reads
                      as a marker and not as a stray hairline. -->
-                <circle class="sky-sun-disc" id="sky-max-disc" cx="230" cy="147.7" r="14" />
+                <circle class="sky-sun-disc" id="sky-max-disc" cx="230" cy="155.9" r="14" />
                 <!-- Glow on the group, not the disc: a filter on the masked
                      element gets cut away by its own mask. -->
                 <g filter="url(#sky-sun-glow)">
-                  <circle class="sky-marker-dot sky-marker-dot-max" id="sky-dot-max" cx="230" cy="147.7" r="14" mask="url(#sky-max-mask)" />
+                  <circle class="sky-marker-dot sky-marker-dot-max" id="sky-dot-max" cx="230" cy="155.9" r="14" mask="url(#sky-max-mask)" />
                 </g>
-                <text class="sky-marker-label sky-marker-label-max" id="sky-label-max" x="230" y="123.7" text-anchor="middle">Maximum</text>
+                <text class="sky-marker-label sky-marker-label-max" id="sky-label-max" x="230" y="131.9" text-anchor="middle">Maximum</text>
               </g>
               <g id="sky-marker-last" class="sky-marker sky-marker-last">
-                <circle class="sky-marker-dot" id="sky-dot-last" cx="347.4" cy="199.8" r="4.2" />
-                <text class="sky-marker-label" id="sky-label-last" x="347.4" y="186.8" text-anchor="middle">Last</text>
+                <circle class="sky-marker-dot" id="sky-dot-last" cx="299.3" cy="208.2" r="4.2" />
+                <text class="sky-marker-label" id="sky-label-last" x="299.3" y="195.2" text-anchor="middle">Last</text>
               </g>
             </g>
 
             <line class="sky-horizon" id="sky-horizon-line" x1="28" y1="252" x2="432" y2="252" />
             <rect class="sky-window" x="28" y="18" width="404" height="278" rx="5" />
             <text class="sky-hud" x="38" y="32">12 Aug 2026</text>
-            <text class="sky-hud sky-hud-end" id="sky-hud-fov" x="422" y="32" text-anchor="end">FOV 31°</text>
-            <text class="sky-ground-direction" id="sky-ground-direction" x="230" y="320" text-anchor="middle">West-north-west · 288°</text>
+            <text class="sky-hud sky-hud-end" id="sky-hud-fov" x="422" y="32" text-anchor="end">FOV 62°</text>
+            <text class="sky-ground-direction" id="sky-ground-direction" x="230" y="320" text-anchor="middle">West · 275°</text>
           </svg>
           <figcaption id="sky-figcaption" data-default="Sky path for this viewpoint: the eclipsed Sun runs low across the western sky from first to final contact.">Sky path for this viewpoint: the eclipsed Sun runs low across the western sky from first to final contact.</figcaption>
         </figure>
@@ -538,7 +543,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="assets/js/eclipse-besselian.js?v=20260728"></script>
-  <script src="assets/js/eclipse-ireland-2026.js?v=20260807"></script>
-  <script src="assets/js/eclipse-location.js?v=20260728"></script>
+  <script src="assets/js/eclipse-ireland-2026.js?v=20260808"></script>
+  <script src="assets/js/eclipse-location.js?v=20260808"></script>
 </body>
 </html>

@@ -900,7 +900,10 @@ a {
 
 .sky-note-value {
   font-size: 0.98rem;
-  white-space: nowrap;
+  /* "12° below horizon" is a good deal wider than "12° altitude"; wrapping on a
+     narrow screen beats running out past the rule. */
+  text-align: right;
+  text-wrap: balance;
 }
 
 .sky-note-value strong {
@@ -913,6 +916,11 @@ a {
 .sky-copy-note {
   margin-top: 1rem !important;
   font-size: 0.96rem !important;
+}
+
+/* Dropped where there is no eclipse to give a bearing to. */
+#sky-bearing-clause[hidden] {
+  display: none;
 }
 
 .sky-visual {
