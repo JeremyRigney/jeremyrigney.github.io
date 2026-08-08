@@ -246,12 +246,40 @@
     };
   }
 
+  /* ---------- Favicon ---------- */
+
+  /*
+   * The tab icon, as one template with the stroke colour left open.
+   *
+   * This is assets/favicon-f1.svg with its comment stripped and %s where the stroke
+   * colour goes — that file is the version the markup ships and the one that renders
+   * with the script off, this is the version the accent repaints. Edit the shape in
+   * one and port it to the other.
+   */
+  var FAVICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
+    + '<rect width="32" height="32" rx="7" fill="#111214"/>'
+    + '<path d="M 16 5.6 C 22.6 5.6, 26.6 9.8, 26.6 15.4 C 26.6 20.2, 23.6 24.2, 19.2 25.9'
+    + ' C 16.4 27, 13.4 25.4, 14.2 22.8 C 14.9 20.4, 12.2 19.2, 10.4 21.2'
+    + ' C 8 23.9, 5.4 21.4, 5.4 17.2 C 5.4 10.4, 9.4 5.6, 16 5.6 Z"'
+    + ' fill="none" stroke="%s" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>'
+    + '</svg>';
+
+  /*
+   * The icon at one colour, as a data URI.
+   *
+   * encodeURIComponent rather than a raw inline SVG: the colour arrives as a hex, and
+   * an unescaped # would truncate the URI at the fragment.
+   */
+  function faviconDataUri(colour) {
+    return 'data:image/svg+xml,' + encodeURIComponent(FAVICON_SVG.replace('%s', colour));
+  }
+
   /*
    * Point the whole page at one circuit's colour.
    *
    * The single entry point for the accent: CSS picks it up through the custom
-   * properties, the canvas through the module-level `accent`. Re-calling this and
-   * redrawing is all a change of circuit needs.
+   * properties, the canvas through the module-level `accent`, the tab through its
+   * icon. Re-calling this and redrawing is all a change of circuit needs.
    */
   function applyAccent(circuitId) {
     accent = deriveAccent(CIRCUIT_COLOURS[circuitId] || DEFAULT_ACCENT);
@@ -261,6 +289,16 @@
     root.style.setProperty('--accent-soft', accent.soft);
     root.style.setProperty('--accent-deep', accent.deep);
     root.style.setProperty('--accent-rgb', accent.rgbTriple);
+
+    /*
+     * The lifted tone, not the circuit's colour as given: a favicon sits on the same
+     * charcoal the rest of the page does, so Monaco's harbour navy needs the same lift
+     * here that it needs everywhere else to stay visible.
+     */
+    var icon = document.getElementById('favicon');
+    if (icon) {
+      icon.href = faviconDataUri(accent.base);
+    }
     return accent;
   }
 
