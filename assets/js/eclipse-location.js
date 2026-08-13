@@ -4,7 +4,7 @@
  * Builds the "Use my location" control into the cover-line stack, computes the
  * local circumstances with eclipse-besselian.js, and rewrites every
  * location-dependent figure on the page. Publishes to window.eclipseLocation so
- * the countdown, the scroll scene, the coverage stat and the map all follow.
+ * the scroll scene, the coverage stat and the map all follow.
  *
  * Privacy: coordinates are used in the browser and stored in localStorage only.
  * Nothing is sent anywhere — there is no backend and no geocoding service.
@@ -342,7 +342,7 @@
 
   function describe(circ, tz, fmt) {
     if (!circ.visible) {
-      return 'The eclipse is not visible from here.';
+      return 'The eclipse was not visible from here.';
     }
     var abbrev = zoneAbbrev(tz, circ.maxEclipse);
     var pct = circ.obscuration >= 99.95
@@ -408,24 +408,24 @@
     if (!circ.visible) {
       // Nothing to report: blank the figures rather than show numbers that do
       // not describe anything the reader could go outside and see.
-      setText('t-kind', 'no eclipse is visible — the Moon\'s shadow never reaches here, and the event runs from');
+      setText('t-kind', 'no eclipse was visible — the Moon\'s shadow never reached here, and the event ran from');
       setText('t-first', '—');
       setText('t-last', '—');
       setText('t-max', '—');
       setText('t-direction', 'horizon');
-      setText('sky-lede', 'the Sun is not eclipsed at all.');
+      setText('sky-lede', 'the Sun was not eclipsed at all.');
       showBearingClause(false);
       setAltitudeRow('sky-alt-first', 'sky-alt-first-unit', null);
       setAltitudeRow('sky-alt-max', 'sky-alt-max-unit', null);
       setAltitudeRow('sky-alt-last', 'sky-alt-last-unit', null);
-      setText('sky-altitude-note', 'The Moon\'s shadow never touches this part of the world, so there is no eclipse here to look for.');
-      setText('sky-figcaption', 'Sky path unavailable — the eclipse is not visible from this location.');
-      setText('phase-max-copy', 'Maximum — the eclipse is not visible from this location.');
-      setText('stat-caption', 'The eclipse is not visible from ' + loc.label + '. Pick a location in Europe, the North Atlantic or the Americas to see local figures.');
+      setText('sky-altitude-note', 'The Moon\'s shadow never touched this part of the world, so there was no eclipse here to look for.');
+      setText('sky-figcaption', 'Sky path unavailable — the eclipse was not visible from this location.');
+      setText('phase-max-copy', 'Maximum — the eclipse was not visible from this location.');
+      setText('stat-caption', 'The eclipse was not visible from ' + loc.label + '. Pick a location in Europe, the North Atlantic or the Americas to see local figures.');
       setText('stat-duration', '—');
       if (verdict) {
         verdict.hidden = false;
-        verdict.textContent = 'From ' + loc.label + ', the Sun is not eclipsed at all — this eclipse is confined to the Arctic, the North Atlantic, Europe and the Americas.';
+        verdict.textContent = 'From ' + loc.label + ', the Sun was not eclipsed at all — this eclipse was confined to the Arctic, the North Atlantic, Europe, North Africa and the Americas.';
       }
       return;
     }
@@ -454,11 +454,11 @@
 
     var lede;
     if (neverUp) {
-      lede = 'the eclipse runs its whole course below the ' + circ.direction + ' horizon';
+      lede = 'the eclipse ran its whole course below the ' + circ.direction + ' horizon';
     } else if (circ.sunAltitudeDeg < 20) {
-      lede = 'the eclipsed Sun stays low in the ' + circ.direction + ' sky';
+      lede = 'the eclipsed Sun stayed low in the ' + circ.direction + ' sky';
     } else {
-      lede = 'the eclipsed Sun sits in the ' + circ.direction + ' sky';
+      lede = 'the eclipsed Sun sat in the ' + circ.direction + ' sky';
     }
     setText('sky-lede', lede);
     showBearingClause(true);
@@ -468,25 +468,25 @@
     setAltitudeRow('sky-alt-max', 'sky-alt-max-unit', circ.sunAltitudeDeg);
     setAltitudeRow('sky-alt-last', 'sky-alt-last-unit', circ.sunAltitudeAtLastDeg);
 
-    var skyNote = 'A clear ' + circ.direction + ' horizon matters. Low cloud or buildings can hide part of the event even when local coverage is high.';
+    var skyNote = 'A clear ' + circ.direction + ' horizon mattered. Low cloud or buildings could hide part of the event even where local coverage was high.';
     if (neverUp) {
-      skyNote = 'The Sun has already set here before the eclipse begins, so none of it is visible from this location — '
-        + 'these figures describe where the eclipse happens, not what you could watch.';
+      skyNote = 'The Sun had already set here before the eclipse began, so none of it was visible from this location — '
+        + 'these figures describe where the eclipse happened, not what could be watched.';
     } else if (circ.horizonCrossing) {
-      skyNote = 'The Sun sets during the eclipse from this location, so part of the path falls below the horizon.';
+      skyNote = 'The Sun set during the eclipse from this location, so part of the path fell below the horizon.';
     } else if (circ.sunAltitudeDeg < 0.5) {
-      skyNote = 'At maximum, the Sun sits right on the ' + circ.direction
-        + ' horizon. You need a completely open view in that direction.';
+      skyNote = 'At maximum, the Sun sat right on the ' + circ.direction
+        + ' horizon. A completely open view in that direction was needed.';
     } else if (circ.sunAltitudeDeg < 6) {
-      skyNote = 'At maximum, the Sun is only ' + Math.round(circ.sunAltitudeDeg)
-        + '° up. You need a truly open ' + circ.direction + ' horizon.';
+      skyNote = 'At maximum, the Sun was only ' + Math.round(circ.sunAltitudeDeg)
+        + '° up. A truly open ' + circ.direction + ' horizon was needed.';
     }
     setText('sky-altitude-note', skyNote);
 
     setText('sky-figcaption', neverUp
-      ? 'Sky path from ' + loc.label + ': the eclipse runs its course below the horizon, off toward the '
+      ? 'Sky path from ' + loc.label + ': the eclipse ran its course below the horizon, off toward the '
         + circ.direction + ' at around ' + skyAzimuth + ' azimuth.'
-      : 'Sky path from ' + loc.label + ': the eclipsed Sun tracks '
+      : 'Sky path from ' + loc.label + ': the eclipsed Sun tracked '
         + (circ.sunAltitudeDeg < 20 ? 'low ' : '') + 'through the '
         + circ.direction + ' sky, peaking near ' + skyAzimuth + ' azimuth.');
 
@@ -495,10 +495,10 @@
       : 'Maximum — roughly ' + pctText + ' coverage from this viewpoint.');
 
     setText('stat-caption', circ.isTotal
-      ? 'Total obscuration from ' + loc.label + ' — the Sun disappears completely for '
+      ? 'Total obscuration from ' + loc.label + ' — the Sun disappeared completely for '
         + Math.round(circ.centralDurationSeconds) + ' seconds.'
       : 'Maximum obscuration over ' + loc.label + ' — a '
-        + (circ.obscuration > 90 ? 'wafer-thin' : 'shrinking') + ' crescent of sunlight remains.');
+        + (circ.obscuration > 90 ? 'wafer-thin' : 'shrinking') + ' crescent of sunlight remained.');
 
     setText('stat-duration', formatDuration(circ.durationMinutes));
 
@@ -523,14 +523,14 @@
     if (verdict) {
       verdict.hidden = false;
       if (circ.isTotal) {
-        verdict.textContent = 'You are inside the band. From ' + loc.label + ' the Sun is totally eclipsed for '
+        verdict.textContent = 'This location was inside the band. From ' + loc.label + ' the Sun was totally eclipsed for '
           + Math.round(circ.centralDurationSeconds) + ' seconds, with the Sun '
           + Math.round(circ.sunAltitudeDeg) + '° above the ' + circ.direction + ' horizon.';
       } else if (circ.obscuration >= 99) {
-        verdict.textContent = 'From ' + loc.label + ' you are just outside the band — ' + pctText
+        verdict.textContent = 'From ' + loc.label + ' this was just outside the band — ' + pctText
           + ' covered, but no totality. The difference is not a matter of degree: only inside the band does the corona appear.';
       } else {
-        verdict.textContent = 'From ' + loc.label + ' the eclipse is partial: ' + pctText
+        verdict.textContent = 'From ' + loc.label + ' the eclipse was partial: ' + pctText
           + ' of the Sun covered at maximum, with the Sun ' + Math.round(circ.sunAltitudeDeg)
           + '° above the ' + circ.direction + ' horizon.';
       }
@@ -544,16 +544,16 @@
     var horizonNote = '';
     var setsAt = circ.horizonCrossing ? roughTime(circ.horizonCrossing, loc, abbrev) : '';
     if (circ.sunAltitudeAtFirstDeg !== null && circ.sunAltitudeAtFirstDeg <= 0 && !circ.sunUp) {
-      horizonNote = 'The Sun is already below the horizon here for the whole eclipse — these are the figures for an unobstructed view, not for what you could see.';
+      horizonNote = 'The Sun was already below the horizon here for the whole eclipse — these are the figures for an unobstructed view, not for what could be seen.';
     } else if (!circ.sunUp && circ.horizonCrossing) {
-      horizonNote = 'The Sun sets here around ' + setsAt
-        + ', before maximum — you would see the eclipse begin, then lose the Sun below the horizon partway through.';
+      horizonNote = 'The Sun set here around ' + setsAt
+        + ', before maximum — the eclipse began in view, then the Sun dropped below the horizon partway through.';
     } else if (circ.sunUp && circ.horizonCrossing) {
-      horizonNote = 'The Sun sets here around ' + setsAt
-        + ', so the closing stages happen below the horizon.';
+      horizonNote = 'The Sun set here around ' + setsAt
+        + ', so the closing stages happened below the horizon.';
     } else if (circ.sunAltitudeDeg < 5) {
-      horizonNote = 'The Sun is only ' + Math.round(circ.sunAltitudeDeg)
-        + '° up at maximum, so you need a genuinely flat ' + circ.direction + ' horizon.';
+      horizonNote = 'The Sun was only ' + Math.round(circ.sunAltitudeDeg)
+        + '° up at maximum, so a genuinely flat ' + circ.direction + ' horizon was needed.';
     }
 
     if (horizonNote && verdict) {
@@ -673,7 +673,7 @@
       var loc = apply(place);
       say(loc.circ.visible
         ? loc.label + ' — ' + loc.mapMeta
-        : loc.label + ' — the eclipse is not visible from there.',
+        : loc.label + ' — the eclipse was not visible from there.',
       !loc.circ.visible);
       reset.hidden = false;
       return loc;

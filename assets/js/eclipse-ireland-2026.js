@@ -10,8 +10,8 @@
 
   /*
    * The modules below are otherwise independent, but several of them show the
-   * same location-dependent numbers — the countdown, the scroll scene's phase
-   * clock, the coverage stat and the map marker. This is the one piece of state
+   * same location-dependent numbers — the scroll scene's phase clock, the
+   * coverage stat and the map marker. This is the one piece of state
    * they share, so a location change lands everywhere at once instead of each
    * module re-deriving it.
    *
@@ -101,50 +101,6 @@
         setOpen(false);
       }
     });
-  })();
-
-  /* ---------- Countdown to eclipse ---------- */
-
-  (function countdown() {
-    var el = document.getElementById('countdown-value');
-    if (!el) {
-      return;
-    }
-    // First contact over Dublin: 18:12:53 Irish Summer Time (UTC+1).
-    var target = new Date('2026-08-12T18:12:53+01:00').getTime();
-    var unavailable = false;
-
-    eclipseLocation.subscribe(function (loc) {
-      unavailable = !loc.circ.visible || !loc.circ.firstContact;
-      if (!unavailable) {
-        target = loc.circ.firstContact.getTime();
-      }
-      render();
-    });
-
-    function pad(n) {
-      return (n < 10 ? '0' : '') + n;
-    }
-
-    function render() {
-      if (unavailable) {
-        el.textContent = '—';
-        return;
-      }
-      var diff = target - Date.now();
-      if (diff <= 0) {
-        el.textContent = 'Underway';
-        return;
-      }
-      var days = Math.floor(diff / 86400000);
-      var hours = Math.floor((diff % 86400000) / 3600000);
-      var mins = Math.floor((diff % 3600000) / 60000);
-      var secs = Math.floor((diff % 60000) / 1000);
-      el.textContent = days + 'd ' + pad(hours) + 'h ' + pad(mins) + 'm ' + pad(secs) + 's';
-    }
-
-    render();
-    window.setInterval(render, 1000);
   })();
 
   /* ---------- Eclipse scroll scene ---------- */
