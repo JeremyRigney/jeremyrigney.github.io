@@ -19,6 +19,7 @@
 
 		<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 		<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+		<script src="assets/js/carto-basemap.js?v=20260828"></script>
 		<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
 	</head>
 
@@ -503,19 +504,21 @@
 			const dartIcon = L.icon({ iconUrl: 'images/dart.png', iconSize: [18, 18], iconAnchor: [16, 16], popupAnchor: [0, -32] });
 			const icIcon = L.icon({ iconUrl: 'images/ictrain.png', iconSize: [18, 18], iconAnchor: [16, 16], popupAnchor: [0, -32] });
 
-			// Dark base layer to match the dashboard theme
-			const dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+			// Dark base layer to match the dashboard theme. CARTO needs a key; without
+			// one, the dashboard falls back to satellite rather than to watermarked tiles.
+			const cartoDarkUrl = window.cartoTiles && window.cartoTiles('dark_all', { subdomain: '{s}', retina: '{r}' });
+			const dark = cartoDarkUrl ? L.tileLayer(cartoDarkUrl, {
 				maxZoom: 19,
 				subdomains: 'abcd',
 				attribution: '© OpenStreetMap contributors © CARTO'
-			});
+			}) : null;
 			const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
 				maxZoom: 19,
 				attribution: 'Tiles © Esri & contributors'
 			});
 
-			const map = L.map('trainmap', { center: [53.4495, -7.5030], zoom: 7, layers: [dark] });
-			const baseMaps = { "Dark": dark, "Satellite": satellite };
+			const map = L.map('trainmap', { center: [53.4495, -7.5030], zoom: 7, layers: [dark || satellite] });
+			const baseMaps = dark ? { "Dark": dark, "Satellite": satellite } : { "Satellite": satellite };
 			L.control.layers(baseMaps).addTo(map);
 
 			let stationLookup = {};

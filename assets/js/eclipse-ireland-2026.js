@@ -1200,11 +1200,16 @@
 
     // Deep, near-black basemap — warmed toward the page's cosmic indigo in CSS —
     // so land and water both read as night and the ember eclipse band stands out.
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a> · Eclipse path: NASA GSFC',
-      subdomains: 'abcd',
-      maxZoom: 8
-    }).addTo(map);
+    // CARTO needs a key (see carto-basemap.js); with none set the band and overlays
+    // draw straight onto the page background rather than onto watermarked tiles.
+    var basemapUrl = window.cartoTiles && window.cartoTiles('dark_nolabels', { subdomain: '{s}', retina: '{r}' });
+    if (basemapUrl) {
+      L.tileLayer(basemapUrl, {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a> · Eclipse path: NASA GSFC',
+        subdomains: 'abcd',
+        maxZoom: 8
+      }).addTo(map);
+    }
 
     map.fitBounds([[37.5, -29.0], [68.5, 6.0]], { padding: [10, 10] });
     map.setMaxBounds([[31, -42], [74, 18]]);

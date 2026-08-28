@@ -358,7 +358,35 @@ a {
   text-shadow: 0 2px 20px rgba(10, 11, 12, 0.9);
 }
 
-/* The readout rail, bottom of the stage: countdown and live elevation figures. */
+/*
+ * Bottom of the stage: the readout rail, with the basemap credit tucked under it.
+ * The wrapper keeps the overlay's space-between layout to three children.
+ */
+.scene-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.scene-credit {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.scene-credit a {
+  color: var(--ink-faint);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line);
+}
+
+.scene-credit a:hover {
+  color: var(--ink-soft);
+}
+
 .scene-readout {
   display: flex;
   flex-wrap: wrap;

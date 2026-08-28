@@ -78,7 +78,9 @@
   var MAX_SMOOTH_SHIFT = 1.5;
 
   var PERSPECTIVE = 0.1;   // gentle; the poster look is closer to orthographic
-  var TILE_URL = 'https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}@2x.png';
+  var TILE_URL = window.cartoTiles
+    ? window.cartoTiles('dark_nolabels', { subdomain: 'a', retina: '@2x' })
+    : null;
   var MAX_TILES = 40;
 
   var M_PER_DEG_LAT = 110540;
@@ -634,6 +636,9 @@
    * Because they are faded out before the tilt opens, each tile is placed with a
    * plain affine transform derived from three of its projected corners — there is
    * never any need to warp a raster in 3D.
+   *
+   * The basemap is decorative: with no CARTO key set (see carto-basemap.js) the
+   * scene simply renders on the flat background instead.
    */
   var tileCache = {};
 
@@ -825,7 +830,7 @@
     }
 
     function drawTiles(project, alpha) {
-      if (alpha <= 0.01) {
+      if (alpha <= 0.01 || !TILE_URL) {
         return;
       }
       if (!tilePlan) {

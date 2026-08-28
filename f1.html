@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/f1.css?v=20260804" />
+  <link rel="stylesheet" href="assets/css/f1.css?v=20260828" />
 </head>
 <body>
   <header class="site-header" id="site-header">
@@ -55,19 +55,27 @@
             <span class="scroll-hint-arrow" aria-hidden="true">↓</span>
           </p>
 
-          <div class="scene-readout">
-            <div class="readout readout-lead">
-              <span class="readout-value" id="readout-countdown">—</span>
-              <span class="readout-label">Until lights out</span>
+          <div class="scene-foot">
+            <div class="scene-readout">
+              <div class="readout readout-lead">
+                <span class="readout-value" id="readout-countdown">—</span>
+                <span class="readout-label">Until lights out</span>
+              </div>
+              <div class="readout">
+                <span class="readout-value" id="readout-elevation">0 m</span>
+                <span class="readout-label">Elevation change</span>
+              </div>
+              <div class="readout scene-cue" id="cue-exaggeration">
+                <span class="readout-value" id="readout-exaggeration">×1</span>
+                <span class="readout-label">Vertical exaggeration</span>
+              </div>
             </div>
-            <div class="readout">
-              <span class="readout-value" id="readout-elevation">0 m</span>
-              <span class="readout-label">Elevation change</span>
-            </div>
-            <div class="readout scene-cue" id="cue-exaggeration">
-              <span class="readout-value" id="readout-exaggeration">×1</span>
-              <span class="readout-label">Vertical exaggeration</span>
-            </div>
+
+            <!-- CARTO's basemap terms require this credit to sit with the map itself. -->
+            <p class="scene-credit">
+              Basemap <a href="https://carto.com/attributions">CARTO</a>,
+              <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>
+            </p>
           </div>
         </div>
 
@@ -254,6 +262,7 @@
     </div>
   </footer>
 
-  <script src="assets/js/f1-circuit.js?v=20260805"></script>
+  <script src="assets/js/carto-basemap.js?v=20260828"></script>
+  <script src="assets/js/f1-circuit.js?v=20260828"></script>
 </body>
 </html>
