@@ -4,20 +4,23 @@
  * Deliberately off-palette from the rest of jeremy.ie, the same way
  * eclipse-ireland-2026.css is: this one is built to read like a circuit print,
  * charcoal ground with a single accent line. What it does share is the site's font
- * trio and the .wrap / .kicker / .reveal conventions.
+ * trio and the .wrap / .reveal conventions.
  *
  * That accent is per-circuit rather than fixed — see --accent below, and
  * CIRCUIT_COLOURS in f1-circuit.js for the palette itself.
  *
  * The poster's title face is a heavy geometric sans; Chivo Mono 700 uppercase on
  * wide tracking gets close enough to it that a fourth webfont isn't worth the load.
+ *
+ * Below the opening scene the page is set as an editorial spread rather than a
+ * dashboard: numbered chapters, hairline rules instead of panels, and a wide gap in
+ * size between a figure and its label. There is deliberately no card, no rounded
+ * corner and no alternating band anywhere in it — those were what made six different
+ * sections read as six copies of the same one.
  */
 
 :root {
   --coal: #111214;
-  --coal-deep: #0a0b0c;
-  --panel: #17191c;
-  --panel-alt: #1d2024;
   --line: rgba(236, 238, 240, 0.14);
   --line-strong: rgba(236, 238, 240, 0.28);
   --ink: #eceef0;
@@ -41,15 +44,59 @@
   --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "Chivo Mono", "Courier New", monospace;
   --maxw: 1180px;
-  --radius: 14px;
+
+  /*
+   * Display scale. The page below the scene is set as a print piece rather than a
+   * dashboard: a figure and its label are two or three steps apart in size, not one,
+   * and the rules between them do the work that panels and borders used to.
+   */
+  --fs-chapter: clamp(2.6rem, 7vw, 5.5rem);
+  --fs-figure: clamp(2.4rem, 6vw, 4.6rem);
+  --fs-micro: 0.58rem;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Width of the left margin column that carries chapter numbers and hanging labels. */
+  --margin-col: 13rem;
 }
 
 * {
   box-sizing: border-box;
 }
 
-html {
-  scroll-behavior: smooth;
+/*
+ * No scroll-behavior: smooth here. Lenis drives the scroll on this page and the two
+ * fight each other — native smooth scrolling animates scrollTop underneath Lenis's
+ * own interpolation and the scene's progress readout stutters. Anchor clicks go
+ * through lenis.scrollTo() instead; see setupChrome() in f1-circuit.js. Under
+ * prefers-reduced-motion Lenis is never constructed and the rule below restores it.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/*
+ * Lenis's own base rules, inlined rather than pulled in as a second stylesheet —
+ * this is all of lenis.css that matters here. The classes are added to <html> by
+ * Lenis itself, so none of this applies until it actually initialises.
+ */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+/* Keeps the silhouette strip's own scroll from chaining out to the page. */
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: clip;
 }
 
 html,
@@ -79,16 +126,55 @@ a {
   padding: 0 1.4rem;
 }
 
+/*
+ * Full-bleed escape from .wrap. body already has overflow-x: hidden, so the 100vw
+ * cannot open a horizontal scrollbar of its own.
+ */
+.bleed {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+}
+
+/*
+ * Reveals carry more travel and a longer curve than the site's usual 28px/700ms,
+ * because on this page they are the only motion between one scene and the next.
+ * --d is a stagger index written by the observer in f1-circuit.js; unset it reads
+ * as 0 and the element moves on its own.
+ */
 .reveal {
   opacity: 0;
-  transform: translateY(28px);
+  transform: translateY(40px);
 }
 
 .reveal.is-in {
   opacity: 1;
   transform: none;
-  transition: opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 900ms var(--ease), transform 900ms var(--ease);
+  transition-delay: calc(var(--d, 0) * 70ms);
+}
+
+/*
+ * Masked line reveal, for chapter titles: the outer span clips, the inner one rises
+ * into it. Needs the inner to be a block so the transform has a box to move.
+ */
+.line-mask {
+  display: block;
+  overflow: hidden;
+  /* Descenders in Fraunces sit below the line box and would be clipped otherwise. */
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+
+.line-mask > span {
+  display: block;
+  transform: translateY(105%);
+  transition: transform 1000ms var(--ease);
+  transition-delay: calc(var(--d, 0) * 70ms);
+}
+
+.reveal.is-in .line-mask > span,
+.line-mask.is-in > span {
+  transform: none;
 }
 
 .visually-hidden {
@@ -104,12 +190,13 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
   .reveal {
     opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .line-mask > span {
     transform: none;
     transition: none;
   }
@@ -475,173 +562,283 @@ a {
   }
 }
 
-/* ---------- Content sections ---------- */
+/* ---------- Chapters ---------- */
 
-.section {
-  padding: 5.5rem 0;
+/*
+ * Everything below the scene is one continuous coal ground. There is no alternating
+ * light/dark band and no panel fill anywhere: sections are separated by a full-bleed
+ * hairline and a lot of vertical space, which is what stops the page reading as a
+ * stack of identical cards.
+ */
+
+.chapter {
+  padding: clamp(6rem, 14vh, 11rem) 0;
   border-top: 1px solid var(--line);
 }
 
-.section-dark {
-  background: var(--coal-deep);
+.chapter-head {
+  display: grid;
+  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr);
+  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+  margin-bottom: clamp(3rem, 7vw, 5.5rem);
 }
 
-.kicker {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  margin: 0 0 0.9rem;
+/* The chapter number sits alone in the margin column, aligned to the title's cap. */
+.chapter-index {
+  margin: 0;
+  padding-top: 0.7em;
   font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-size: var(--fs-micro);
+  font-weight: 500;
   letter-spacing: 0.2em;
   text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.chapter-index b {
+  font-weight: 500;
   color: var(--accent-soft);
 }
 
-.kicker::before {
-  content: "";
-  width: 2.1rem;
-  height: 1px;
-  background: var(--accent);
-  flex: none;
-}
-
-.section-title {
-  margin: 0 0 1rem;
+.chapter-title {
+  grid-column: 2;
+  margin: 0;
   font-family: var(--font-display);
-  font-weight: 500;
-  font-size: clamp(1.7rem, 3.6vw, 2.5rem);
-  line-height: 1.12;
-  letter-spacing: -0.02em;
+  font-weight: 400;
+  font-size: var(--fs-chapter);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
   color: var(--chalk);
 }
 
-.section-lead {
-  margin: 0 0 2.4rem;
-  max-width: 62ch;
-  font-size: 1.02rem;
+.chapter-lead {
+  grid-column: 2;
+  margin: 1.6rem 0 0;
+  max-width: 46ch;
+  font-size: 1rem;
   line-height: 1.62;
   color: var(--ink-soft);
 }
 
-/* ---------- Vitals plate (the poster footer) ---------- */
+@media (max-width: 860px) {
+  .chapter-head {
+    grid-template-columns: 1fr;
+  }
 
-.vitals {
+  .chapter-index {
+    padding-top: 0;
+    margin-bottom: 1.1rem;
+  }
+
+  .chapter-title,
+  .chapter-lead {
+    grid-column: 1;
+  }
+}
+
+/* ---------- Ledger (the vitals) ---------- */
+
+/*
+ * Six figures on ruled lines rather than in six boxes. Rules run the full width of
+ * the container and there are no verticals, so the eye reads across a row instead of
+ * around a cell. The second row is pushed over by half a column so the pair does not
+ * settle into a table.
+ */
+
+.ledger {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  overflow: hidden;
+  grid-template-columns: repeat(6, 1fr);
+  border-top: 1px solid var(--line-strong);
 }
 
-.vital {
-  padding: 1.5rem 1.3rem;
-  background: var(--panel);
+.ledger-cell {
+  grid-column: span 2;
+  padding: 1.9rem 1.2rem 1.7rem 0;
+  border-bottom: 1px solid var(--line);
 }
 
-.vital-value {
-  display: block;
+/* Half-column offset on the second row. */
+.ledger-cell.is-offset:first-child {
+  grid-column: 2 / span 2;
+}
+
+/*
+ * Value and unit are siblings rather than nested, because fillPage() writes the
+ * value with textContent and would wipe out anything inside it.
+ */
+.ledger-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.ledger-value {
   font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: 1.6rem;
-  letter-spacing: -0.02em;
+  font-weight: 500;
+  font-size: var(--fs-figure);
+  line-height: 1;
+  letter-spacing: -0.045em;
   color: var(--chalk);
   font-variant-numeric: tabular-nums;
 }
 
-.vital-unit {
-  font-size: 0.78rem;
-  color: var(--ink-faint);
-  letter-spacing: 0.02em;
-}
-
-.vital-label {
-  display: block;
-  margin-top: 0.42rem;
+.ledger-unit {
   font-family: var(--font-mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.15em;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
+.ledger-label {
+  display: block;
+  margin-top: 1.1rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+@media (max-width: 860px) {
+  .ledger {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ledger-cell,
+  .ledger-cell.is-offset:first-child {
+    grid-column: span 1;
+  }
+}
+
 /* ---------- Elevation profile ---------- */
 
-.profile-frame {
-  position: relative;
-  padding: 1.6rem 1.3rem 1.2rem;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+/*
+ * The profile is the one thing on the page that is genuinely a picture, so it gets
+ * the full width of the viewport and no frame at all. The canvas sizes itself from
+ * its box; drawProfile() redraws on resize and on document.fonts.ready.
+ */
+.profile-figure {
+  margin: 0;
 }
 
 #profile-canvas {
   display: block;
   width: 100%;
-  height: 280px;
+  height: clamp(280px, 40vh, 420px);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
 
 .profile-note {
-  margin: 1rem 0 0;
+  margin: 1.1rem 0 0;
   font-family: var(--font-mono);
-  font-size: 0.64rem;
-  letter-spacing: 0.06em;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: right;
   color: var(--ink-faint);
 }
 
-/* ---------- Result cards ---------- */
+/* ---------- History spread ---------- */
 
-.cards {
+/*
+ * Asymmetric on purpose: the winner is a statement at figure size, the fastest lap
+ * answers it from the right at mono figure size, and the race count is a footnote.
+ * Three equal cards would flatten all three into the same importance.
+ */
+
+.spread {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1.1rem;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: clamp(2rem, 5vw, 4rem);
+  align-items: end;
+  padding-bottom: 2.6rem;
+  border-bottom: 1px solid var(--line);
 }
 
-.card {
-  padding: 1.6rem 1.5rem;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-}
-
-.card-dt {
-  margin: 0 0 0.7rem;
+.spread-dt {
+  margin: 0 0 1.1rem;
   font-family: var(--font-mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.16em;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
-.card-headline {
+.spread-name {
   margin: 0;
   font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 1.55rem;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  font-weight: 400;
+  font-size: var(--fs-figure);
+  line-height: 1;
+  letter-spacing: -0.035em;
   color: var(--chalk);
 }
 
-.card-sub {
-  margin: 0.5rem 0 0;
-  font-size: 0.9rem;
-  line-height: 1.5;
+.spread-sub {
+  margin: 1rem 0 0;
+  font-size: 0.94rem;
+  line-height: 1.55;
   color: var(--ink-soft);
 }
 
-.card-time {
+.spread-time {
+  margin: 0;
   font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  font-size: clamp(1.9rem, 4.4vw, 3.2rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
   color: var(--accent-soft);
+  font-variant-numeric: tabular-nums;
 }
 
-/* Win tallies, as a bar list. */
+/* The race count closes the spread as a quiet aside, not a third headline. */
+.spread-aside {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  padding-top: 1.6rem;
+  border-top: 1px solid var(--line);
+}
+
+.spread-aside .spread-count {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  color: var(--chalk);
+  font-variant-numeric: tabular-nums;
+}
+
+.spread-aside p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 860px) {
+  .spread {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+}
+
+/* ---------- Win tallies ---------- */
+
+.tallies {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: clamp(2rem, 5vw, 4rem);
+  margin-top: clamp(3rem, 6vw, 4.5rem);
+}
+
 .tally {
   list-style: none;
-  margin: 0;
+  margin: 1.4rem 0 0;
   padding: 0;
 }
 
@@ -649,156 +846,296 @@ a {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 0.6rem 0.9rem;
-  padding: 0.55rem 0;
+  gap: 0.5rem 0.9rem;
+  padding: 0.85rem 0 0.75rem;
   border-bottom: 1px solid var(--line);
 }
 
-.tally li:last-child {
-  border-bottom: 0;
-}
-
 .tally-name {
-  font-size: 0.92rem;
+  font-size: 0.98rem;
   color: var(--ink);
 }
 
 .tally-count {
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
 
+/*
+ * The bar is scaled by transform rather than width so it can animate on reveal
+ * without laying the row out again on every frame.
+ */
 .tally-bar {
   grid-column: 1 / -1;
-  height: 3px;
-  border-radius: 2px;
+  height: 2px;
   background: var(--accent);
-  opacity: 0.85;
+  opacity: 0.8;
+  transform: scaleX(var(--w, 1));
+  transform-origin: left center;
 }
 
-/* ---------- Weekend schedule ---------- */
+.reveal .tally-bar {
+  transform: scaleX(0);
+}
+
+.reveal.is-in .tally-bar {
+  transform: scaleX(var(--w, 1));
+  transition: transform 900ms var(--ease);
+  transition-delay: calc(var(--d, 0) * 70ms + 180ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal .tally-bar,
+  .reveal.is-in .tally-bar {
+    transform: scaleX(var(--w, 1));
+    transition: none;
+  }
+}
+
+/* ---------- Weekend, as a departure board ---------- */
 
 .schedule {
-  display: grid;
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  overflow: hidden;
+  display: block;
+  border-top: 1px solid var(--line-strong);
 }
 
 .schedule-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr) auto;
   align-items: baseline;
-  gap: 1rem;
-  padding: 1rem 1.3rem;
-  background: var(--panel);
-}
-
-.schedule-row.is-race {
-  background: var(--panel-alt);
+  gap: 0 clamp(1rem, 4vw, 3.5rem);
+  padding: 1.35rem 0;
+  border-bottom: 1px solid var(--line);
 }
 
 .schedule-name {
   font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
   text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.schedule-day {
+  font-size: 0.96rem;
   color: var(--ink-soft);
+}
+
+.schedule-time {
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The race is marked by scale and an accent rule above it, not a filled row. A fill
+ * would make it a highlighted table cell; this makes it the last line of the bill.
+ */
+.schedule-row.is-race {
+  border-top: 1px solid var(--accent);
+  padding-top: 1.7rem;
 }
 
 .schedule-row.is-race .schedule-name {
   color: var(--accent-soft);
 }
 
-.schedule-time {
-  font-family: var(--font-mono);
-  font-size: 0.95rem;
-  font-variant-numeric: tabular-nums;
+.schedule-row.is-race .schedule-day {
+  color: var(--ink);
+}
+
+.schedule-row.is-race .schedule-time {
+  font-size: clamp(1.5rem, 3.4vw, 2.2rem);
   color: var(--chalk);
 }
 
-/* ---------- Season strip ---------- */
+@media (max-width: 860px) {
+  .schedule-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
 
-.calendar {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 0.7rem;
-  list-style: none;
-  margin: 0;
-  padding: 0;
+  .schedule-name {
+    grid-column: 1 / -1;
+    margin-bottom: 0.45rem;
+  }
 }
 
-.calendar li {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  transition: border-color 160ms ease, opacity 160ms ease;
-}
+/* ---------- Silhouette wall ---------- */
 
 /*
- * Each round links to ?circuit=<id>. The padding lives on the link rather than the
- * card so the whole card is the target, not just the text inside it.
+ * The season as 23 outlines on one shared scale. Every glyph is drawn from the same
+ * metres-based viewBox, so Monaco really is smaller than Spa on screen — that
+ * comparison is the entire reason this section exists, and normalising each circuit
+ * to its own box would quietly destroy it. Data: assets/data/f1/silhouettes-*.json.
  */
-.calendar-link {
+
+.wall {
+  display: flex;
+  gap: 0;
+  margin: 0;
+  padding: 0 0 1.6rem;
+  list-style: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scroll-padding-left: 1.4rem;
+  border-top: 1px solid var(--line-strong);
+  /* Thin, self-coloured scrollbar rather than the platform default slab. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.wall::-webkit-scrollbar {
+  height: 2px;
+}
+
+.wall::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+}
+
+.wall li {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  border-right: 1px solid var(--line);
+}
+
+.wall li:last-child {
+  border-right: 0;
+}
+
+.wall-link {
   display: block;
-  padding: 0.95rem 1rem;
+  width: 15rem;
+  padding: 1.5rem 1.5rem 1.7rem;
   color: inherit;
   text-decoration: none;
-  border-radius: inherit;
+  transition: background-color 220ms ease;
 }
 
-.calendar-link:focus-visible {
-  outline: 2px solid var(--accent-soft);
-  outline-offset: 2px;
+.wall-link:hover,
+.wall-link:focus-visible {
+  background: rgba(var(--accent-rgb), 0.07);
 }
 
-.calendar li.is-next {
-  border-color: var(--accent);
-  background: linear-gradient(
-    180deg,
-    rgba(var(--accent-rgb), 0.14),
-    rgba(var(--accent-rgb), 0.03)
-  );
+.wall-link:focus-visible {
+  outline: 1px solid var(--accent-soft);
+  outline-offset: -1px;
 }
 
-.calendar li.is-done {
-  opacity: 0.44;
-}
-
-/* After .is-done deliberately, so a dimmed past round lifts back up on hover. */
-.calendar li:hover {
-  border-color: var(--accent);
-  opacity: 1;
-}
-
-.calendar-round {
+.wall-round {
+  display: block;
   font-family: var(--font-mono);
-  font-size: 0.58rem;
-  letter-spacing: 0.14em;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
-.calendar li.is-next .calendar-round {
-  color: var(--accent-soft);
+.wall-glyph {
+  display: block;
+  width: 100%;
+  height: 6.5rem;
+  margin: 1.2rem 0;
+  overflow: visible;
 }
 
-.calendar-name {
+.wall-glyph path {
+  fill: none;
+  stroke: var(--ink-soft);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  /* The viewBox is in metres and scales hard; keep the stroke a constant weight. */
+  vector-effect: non-scaling-stroke;
+  transition: stroke 220ms ease;
+}
+
+.wall-link:hover .wall-glyph path {
+  stroke: var(--accent-soft);
+}
+
+.wall-name {
   display: block;
-  margin: 0.3rem 0 0.15rem;
-  font-size: 0.9rem;
-  line-height: 1.3;
+  font-size: 0.92rem;
+  line-height: 1.32;
   color: var(--ink);
 }
 
-.calendar-date {
+.wall-meta {
+  display: block;
+  margin-top: 0.4rem;
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
   color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.wall li.is-next .wall-round,
+.wall li.is-next .wall-meta {
+  color: var(--accent-soft);
+}
+
+.wall li.is-next .wall-glyph path {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.wall li.is-done {
+  opacity: 0.4;
+}
+
+/* After .is-done deliberately, so a dimmed past round lifts back up on hover. */
+.wall li:hover {
+  opacity: 1;
+}
+
+/* Draw-on, staggered along the strip. --len is the path length, written by JS. */
+.wall-glyph.is-drawn path {
+  stroke-dasharray: var(--len);
+  stroke-dashoffset: var(--len);
+  animation: wall-draw 1400ms var(--ease) forwards;
+  animation-delay: calc(var(--d, 0) * 90ms);
+}
+
+@keyframes wall-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wall-glyph.is-drawn path {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+}
+
+.wall-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 1.4rem 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+@media (max-width: 700px) {
+  .wall-link {
+    width: 12rem;
+    padding: 1.2rem;
+  }
+
+  .wall-glyph {
+    height: 5rem;
+  }
 }
 
 /* ---------- Sources ---------- */
@@ -807,38 +1144,74 @@ a {
   margin: 0;
   padding: 0;
   list-style: none;
-  display: grid;
-  gap: 0.85rem;
-  max-width: 72ch;
+  border-top: 1px solid var(--line);
 }
 
 .sources li {
-  font-size: 0.88rem;
-  line-height: 1.55;
+  display: grid;
+  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr);
+  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+  padding: 1.3rem 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.94rem;
+  line-height: 1.6;
   color: var(--ink-soft);
 }
 
-.sources a {
+.hang-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.sources a,
+.caveat a {
   color: var(--ink);
   text-decoration: none;
   border-bottom: 1px solid var(--line-strong);
 }
 
-.sources a:hover {
+.sources a:hover,
+.caveat a:hover {
   color: var(--chalk);
   border-bottom-color: var(--accent);
 }
 
+/*
+ * The caveats close the page on the same grid the chapters opened it on: a hanging
+ * mono label in the margin column, prose beside it. No box, no accent bar.
+ */
 .caveat {
-  margin: 2rem 0 0;
-  padding: 1.2rem 1.3rem;
-  max-width: 72ch;
-  background: var(--panel);
-  border-left: 2px solid var(--accent);
-  border-radius: 0 10px 10px 0;
-  font-size: 0.88rem;
-  line-height: 1.6;
+  display: grid;
+  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr);
+  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+  margin: 2.6rem 0 0;
+  font-size: 0.94rem;
+  line-height: 1.65;
   color: var(--ink-soft);
+}
+
+.caveat p {
+  margin: 0;
+  max-width: 62ch;
+}
+
+.hang-label {
+  padding-top: 0.25em;
+}
+
+@media (max-width: 860px) {
+  .sources li,
+  .caveat {
+    grid-template-columns: 1fr;
+  }
+
+  .hang-label {
+    margin-bottom: 0.5rem;
+    padding-top: 0;
+  }
 }
 
 /* ---------- Footer ---------- */
@@ -846,7 +1219,6 @@ a {
 .site-footer {
   padding: 3rem 0 4rem;
   border-top: 1px solid var(--line);
-  background: var(--coal-deep);
 }
 
 .site-footer p {
@@ -883,4 +1255,85 @@ a {
 
 .scene-error.is-on {
   display: flex;
+}
+
+/* ---------- Intro sequence ---------- */
+
+/*
+ * The overlay ships hidden and is only revealed by JS, so a visitor with no
+ * JavaScript — or with prefers-reduced-motion set — never sees it at all and lands
+ * straight on the page. f1-circuit.js tears it down on a hard 3s timeout regardless
+ * of what the fetches are doing; a stalled request must never leave a blank screen.
+ */
+.preload {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2.4rem;
+  padding: 2rem;
+  background: var(--coal);
+  transition: opacity 700ms var(--ease), visibility 700ms;
+}
+
+.preload[hidden] {
+  display: none;
+}
+
+.preload.is-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.preload-glyph {
+  width: min(46vw, 34vh);
+  height: min(46vw, 34vh);
+  overflow: visible;
+}
+
+.preload-glyph path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.preload-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 1.4rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.preload-count {
+  min-width: 4ch;
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  color: var(--chalk);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A hairline that fills with the same fraction the counter is showing. */
+.preload-bar {
+  width: min(46vw, 34vh);
+  height: 1px;
+  background: var(--line);
+}
+
+.preload-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(var(--p, 0));
+  transform-origin: left center;
 }

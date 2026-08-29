@@ -4,16 +4,32 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Next Circuit — the upcoming Formula 1 track, in relief</title>
-  <meta name="description" content="A scroll-driven look at the next circuit on the Formula 1 calendar: the layout tilts into 3D, the elevation lifts out of it, and the turns, DRS zones and race history follow." />
+  <meta name="description" content="A scroll-driven look at the next circuit on the Formula 1 calendar: the layout tilts into 3D, the elevation lifts out of it, and the turn numbers and race history follow." />
   <link rel="icon" id="favicon" href="assets/favicon-f1.svg" type="image/svg+xml" />
   <meta name="theme-color" content="#111214" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/f1.css?v=20260828" />
+  <link rel="stylesheet" href="assets/css/f1.css?v=20260829" />
 </head>
 <body>
+  <!--
+    The intro sequence. Ships hidden and is only revealed by f1-circuit.js, and only
+    when motion is allowed — so a visitor with JavaScript off, or with
+    prefers-reduced-motion set, lands straight on the page and never sees it.
+  -->
+  <div class="preload" id="preload" hidden>
+    <svg class="preload-glyph" id="preload-glyph" viewBox="-1 -1 2 2" aria-hidden="true">
+      <path id="preload-path" d="" />
+    </svg>
+    <div class="preload-bar" id="preload-bar"><span></span></div>
+    <p class="preload-meta">
+      <span id="preload-status">Loading circuit geometry</span>
+      <span class="preload-count" id="preload-count">0%</span>
+    </p>
+  </div>
+
   <header class="site-header" id="site-header">
     <div class="brand">
       <a class="masthead" href="#scene">Next&nbsp;Circuit<span class="masthead-dot">.</span></a>
@@ -87,170 +103,255 @@
       </div>
     </section>
 
-    <section class="section" id="vitals">
+    <section class="chapter" id="vitals">
       <div class="wrap">
-        <p class="kicker reveal">The circuit</p>
-        <h2 class="section-title reveal">By the numbers</h2>
-        <p class="section-lead reveal">
-          Lap length, race distance and the year of the first world championship
-          Grand Prix come from the circuit record. Turn count is derived from the
-          track's own geometry, so it can differ by one or two from the official map.
-        </p>
+        <div class="chapter-head reveal">
+          <p class="chapter-index"><b>01</b> / The circuit</p>
+          <h2 class="chapter-title"><span class="line-mask"><span>By the numbers</span></span></h2>
+          <p class="chapter-lead">
+            Lap length, race distance and the year of the first world championship
+            Grand Prix come from the circuit record. Turn count is derived from the
+            track's own geometry, so it can differ by one or two from the official map.
+          </p>
+        </div>
 
-        <div class="vitals reveal">
-          <div class="vital">
-            <span class="vital-value" id="vital-length">—</span><span class="vital-unit"> km</span>
-            <span class="vital-label">Lap length</span>
+        <!--
+          A ruled ledger rather than a grid of cells: horizontal rules only, no
+          verticals and no fills, so a figure and its label read as one line of a
+          record. data-count marks the figures the reveal observer counts up.
+        -->
+        <div class="ledger reveal">
+          <div class="ledger-cell">
+            <p class="ledger-figure">
+              <span class="ledger-value" id="vital-length" data-count>—</span>
+              <span class="ledger-unit">km</span>
+            </p>
+            <span class="ledger-label">Lap length</span>
           </div>
-          <div class="vital">
-            <span class="vital-value" id="vital-turns">—</span>
-            <span class="vital-label">Turns</span>
+          <div class="ledger-cell">
+            <p class="ledger-figure">
+              <span class="ledger-value" id="vital-turns" data-count>—</span>
+            </p>
+            <span class="ledger-label">Turns</span>
           </div>
-          <div class="vital">
-            <span class="vital-value" id="vital-laps">—</span>
-            <span class="vital-label">Race laps</span>
+          <div class="ledger-cell">
+            <p class="ledger-figure">
+              <span class="ledger-value" id="vital-laps" data-count>—</span>
+            </p>
+            <span class="ledger-label">Race laps</span>
           </div>
-          <div class="vital">
-            <span class="vital-value" id="vital-distance">—</span><span class="vital-unit"> km</span>
-            <span class="vital-label">Race distance</span>
+
+          <div class="ledger-cell is-offset">
+            <p class="ledger-figure">
+              <span class="ledger-value" id="vital-distance" data-count>—</span>
+              <span class="ledger-unit">km</span>
+            </p>
+            <span class="ledger-label">Race distance</span>
           </div>
-          <div class="vital">
-            <span class="vital-value" id="vital-elevation">—</span><span class="vital-unit"> m</span>
-            <span class="vital-label">Elevation change</span>
+          <div class="ledger-cell">
+            <p class="ledger-figure">
+              <span class="ledger-value" id="vital-elevation" data-count>—</span>
+              <span class="ledger-unit">m</span>
+            </p>
+            <span class="ledger-label">Elevation change</span>
           </div>
-          <div class="vital">
-            <span class="vital-value" id="vital-firstgp">—</span>
-            <span class="vital-label">First Grand&nbsp;Prix</span>
+          <div class="ledger-cell">
+            <p class="ledger-figure">
+              <span class="ledger-value" id="vital-firstgp">—</span>
+            </p>
+            <span class="ledger-label">First Grand&nbsp;Prix</span>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section section-dark" id="profile">
+    <section class="chapter" id="profile">
       <div class="wrap">
-        <p class="kicker reveal">Elevation</p>
-        <h2 class="section-title reveal">One lap, flattened out</h2>
-        <p class="section-lead reveal">
-          The same profile the ribbon above is built from, unrolled against distance
-          from the start/finish line — the climbs and the drops at their true scale
-          rather than the exaggerated one.
-        </p>
+        <div class="chapter-head reveal">
+          <p class="chapter-index"><b>02</b> / Elevation</p>
+          <h2 class="chapter-title"><span class="line-mask"><span>One lap, flattened out</span></span></h2>
+          <p class="chapter-lead">
+            The same profile the ribbon above is built from, unrolled against distance
+            from the start/finish line — the climbs and the drops at their true scale
+            rather than the exaggerated one.
+          </p>
+        </div>
+      </div>
 
-        <div class="profile-frame reveal">
-          <canvas id="profile-canvas" role="img" aria-label="Elevation profile of one lap"></canvas>
+      <!-- Edge to edge: the profile is a picture, so it gets the whole viewport. -->
+      <figure class="profile-figure bleed reveal">
+        <canvas id="profile-canvas" role="img" aria-label="Elevation profile of one lap"></canvas>
+        <figcaption class="wrap">
           <p class="profile-note" id="profile-note"></p>
-        </div>
-      </div>
+        </figcaption>
+      </figure>
     </section>
 
-    <section class="section" id="history">
+    <section class="chapter" id="history">
       <div class="wrap">
-        <p class="kicker reveal">Form guide</p>
-        <h2 class="section-title reveal">What happened last time</h2>
-        <p class="section-lead reveal">
-          Results for every world championship race held at this circuit, back to 1950.
-        </p>
+        <div class="chapter-head reveal">
+          <p class="chapter-index"><b>03</b> / Form guide</p>
+          <h2 class="chapter-title"><span class="line-mask"><span>What happened last time</span></span></h2>
+          <p class="chapter-lead">
+            Results for every world championship race held at this circuit, back to 1950.
+          </p>
+        </div>
 
-        <div class="cards reveal">
-          <div class="card">
-            <p class="card-dt" id="winner-dt">Last winner here</p>
-            <p class="card-headline" id="winner-name">—</p>
-            <p class="card-sub" id="winner-sub"></p>
+        <div class="spread reveal">
+          <div>
+            <p class="spread-dt" id="winner-dt">Last winner here</p>
+            <p class="spread-name" id="winner-name">—</p>
+            <p class="spread-sub" id="winner-sub"></p>
           </div>
-          <div class="card">
-            <p class="card-dt">Fastest lap of that race</p>
-            <p class="card-headline card-time" id="fastest-time">—</p>
-            <p class="card-sub" id="fastest-sub"></p>
+          <div>
+            <p class="spread-dt">Fastest lap of that race</p>
+            <p class="spread-time" id="fastest-time">—</p>
+            <p class="spread-sub" id="fastest-sub"></p>
           </div>
-          <div class="card">
-            <p class="card-dt">Grands Prix held here</p>
-            <p class="card-headline" id="races-held">—</p>
-            <p class="card-sub">World championship races at this circuit since 1950.</p>
+          <div class="spread-aside">
+            <span class="spread-count" id="races-held">—</span>
+            <p>World championship races at this circuit since 1950.</p>
           </div>
         </div>
 
-        <div class="cards reveal" style="margin-top:1.1rem">
-          <div class="card">
-            <p class="card-dt">Most wins — drivers</p>
+        <div class="tallies">
+          <div class="reveal">
+            <p class="spread-dt">Most wins — drivers</p>
             <ul class="tally" id="tally-drivers"></ul>
           </div>
-          <div class="card">
-            <p class="card-dt">Most wins — constructors</p>
+          <div class="reveal">
+            <p class="spread-dt">Most wins — constructors</p>
             <ul class="tally" id="tally-constructors"></ul>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section section-dark" id="weekend">
+    <section class="chapter" id="weekend">
       <div class="wrap">
-        <p class="kicker reveal">Running order</p>
-        <h2 class="section-title reveal">The weekend</h2>
-        <p class="section-lead reveal" id="schedule-tz">Times shown in your local time zone.</p>
+        <div class="chapter-head reveal">
+          <p class="chapter-index"><b>04</b> / Running order</p>
+          <h2 class="chapter-title"><span class="line-mask"><span>The weekend</span></span></h2>
+          <p class="chapter-lead" id="schedule-tz">Times shown in your local time zone.</p>
+        </div>
         <div class="schedule reveal" id="schedule"></div>
       </div>
     </section>
 
-    <section class="section" id="season">
+    <section class="chapter" id="season">
       <div class="wrap">
-        <p class="kicker reveal">2026</p>
-        <h2 class="section-title reveal">The rest of the season</h2>
-        <p class="section-lead reveal">
-          Every round of the 2026 championship. Pick any one to redraw the whole page
-          around that circuit — the round on screen is highlighted, and the ones
-          already run are dimmed.
-        </p>
-        <ul class="calendar reveal" id="calendar"></ul>
+        <div class="chapter-head reveal">
+          <p class="chapter-index"><b>05</b> / 2026</p>
+          <h2 class="chapter-title"><span class="line-mask"><span>The rest of the season</span></span></h2>
+          <p class="chapter-lead">
+            Every round of the 2026 championship, drawn to one shared scale — so the
+            outlines are directly comparable, and Monaco really is that much smaller
+            than Spa. Pick any one to redraw the whole page around that circuit.
+          </p>
+        </div>
+      </div>
+
+      <!--
+        data-lenis-prevent keeps Lenis from swallowing the wheel events this strip
+        needs for its own horizontal scroll.
+      -->
+      <ul class="wall reveal bleed" id="wall" data-lenis-prevent></ul>
+
+      <div class="wrap">
+        <p class="wall-hint reveal" aria-hidden="true">← Scroll the season →</p>
       </div>
     </section>
 
-    <section class="section section-dark" id="sources">
+    <section class="chapter" id="sources">
       <div class="wrap">
-        <p class="kicker reveal">Sources &amp; caveats</p>
-        <h2 class="section-title reveal">Where this comes from</h2>
+        <div class="chapter-head reveal">
+          <p class="chapter-index"><b>06</b> / Sources &amp; caveats</p>
+          <h2 class="chapter-title"><span class="line-mask"><span>Where this comes from</span></span></h2>
+        </div>
 
         <ul class="sources reveal">
           <li>
-            Circuit geometry —
-            <a href="https://github.com/bacinger/f1-circuits">bacinger/f1-circuits</a>,
-            resampled to an even 15&nbsp;m along the lap.
+            <span class="hang-label">Circuit geometry</span>
+            <span>
+              <a href="https://github.com/bacinger/f1-circuits">bacinger/f1-circuits</a>,
+              resampled to an even 15&nbsp;m along the lap.
+            </span>
           </li>
           <li>
-            Elevation —
-            <a href="https://www.opentopodata.org/">OpenTopoData</a>, sampling EU-DEM
-            (25&nbsp;m), USGS NED (10&nbsp;m) or the Mapzen global terrain blend,
-            depending on where the circuit is.
+            <span class="hang-label">Elevation</span>
+            <span>
+              <a href="https://www.opentopodata.org/">OpenTopoData</a>, sampling EU-DEM
+              (25&nbsp;m), USGS NED (10&nbsp;m) or the Mapzen global terrain blend,
+              depending on where the circuit is.
+            </span>
           </li>
           <li>
-            Race results, calendar and session times —
-            <a href="https://github.com/jolpica/jolpica-f1">Jolpica-F1</a>, the
-            community successor to the Ergast API.
+            <span class="hang-label">Corner numbers</span>
+            <span>
+              The circuit maps published by
+              <a href="https://multiviewer.app/">MultiViewer</a>, which are drawn by
+              hand and are the same ones
+              <a href="https://docs.fastf1.dev/circuit_info.html">FastF1</a> uses.
+            </span>
           </li>
           <li>
-            Basemap — <a href="https://carto.com/attributions">CARTO</a>, over
-            <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> data.
+            <span class="hang-label">Race history</span>
+            <span>
+              Results, calendar and session times from
+              <a href="https://github.com/jolpica/jolpica-f1">Jolpica-F1</a>, the
+              community successor to the Ergast API.
+            </span>
+          </li>
+          <li>
+            <span class="hang-label">Basemap</span>
+            <span>
+              <a href="https://carto.com/attributions">CARTO</a>, over
+              <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> data.
+            </span>
           </li>
         </ul>
 
-        <p class="caveat reveal">
-          <strong>On the elevation.</strong> It is sampled from a terrain model, not
-          surveyed from the track, so bridges, tunnels and cuttings read as the ground
-          around them rather than the tarmac itself, and a model older than a circuit's
-          last rebuild will miss new banking. The vertical scale in the opening scene
-          is exaggerated by the factor shown on screen so that flat circuits are still
-          legible. The flattened profile lower down is at true scale.
-        </p>
+        <div class="caveat reveal">
+          <span class="hang-label">On the elevation</span>
+          <p>
+            It is sampled from a terrain model, not surveyed from the track, so bridges,
+            tunnels and cuttings read as the ground around them rather than the tarmac
+            itself, and a model older than a circuit's last rebuild will miss new
+            banking. The vertical scale in the opening scene is exaggerated by the
+            factor shown on screen so that flat circuits are still legible. The
+            flattened profile lower down is at true scale.
+          </p>
+        </div>
 
-        <p class="caveat reveal">
-          <strong>On the turn numbers and DRS markers.</strong> These are placeholders,
-          derived from the shape of the track rather than from official race
-          documents — corners are found by curvature and numbered from the
-          start/finish line, and the DRS and speed trap markers are placed on the
-          longest straight. Expect them to disagree with the official circuit map
-          where a sequence is numbered as a single corner. The start/finish line
-          itself is real. Every marker is positioned by its distance from the
-          start/finish line, so official figures can replace these directly.
-        </p>
+        <div class="caveat reveal">
+          <span class="hang-label">On the turn numbers</span>
+          <p>
+            These are the real numbers on most circuits, taken from MultiViewer's
+            circuit maps and fitted onto the geometry used here, so a sequence numbered
+            as one lettered corner reads that way — the Hungaroring runs 1, 1A, 2. Three
+            circuits are still the old guesswork, labelled by curvature and numbered
+            from the start/finish line: Madrid and Sepang, which MultiViewer has no map
+            for, and Singapore, where the geometry here is the pre-2023 layout and the
+            official numbering no longer fits it. Corner positions are accurate to
+            roughly the length of a car or two, which is the agreement between two
+            independently drawn maps of the same track rather than a survey.
+          </p>
+        </div>
+
+        <div class="caveat reveal">
+          <span class="hang-label">On what isn't marked</span>
+          <p>
+            There is no DRS in 2026. It has been replaced by Overtake Mode, an electrical
+            boost a driver arms by being within a second of the car ahead at a detection
+            line, and the FIA have not published where those lines sit. Rather than
+            relabel the old guesses, they have been taken off the map until there is
+            something real to draw. The start/finish line is the only marker other than
+            the corners, and on most circuits it is simply where the source outline
+            begins; on Monaco and Silverstone, where that was several corners away from
+            the pit straight, it has been moved to sit turn 1's own stated distance
+            before turn 1.
+          </p>
+        </div>
       </div>
     </section>
   </main>
@@ -262,7 +363,16 @@
     </div>
   </footer>
 
-  <script src="assets/js/carto-basemap.js?v=20260828"></script>
-  <script src="assets/js/f1-circuit.js?v=20260828"></script>
+  <!--
+    Lenis, for inertial scrolling. Not on cdnjs, so it comes from unpkg with an SRI
+    hash, the same way Leaflet does on /eclipse and /dashboard. f1-circuit.js treats
+    it as optional: if this never loads, or if the visitor has asked for reduced
+    motion, the page falls back to native scroll and everything still works.
+  -->
+  <script src="https://unpkg.com/lenis@1.3.26/dist/lenis.min.js"
+          integrity="sha384-jqpi9VmOdhyLoLURgjCn7EpnG9BbnHW57ibIZoeaIU+erWDH3k8fQQg0xH2ySjnw"
+          crossorigin="anonymous"></script>
+  <script src="assets/js/carto-basemap.js?v=20260829"></script>
+  <script src="assets/js/f1-circuit.js?v=20260829"></script>
 </body>
 </html>

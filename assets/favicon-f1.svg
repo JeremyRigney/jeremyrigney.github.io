@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="A Formula 1 circuit, drawn as a closed loop">
+  <!--
+    The /f1 tab icon: charcoal ground in the page's coal token, one accent stroke for
+    the circuit. Same rx as assets/favicon.svg, so the two sit together in a bookmark
+    list.
+
+    The shape is deliberately lopsided, with the infield kink at the bottom. A loop
+    pinched on its right flank renders as a P or a B at tab size, and a smooth one
+    renders as an O; the low notch is what still reads as a circuit at 16px. For the
+    same reason the stroke stays heavy and the loop stays empty, and a start/finish
+    tick was tried and dropped, since at this size it only reads as a stray dash.
+
+    The red is the f1-red token, the page default. f1-circuit.js rebuilds this shape as
+    a data URI and repoints it at the current circuit's colour, so keep the two in
+    step: the template lives in FAVICON_SVG in that file.
+  -->
+  <rect width="32" height="32" rx="7" fill="#111214" />
+  <path
+    d="M 16 5.6 C 22.6 5.6, 26.6 9.8, 26.6 15.4 C 26.6 20.2, 23.6 24.2, 19.2 25.9 C 16.4 27, 13.4 25.4, 14.2 22.8 C 14.9 20.4, 12.2 19.2, 10.4 21.2 C 8 23.9, 5.4 21.4, 5.4 17.2 C 5.4 10.4, 9.4 5.6, 16 5.6 Z"
+    fill="none"
+    stroke="#e8112d"
+    stroke-width="2.4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

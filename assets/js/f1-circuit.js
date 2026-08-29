@@ -18,9 +18,9 @@
  *            ->  yaw about Z, tilt about X, gentle perspective
  *            ->  device pixels
  *
- * Every marker — turns, DRS, start/finish — is addressed by `s`, its arc length in
- * metres from the start/finish line, so the provisional geometry-derived positions
- * can be swapped for official FIA ones by editing data alone.
+ * Every marker — corners, start/finish, and the Overtake Mode detection line when
+ * the FIA publish where those sit — is addressed by `s`, its arc length in metres
+ * around the lap, so positions can be corrected by editing data alone.
  */
 
 (function () {
@@ -30,9 +30,50 @@
 
   var DATA_DIR = 'assets/data/f1/';
   var SEASON = 2026;
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+
+  // The fixed header's height, for offsetting anchor jumps. Matches .site-header.
+  var HEADER_H = 62;
+
+  // How long the intro outline takes to draw itself, and the hard ceiling on the
+  // whole sequence. The scene is built while the outline draws, so the draw is
+  // covering work that was happening anyway rather than delaying it.
+  var INTRO_DRAW_MS = 900;
+  var INTRO_MAX_MS = 3000;
+
+  /*
+   * The Lenis instance, or null when it is not driving: reduced motion, or the CDN
+   * script failing to load. Everything that reads it treats null as "use the native
+   * scroll", so the page degrades to exactly what it was before Lenis was added.
+   */
+  var scroller = null;
+
+  /*
+   * Wakes the render loop. Assigned by run() once that loop exists, and a no-op
+   * until then. Anything that moves the page without producing an input event —
+   * lenis.scrollTo() from a nav click, most of all — has to call this: the loop
+   * parks when idle, and while it is parked Lenis's raf is not being called, so its
+   * animation would sit there never advancing.
+   */
+  var wake = function () {};
 
   var MAX_TILT = 58 * Math.PI / 180;
   var MAX_YAW = -22 * Math.PI / 180;
+
+  /*
+   * How much of the rise window the travelling wave occupies, 0-1.
+   *
+   * At 0 every point rises together and the circuit simply inflates. At 1 the head
+   * of the wave reaches the flag exactly as the tail leaves the line, so no point
+   * is ever given time to finish standing up. 0.45 leaves each point a little over
+   * half the window to rise in, which keeps the sweep obvious without the far side
+   * of the circuit still lying flat when the near side has finished.
+   */
+  var RISE_SPREAD = 0.45;
+
+  // Distance between the posts dropped from the track down to the ground plane,
+  // in metres. Sparse enough to read as a scale rather than a fence.
+  var POST_SPACING_M = 150;
 
   // Ribbon height as a fraction of the circuit's on-screen width. Because it is a
   // fraction of the *model*, flat circuits get amplified harder than hilly ones, so
@@ -238,6 +279,9 @@
       base: rgbToHex(baseRgb),
       soft: rgbToHex(softRgb),
       deepRgb: deepRgb,
+      // The brightest of the three, which is what the ribbon's rising edge mixes
+      // towards so the wave front reads as lit rather than merely a lighter wall.
+      softRgb: softRgb,
       rgbTriple: deepRgb.join(', '),
       // Prebuilt because the draw loops would otherwise reformat these every frame.
       baseAt90: rgba(baseRgb, 0.9),
@@ -356,9 +400,19 @@
     });
   }
 
-  function formatDateTime(iso) {
-    return new Date(iso).toLocaleString(undefined, {
-      weekday: 'short', day: 'numeric', month: 'short',
+  /*
+   * The schedule board sets the day and the clock time in separate columns, so they
+   * are formatted separately rather than sliced back out of one localised string —
+   * the order of the parts is locale-dependent and not safe to split on.
+   */
+  function formatDay(iso) {
+    return new Date(iso).toLocaleDateString(undefined, {
+      weekday: 'long', day: 'numeric', month: 'short'
+    });
+  }
+
+  function formatTime(iso) {
+    return new Date(iso).toLocaleTimeString(undefined, {
       hour: '2-digit', minute: '2-digit'
     });
   }
@@ -393,8 +447,8 @@
    * an out-and-back excursion flat. Needles are often two or three vertices long
    * (out, back, out), so this repeats until a pass finds nothing left to move.
    *
-   * The point count is deliberately preserved. Every marker on the page — turns, DRS,
-   * start/finish — is addressed by arc length as `round(s / step)` into this array,
+   * The point count is deliberately preserved. Every marker on the page — corners
+   * and start/finish — is addressed by arc length as `round(s / step)` into this array,
    * so inserting or dropping a point would silently walk every label around the lap.
    * Moving a handful of them by a few metres does not.
    */
@@ -737,7 +791,15 @@
     var dpr = 1;
 
     var markers = circuit.markers.concat(circuit.turns.map(function (turn) {
-      return { type: 'turn', s: turn.s, label: String(turn.n), dir: turn.dir };
+      return {
+        type: 'turn',
+        s: turn.s,
+        n: turn.n,
+        // Some circuits number a sequence as one corner with lettered parts:
+        // the Hungaroring runs 1, 1A, 2 ... 12, 12A, 13.
+        label: String(turn.n) + (turn.letter || ''),
+        dir: turn.dir
+      };
     })).sort(function (a, b) { return a.s - b.s; });
 
     var scratch = [0, 0, 0];
@@ -784,7 +846,23 @@
     function viewFor(progress) {
       var tilt = easeInOut(seg(progress, 0.15, 0.36)) * MAX_TILT;
       var yaw = easeInOut(seg(progress, 0.15, 0.62)) * MAX_YAW;
-      var zProgress = easeInOut(seg(progress, 0.36, 0.62));
+
+      /*
+       * The rise travels around the lap rather than inflating all at once.
+       *
+       * Every point used to share one z scale, so the circuit swelled uniformly
+       * and read as a drawing being scaled rather than a solid standing up. Giving
+       * each point a phase offset by its position around the lap turns it into a
+       * wave leaving start/finish and running to the flag, which is also the order
+       * a reader would drive it in. RISE_SPREAD is how much of the scroll window
+       * the wave occupies: the rest is the time any one point takes to stand up.
+       */
+      var raw = seg(progress, 0.36, 0.62);
+      var zProgress = easeInOut(raw);
+      var zAt = function (index, count) {
+        var phase = (index / count) * RISE_SPREAD;
+        return easeInOut(clamp((raw - phase) / (1 - RISE_SPREAD), 0, 1));
+      };
 
       var padTop = canvasHeight * (canvasWidth < 700 ? 0.24 : 0.2);
       var padBottom = canvasHeight * 0.17;
@@ -803,7 +881,8 @@
         // Both the track surface and the ground plane below it, since the ribbon
         // hangs between them and has to stay in frame too.
         for (var k = 0; k < 2; k += 1) {
-          unit(geometry.xs[i], geometry.ys[i], k ? geometry.zs[i] * zProgress : 0, probe);
+          unit(geometry.xs[i], geometry.ys[i],
+            k ? geometry.zs[i] * zAt(i, geometry.count) : 0, probe);
           if (probe[0] < minX) minX = probe[0];
           if (probe[0] > maxX) maxX = probe[0];
           if (probe[1] < minY) minY = probe[1];
@@ -819,7 +898,11 @@
       return {
         tilt: tilt,
         yaw: yaw,
+        // The aggregate, for the readouts and for anything that needs one number
+        // for the rise as a whole; zAt is the per-point value the drawing uses.
         zProgress: zProgress,
+        zRaw: raw,
+        zAt: zAt,
         scale: scale,
         radius: geometry.radius,
         // Centre the measured box in the available area rather than the origin,
@@ -893,7 +976,7 @@
      * which reads as a lit extrusion without needing per-quad gradients.
      */
     function drawRibbon(project, view) {
-      if (view.zProgress <= 0.01) {
+      if (view.zRaw <= 0.001) {
         return;
       }
 
@@ -901,15 +984,17 @@
       var zs = geometry.zs;
       var xs = geometry.xs;
       var ys = geometry.ys;
-      var scaleZ = view.zProgress;
 
       var order = new Array(count);
       var top = new Float64Array(count * 3);
       var base = new Float64Array(count * 2);
+      var rise = new Float64Array(count);
+      var postStride = Math.max(1, Math.round(POST_SPACING_M / (circuit.step || 15)));
       var i;
 
       for (i = 0; i < count; i += 1) {
-        project(xs[i], ys[i], zs[i] * scaleZ, scratch);
+        rise[i] = view.zAt(i, count);
+        project(xs[i], ys[i], zs[i] * rise[i], scratch);
         top[i * 3] = scratch[0];
         top[i * 3 + 1] = scratch[1];
         top[i * 3 + 2] = scratch[2];
@@ -941,11 +1026,26 @@
         var heightFraction = (zs[i] / maxZ);
         var depthFraction = (top[i * 3 + 2] - minDepth) / depthSpan;
 
+        /*
+         * The wave's leading edge: brightest where a segment is halfway up, gone
+         * once it has settled.
+         *
+         * Cubed rather than a plain half-sine. Enough of the lap is mid-rise at
+         * once that the untouched curve lights all of it, which reads as "the part
+         * that has risen is bright" instead of as a front moving through. Cubing
+         * pulls the highlight into a band narrow enough to have a direction.
+         */
+        var t = rise[i];
+        var heat = (t > 0.02 && t < 0.98) ? Math.pow(Math.sin(Math.PI * t), 3) : 0;
+
         var warmth = 0.06 + 0.5 * heightFraction;
         var shade = 0.45 + 0.55 * depthFraction;
-        var r = Math.round(mix(14, accent.deepRgb[0], warmth) * shade);
-        var g = Math.round(mix(16, accent.deepRgb[1], warmth) * shade);
-        var b = Math.round(mix(19, accent.deepRgb[2], warmth) * shade);
+        var r = Math.round(mix(mix(14, accent.deepRgb[0], warmth) * shade,
+          accent.softRgb[0], heat * 0.35));
+        var g = Math.round(mix(mix(16, accent.deepRgb[1], warmth) * shade,
+          accent.softRgb[1], heat * 0.35));
+        var b = Math.round(mix(mix(19, accent.deepRgb[2], warmth) * shade,
+          accent.softRgb[2], heat * 0.35));
 
         var colour = 'rgb(' + r + ',' + g + ',' + b + ')';
         ctx.fillStyle = colour;
@@ -962,6 +1062,37 @@
         ctx.strokeStyle = colour;
         ctx.lineWidth = 1;
         ctx.stroke();
+
+        // The crest of the wall, lit while this segment is on its way up. The
+        // colour mix alone is too quiet to read against the ribbon's own gradient;
+        // it is this line along the top edge that makes the front visible.
+        if (heat > 0.01) {
+          ctx.strokeStyle = accent.soft;
+          ctx.globalAlpha = heat * 0.75;
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.moveTo(top[i * 3], top[i * 3 + 1]);
+          ctx.lineTo(top[j * 3], top[j * 3 + 1]);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+
+        /*
+         * A post every POST_SPACING_M, from the ground up to the track.
+         *
+         * Drawn here rather than in a pass of their own so they sort with the
+         * ribbon: a post on the far side of the circuit has to be painted before
+         * the near wall that hides it, or it shows through.
+         */
+        if (i % postStride === 0 && t > 0.02) {
+          ctx.strokeStyle = accent.baseAt55;
+          ctx.globalAlpha = 0.35 * t;
+          ctx.beginPath();
+          ctx.moveTo(base[i * 2], base[i * 2 + 1]);
+          ctx.lineTo(top[i * 3], top[i * 3 + 1]);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
       }
     }
 
@@ -978,7 +1109,8 @@
       ctx.beginPath();
       for (var i = 0; i <= upTo; i += 1) {
         var index = i % count;
-        project(geometry.xs[index], geometry.ys[index], zs[index] * view.zProgress, scratch);
+        project(geometry.xs[index], geometry.ys[index],
+          zs[index] * view.zAt(index, count), scratch);
         if (i === 0) {
           ctx.moveTo(scratch[0], scratch[1]);
         } else {
@@ -998,6 +1130,51 @@
 
       ctx.strokeStyle = accent.softAt55;
       ctx.lineWidth = 1.4;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    /*
+     * The lap's own outline, left lying on the ground plane as the track rises off
+     * it.
+     *
+     * Tilt alone does not say how high anything is: without something at z = 0 to
+     * measure against, a tall ribbon and a steeply tilted flat one look the same.
+     * The footprint gives the height something to be measured from, and costs one
+     * stroke.
+     *
+     * It is drawn lighter than the stage rather than darker. A literal shadow is
+     * the obvious instinct and it is invisible here — the ground is already very
+     * near black, so a dark mark on it lands within a few values of the background
+     * and disappears. Reading it as a trace left on the floor rather than a shadow
+     * cast onto it is what makes it show up at all.
+     */
+    function drawGroundShadow(project, view, alpha) {
+      if (alpha <= 0.01) {
+        return;
+      }
+      var count = geometry.count;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      // Not supported everywhere, and a hard-edged shadow still reads correctly —
+      // it just sits closer to being a second track than a shadow.
+      if (typeof ctx.filter === 'string') {
+        ctx.filter = 'blur(3px)';
+      }
+      ctx.beginPath();
+      for (var i = 0; i <= count; i += 1) {
+        project(geometry.xs[i % count], geometry.ys[i % count], 0, scratch);
+        if (i === 0) {
+          ctx.moveTo(scratch[0], scratch[1]);
+        } else {
+          ctx.lineTo(scratch[0], scratch[1]);
+        }
+      }
+      ctx.strokeStyle = accent.baseAt42;
+      ctx.lineWidth = 7;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
       ctx.stroke();
       ctx.restore();
     }
@@ -1065,17 +1242,17 @@
         }
         var x = geometry.xs[index];
         var y = geometry.ys[index];
-        var z = geometry.zs[index] * view.zProgress;
+        var z = geometry.zs[index] * view.zAt(index, count);
         project(x, y, z, scratch);
         var px = scratch[0];
         var py = scratch[1];
 
         var isTurn = marker.type === 'turn';
+        // Pad on the number, not the label: '4A' is already two characters but
+        // still wants to read as 04A alongside 03 and 05.
         var label = isTurn
-          ? (marker.label.length < 2 ? '0' + marker.label : marker.label)
-          : marker.type === 'speed-trap' ? 'SPEED TRAP'
-            : marker.type === 'drs-detection' ? 'DRS DETECT'
-              : marker.type === 'drs-activation' ? 'DRS' : '';
+          ? (marker.n < 10 ? '0' + marker.label : marker.label)
+          : marker.label || '';
 
         ctx.globalAlpha = alpha;
         ctx.font = isTurn
@@ -1160,6 +1337,7 @@
       ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
       drawTiles(project, 1 - seg(progress, 0.12, 0.26));
+      drawGroundShadow(project, view, seg(progress, 0.30, 0.50));
       drawRibbon(project, view);
       drawTrack(project, view, introProgress());
       drawMarkers(project, view, seg(progress, 0.6, 0.9));
@@ -1328,7 +1506,7 @@
     // With a circuit pinned, the masthead becomes the way back to whatever is
     // actually next — otherwise there is no route out of a hand-picked round.
     // Dropping the query off the current path rather than naming f1.html keeps
-    // whichever spelling the visitor arrived on; see renderCalendar.
+    // whichever spelling the visitor arrived on; see renderSeasonWall.
     var masthead = document.querySelector('.masthead');
     if (masthead && !isNext) {
       masthead.href = window.location.pathname;
@@ -1339,7 +1517,13 @@
       + (stats.laps ? ', ' + stats.laps + ' laps' : ''));
 
     setText('vital-length', (circuit.length / 1000).toFixed(3));
-    setText('vital-turns', String(circuit.turns.length));
+    // Distinct numbers, not entries: a lettered corner like the Hungaroring's 1A is
+    // part of turn 1, so counting rows would report 16 turns where the circuit has 14.
+    var numbers = {};
+    for (var t = 0; t < circuit.turns.length; t += 1) {
+      numbers[circuit.turns[t].n] = true;
+    }
+    setText('vital-turns', String(Object.keys(numbers).length));
     setText('vital-laps', stats.laps ? String(stats.laps) : '—');
     setText('vital-distance', stats.raceDistanceKm ? stats.raceDistanceKm.toFixed(1) : '—');
     setText('vital-elevation', String(Math.round(
@@ -1382,7 +1566,7 @@
     renderTally('tally-constructors', stats.mostWinsConstructors || []);
 
     renderSchedule(round);
-    renderCalendar(season, round);
+    renderSeasonWall(season, round);
   }
 
   function renderTally(id, entries) {
@@ -1399,7 +1583,7 @@
       return;
     }
     var max = entries[0].wins;
-    entries.forEach(function (entry) {
+    entries.forEach(function (entry, index) {
       var item = document.createElement('li');
 
       var name = document.createElement('span');
@@ -1410,9 +1594,12 @@
       count.className = 'tally-count';
       count.textContent = entry.wins + (entry.wins === 1 ? ' win' : ' wins');
 
+      // Scaled rather than sized: the bar grows on reveal, and animating a transform
+      // does not lay the row out again on every frame the way animating width would.
       var bar = document.createElement('span');
       bar.className = 'tally-bar';
-      bar.style.width = (entry.wins / max * 100) + '%';
+      bar.style.setProperty('--w', String(entry.wins / max));
+      bar.style.setProperty('--d', String(index));
 
       item.appendChild(name);
       item.appendChild(count);
@@ -1445,20 +1632,26 @@
     // sorting by the actual timestamp is the only reliable ordering.
     rows.sort(function (a, b) { return new Date(a.iso) - new Date(b.iso); });
 
-    rows.forEach(function (row) {
+    rows.forEach(function (row, index) {
       var element = document.createElement('div');
       element.className = 'schedule-row' + (row.isRace ? ' is-race' : '');
+      element.style.setProperty('--d', String(index));
 
       var name = document.createElement('span');
       name.className = 'schedule-name';
       name.textContent = row.name;
 
+      var day = document.createElement('span');
+      day.className = 'schedule-day';
+      day.textContent = formatDay(row.iso);
+
       var time = document.createElement('time');
       time.className = 'schedule-time';
       time.dateTime = row.iso;
-      time.textContent = formatDateTime(row.iso);
+      time.textContent = formatTime(row.iso);
 
       element.appendChild(name);
+      element.appendChild(day);
       element.appendChild(time);
       container.appendChild(element);
     });
@@ -1484,47 +1677,147 @@
    * on the clean URL onto the other one the moment they picked a round. It also
    * keeps the page working under python3 -m http.server, which only resolves /f1.html.
    */
-  function renderCalendar(season, shownRound) {
-    var list = document.getElementById('calendar');
+  function renderSeasonWall(season, shownRound) {
+    var list = document.getElementById('wall');
     if (!list) {
       return;
     }
     list.innerHTML = '';
     var now = Date.now();
+    var glyphs = [];
 
-    season.rounds.forEach(function (round) {
+    season.rounds.forEach(function (round, index) {
       var item = document.createElement('li');
-      if (round.round === shownRound.round) {
+      var isShown = round.round === shownRound.round;
+      if (isShown) {
         item.className = 'is-next';
       } else if (new Date(round.start).getTime() < now) {
         item.className = 'is-done';
       }
 
       var link = document.createElement('a');
-      link.className = 'calendar-link';
+      link.className = 'wall-link';
       link.href = '?circuit=' + encodeURIComponent(round.circuitId);
-      if (round.round === shownRound.round) {
+      if (isShown) {
         link.setAttribute('aria-current', 'page');
       }
 
       var label = document.createElement('span');
-      label.className = 'calendar-round';
+      label.className = 'wall-round';
       label.textContent = 'R' + round.round + '  ' + flagEmoji(round.geoId.slice(0, 2));
 
+      // The outline is added later, once the silhouette file lands. Its box is
+      // reserved now so the strip does not reflow when it does.
+      var glyph = document.createElementNS(SVG_NS, 'svg');
+      glyph.setAttribute('class', 'wall-glyph');
+      glyph.setAttribute('aria-hidden', 'true');
+      glyph.style.setProperty('--d', String(index));
+      glyphs.push({ svg: glyph, geoId: round.geoId });
+
       var name = document.createElement('span');
-      name.className = 'calendar-name';
+      name.className = 'wall-name';
       name.textContent = round.name;
 
-      var date = document.createElement('span');
-      date.className = 'calendar-date';
-      date.textContent = formatDate(round.date);
+      var meta = document.createElement('span');
+      meta.className = 'wall-meta';
+      meta.textContent = formatDate(round.date);
 
       link.appendChild(label);
+      link.appendChild(glyph);
       link.appendChild(name);
-      link.appendChild(date);
+      link.appendChild(meta);
       item.appendChild(link);
       list.appendChild(item);
     });
+
+    // Bring the round on screen into view in the strip. Set directly rather than
+    // scrolled smoothly: this runs long before the section is reached, and an
+    // animation nobody is looking at is just work.
+    var current = list.querySelector('.is-next');
+    if (current) {
+      list.scrollLeft = Math.max(0, current.offsetLeft - list.offsetLeft);
+    }
+
+    loadSilhouettes(season.season, glyphs, list);
+  }
+
+  /*
+   * The outlines behind the season strip.
+   *
+   * Fetched after the scene is already running, so it never sits in front of first
+   * paint, and entirely optional: if the file is missing the strip keeps its round
+   * numbers, names and dates and simply has no drawings in it.
+   *
+   * Every circuit is drawn into ONE viewBox sized to the largest of them, in metres.
+   * That shared frame is the whole point — it is what makes Monaco visibly smaller
+   * than Spa instead of making all 23 circuits the same size. See silhouette_for()
+   * in tools/build-f1-data.py for the matching half of this.
+   */
+  function loadSilhouettes(season, glyphs, list) {
+    fetchJSON(DATA_DIR + 'silhouettes-' + season + '.json').then(function (data) {
+      var circuits = data.circuits || {};
+
+      var maxW = 0;
+      var maxH = 0;
+      glyphs.forEach(function (entry) {
+        var shape = circuits[entry.geoId];
+        if (shape) {
+          maxW = Math.max(maxW, shape.w);
+          maxH = Math.max(maxH, shape.h);
+        }
+      });
+      if (!maxW || !maxH) {
+        return;
+      }
+
+      // A little air so the widest circuit's stroke is not clipped by the viewBox.
+      var boxW = maxW * 1.06;
+      var boxH = maxH * 1.06;
+      var viewBox = (-boxW / 2) + ' ' + (-boxH / 2) + ' ' + boxW + ' ' + boxH;
+
+      glyphs.forEach(function (entry) {
+        var shape = circuits[entry.geoId];
+        if (!shape) {
+          return;
+        }
+        entry.svg.setAttribute('viewBox', viewBox);
+        entry.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        var path = document.createElementNS(SVG_NS, 'path');
+        path.setAttribute('d', shape.d);
+        entry.svg.appendChild(path);
+        // getTotalLength needs the path laid out, which it now is.
+        entry.svg.style.setProperty('--len', String(path.getTotalLength()));
+      });
+
+      drawWallOnReveal(list);
+    }).catch(function () {
+      /* No silhouettes: the strip still lists the season, which is the fallback. */
+    });
+  }
+
+  /* Draw the outlines on when the strip first comes into view, staggered along it. */
+  function drawWallOnReveal(list) {
+    function draw() {
+      var nodes = list.querySelectorAll('.wall-glyph');
+      for (var i = 0; i < nodes.length; i += 1) {
+        nodes[i].classList.add('is-drawn');
+      }
+    }
+
+    if (reducedMotion || typeof IntersectionObserver !== 'function') {
+      draw();
+      return;
+    }
+
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          draw();
+          observer.disconnect();
+        }
+      });
+    }, { rootMargin: '0px 0px -10% 0px' });
+    observer.observe(list);
   }
 
   function startCountdown(round) {
@@ -1603,15 +1896,41 @@
       });
     }
 
+    /*
+     * Anchor clicks go through Lenis when it is driving, so the jump is part of the
+     * same interpolation as everything else rather than a native jump fighting it.
+     * Without Lenis this listener does nothing and the plain href takes over.
+     */
+    if (nav) {
+      nav.addEventListener('click', function (event) {
+        var link = event.target.closest ? event.target.closest('a[href^="#"]') : null;
+        if (!link || !scroller) {
+          return;
+        }
+        var target = document.querySelector(link.getAttribute('href'));
+        if (target) {
+          event.preventDefault();
+          scroller.scrollTo(target, { offset: -HEADER_H });
+          wake();
+        }
+      });
+    }
+
     if (header) {
       // Kept out of the way over the opening frame, then brought in once the
       // circuit has had the screen to itself for a while.
       header.classList.add('is-hidden');
       var onScroll = function () {
-        var scrolled = window.scrollY || window.pageYOffset;
+        var scrolled = scroller ? scroller.scroll : (window.scrollY || window.pageYOffset);
         header.classList.toggle('is-hidden', scrolled < window.innerHeight * 0.7);
       };
-      window.addEventListener('scroll', onScroll, { passive: true });
+      // Under Lenis the native scroll event still fires, but its own event is the
+      // one in step with the interpolated position the scene is drawn at.
+      if (scroller) {
+        scroller.on('scroll', onScroll);
+      } else {
+        window.addEventListener('scroll', onScroll, { passive: true });
+      }
       onScroll();
     }
 
@@ -1625,24 +1944,92 @@
      * re-evaluates when they grow.
      */
     var reveals = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
+
+    function show(node) {
+      node.classList.add('is-in');
+      countUp(node);
+    }
+
     if (reducedMotion) {
-      reveals.forEach(function (node) { node.classList.add('is-in'); });
+      reveals.forEach(show);
       return;
+    }
+
+    // A stagger index per direct child, so a group arrives as a sequence rather than
+    // all at once. Set at reveal time, not up front: the schedule and the season
+    // strip have no children until the season data lands.
+    function stagger(node) {
+      var children = node.children;
+      for (var i = 0; i < children.length; i += 1) {
+        if (!children[i].style.getPropertyValue('--d')) {
+          children[i].style.setProperty('--d', String(i));
+        }
+      }
     }
 
     if ('IntersectionObserver' in window) {
       var observer = new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
           if (entry.isIntersecting) {
-            entry.target.classList.add('is-in');
+            stagger(entry.target);
+            show(entry.target);
             observer.unobserve(entry.target);
           }
         });
       }, { rootMargin: '0px 0px -12% 0px' });
       reveals.forEach(function (node) { observer.observe(node); });
     } else {
-      reveals.forEach(function (node) { node.classList.add('is-in'); });
+      reveals.forEach(show);
     }
+  }
+
+  /*
+   * Count the ledger figures up as they arrive.
+   *
+   * Reads the value already on screen and counts to it, so the formatting written by
+   * fillPage — decimal places, em dashes, "—" for a missing figure — is the single
+   * source of truth and nothing here needs to know what any of these numbers mean.
+   * Anything that does not parse as a number is left exactly as it is.
+   */
+  function countUp(root) {
+    if (reducedMotion) {
+      return;
+    }
+    var targets = root.querySelectorAll('[data-count]');
+    for (var i = 0; i < targets.length; i += 1) {
+      startCount(targets[i], i);
+    }
+  }
+
+  function startCount(node, index) {
+    var text = node.textContent.trim();
+    var value = parseFloat(text);
+    if (!isFinite(value) || node.dataset.counted) {
+      return;
+    }
+    node.dataset.counted = '1';
+
+    // Match the written precision so the digits do not jitter in width as it runs.
+    var dot = text.indexOf('.');
+    var places = dot === -1 ? 0 : text.length - dot - 1;
+    var start = 0;
+    var duration = 700;
+    var delay = index * 70;
+
+    function step(now) {
+      if (!start) {
+        start = now;
+      }
+      var t = clamp((now - start - delay) / duration, 0, 1);
+      node.textContent = (value * easeOut(t)).toFixed(places);
+      if (t < 1) {
+        requestAnimationFrame(step);
+      } else {
+        // Land on the original string, so any grouping or trailing zeroes survive.
+        node.textContent = text;
+      }
+    }
+    requestAnimationFrame(step);
   }
 
   function showError(message) {
@@ -1665,7 +2052,7 @@
     setText('scene-error-detail', message);
   }
 
-  /* ---------- Boot ---------- */
+  /* ---------- Round selection ---------- */
 
   /*
    * The next round is the first whose race start is still ahead of us. Once the
@@ -1733,16 +2120,30 @@
     var rendered = 0;
     var running = false;
 
+    /*
+     * Lenis already interpolates the scroll position, so the loop's own smoothing is
+     * eased off when it is driving. Left at 0.14 the two lags stack and the scene
+     * swims behind the page instead of feeling weighted to it.
+     */
+    var smoothing = scroller ? 0.28 : 0.14;
+
     function computeProgress() {
       var start = scene.section.offsetTop;
       var span = scene.section.offsetHeight - window.innerHeight;
-      return clamp(((window.scrollY || window.pageYOffset) - start) / Math.max(span, 1), 0, 1);
+      var scrolled = scroller ? scroller.scroll : (window.scrollY || window.pageYOffset);
+      return clamp((scrolled - start) / Math.max(span, 1), 0, 1);
     }
 
-    function frame() {
-      // Smoothing the scroll position rather than reading it raw keeps the tilt from
-      // stuttering on trackpads that deliver large, uneven scroll deltas.
-      rendered += (target - rendered) * 0.14;
+    function frame(time) {
+      // Lenis has no loop of its own unless autoRaf is set, and autoRaf never stops.
+      // Driving it from this loop keeps one rAF on the page rather than two, and
+      // lets both of them park together when nothing is moving.
+      if (scroller) {
+        scroller.raf(time);
+        target = computeProgress();
+      }
+
+      rendered += (target - rendered) * smoothing;
       var settled = Math.abs(target - rendered) < 0.0004;
       if (settled) {
         rendered = target;
@@ -1750,7 +2151,9 @@
 
       scene.render(rendered);
 
-      if (settled && !scene.introRunning()) {
+      // Stay awake while Lenis is still gliding, or its inertia stops the moment the
+      // scene settles and the page halts mid-flick.
+      if (settled && !scene.introRunning() && !(scroller && scroller.isScrolling)) {
         running = false;
       } else {
         requestAnimationFrame(frame);
@@ -1764,8 +2167,21 @@
         requestAnimationFrame(frame);
       }
     };
+    // Now anything outside run() can restart the loop — see `wake` above.
+    wake = kick;
 
+    /*
+     * Wake sources. The native scroll event covers scrollbar drags and anchor jumps;
+     * the input events matter because once the loop has parked, Lenis's raf is no
+     * longer being called, so a fresh wheel or key press has nothing to advance it.
+     * These fire on the DOM event itself, which is what breaks that standstill.
+     */
     window.addEventListener('scroll', kick, { passive: true });
+    if (scroller) {
+      ['wheel', 'touchstart', 'touchmove', 'keydown'].forEach(function (type) {
+        window.addEventListener(type, kick, { passive: true });
+      });
+    }
     window.addEventListener('resize', function () {
       scene.resize();
       kick();
@@ -1780,18 +2196,175 @@
     kick();
   }
 
+  /* ---------- Scroll ---------- */
+
+  function makeScroller() {
+    // Optional by design: the script tag has no fallback, so if unpkg is blocked or
+    // the SRI check fails, window.Lenis is simply absent and the page scrolls
+    // natively. Reduced motion opts out of it outright.
+    if (reducedMotion || typeof window.Lenis !== 'function') {
+      return null;
+    }
+    return new window.Lenis({
+      // A long ramp and a low lerp are what give the page its weight; anything
+      // brisker and the inertia stops reading as deliberate.
+      lerp: 0.075,
+      wheelMultiplier: 0.9,
+      // Touch devices already have inertia of their own. Doubling it up fights the
+      // platform and makes the page feel like it is refusing to stop.
+      syncTouch: false
+    });
+  }
+
+  /* ---------- Boot ---------- */
+
+  /*
+   * The intro sequence.
+   *
+   * The overlay ships hidden in the markup, so if this script never runs, or the
+   * visitor has asked for reduced motion, they simply never see it. Progress is
+   * reported from the two fetches rather than run off a timer, and there is a hard
+   * timeout underneath the whole thing: a stalled request must not be able to leave
+   * a blank screen behind.
+   */
+  function makeIntro() {
+    var node = document.getElementById('preload');
+    var pathNode = document.getElementById('preload-path');
+    var barNode = document.getElementById('preload-bar');
+    var done = false;
+
+    if (reducedMotion || !node || !pathNode) {
+      return {
+        progress: function () {},
+        draw: function () {},
+        finish: function () {}
+      };
+    }
+
+    node.hidden = false;
+
+    var shown = 0;
+    var wanted = 0;
+    var ticking = false;
+
+    // The counter eases toward the true fraction rather than jumping to it, so a
+    // fetch that resolves instantly still reads as a count rather than a flash.
+    function tick() {
+      shown += (wanted - shown) * 0.12;
+      if (wanted - shown < 0.005) {
+        shown = wanted;
+      }
+      setText('preload-count', Math.round(shown * 100) + '%');
+      if (barNode) {
+        barNode.style.setProperty('--p', String(shown));
+      }
+      if (shown < wanted) {
+        requestAnimationFrame(tick);
+      } else {
+        ticking = false;
+      }
+    }
+
+    function progress(fraction, snap) {
+      wanted = Math.max(wanted, clamp(fraction, 0, 1));
+      // The last step does not ease: the overlay starts fading on the same frame,
+      // and easing toward 100 would hide it still showing 90-something.
+      if (snap) {
+        shown = wanted;
+        setText('preload-count', Math.round(shown * 100) + '%');
+        if (barNode) {
+          barNode.style.setProperty('--p', String(shown));
+        }
+        return;
+      }
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(tick);
+      }
+    }
+
+    return {
+      progress: progress,
+
+      /*
+       * Draw the lap on. The geometry is the same prepareGeometry() output the scene
+       * is built from, so the outline the visitor watches being drawn is the one
+       * that is about to tilt up underneath it, at the same orientation.
+       */
+      draw: function (circuit) {
+        if (done) {
+          return;
+        }
+        var geometry = prepareGeometry(circuit, false);
+        var d = '';
+        for (var i = 0; i < geometry.count; i += 2) {
+          // SVG's y axis points down; negate so the lap is not drawn mirrored.
+          d += (i ? 'L' : 'M') + geometry.xs[i].toFixed(1) + ' '
+            + (-geometry.ys[i]).toFixed(1) + ' ';
+        }
+        pathNode.setAttribute('d', d + 'Z');
+
+        var pad = geometry.radius * 1.12;
+        document.getElementById('preload-glyph')
+          .setAttribute('viewBox', (-pad) + ' ' + (-pad) + ' ' + (pad * 2) + ' ' + (pad * 2));
+
+        var length = pathNode.getTotalLength();
+        pathNode.style.strokeDasharray = length;
+        pathNode.style.strokeDashoffset = length;
+        // Force layout so the transition has a start value to move from.
+        pathNode.getBoundingClientRect();
+        pathNode.style.transition = 'stroke-dashoffset ' + INTRO_DRAW_MS + 'ms '
+          + 'cubic-bezier(0.22, 1, 0.36, 1)';
+        pathNode.style.strokeDashoffset = '0';
+
+        setText('preload-status', circuit.name);
+      },
+
+      finish: function () {
+        if (done) {
+          return;
+        }
+        done = true;
+        progress(1, true);
+        node.classList.add('is-out');
+        // Taken out of the accessibility tree once it has faded, so it is not a
+        // focusable, screen-reader-visible layer sitting over the page forever.
+        window.setTimeout(function () { node.hidden = true; }, 800);
+      }
+    };
+  }
+
   function boot() {
+    scroller = makeScroller();
     setupChrome();
+
+    var intro = makeIntro();
+    // The floor under the whole sequence. Whatever the fetches are doing, the
+    // overlay comes down; the page underneath is readable with or without it.
+    var failsafe = window.setTimeout(intro.finish, INTRO_MAX_MS);
+
+    intro.progress(0.12);
 
     fetchJSON(DATA_DIR + 'season-' + SEASON + '.json')
       .then(function (season) {
+        intro.progress(0.5);
         var next = pickRound(season);
         var round = roundFromQuery(season) || next;
         return fetchJSON(DATA_DIR + round.geoId + '.json').then(function (circuit) {
+          intro.progress(0.9);
+          intro.draw(circuit);
+
+          // The scene is built underneath while the outline draws, so the sequence
+          // costs the wait it is covering rather than adding to it.
           run(season, circuit, round, round === next);
+
+          window.clearTimeout(failsafe);
+          window.setTimeout(intro.finish, INTRO_DRAW_MS);
         });
       })
       .catch(function (error) {
+        window.clearTimeout(failsafe);
+        intro.finish();
         showError(error.message);
       });
   }
