@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Jeremy Rigney | Home</title>
 
 		<script type="application/ld+json">
@@ -14,39 +16,113 @@
 		</script>
 		<!-- Favicon-->
 		<link rel="icon" type="image/x-icon" href="images/favicon.png"/>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<meta name="theme-color" content="#06140e" />
+		<meta name="theme-color" content="#111214" />
 		<meta name="author" content="Jeremy Rigney">
 		<meta name="description" content="I hold a PhD in astrophysics from Queen's University Belfast. My research focused on observing the Sun and other stars using some of the largest and most advanced telescopes in the world to better understand stellar dynamics. Throughout my PhD I have presented my research at international conferences, and published peer reviewed research, collaborating with colleagues across the globe."/>
 		<meta name="keywords" content="Jeremy Rigney, Jeremy, astronomy ireland, irish astronomy, jeremy astronomy, jeremy science communication, science communication ireland, Jeremy Rigney astronomy, Dublin Institute for Advanced Studies, AOP, Armagh Observatory, Queen's University Belfast, Lindsay Scholar, jeremy dias, jeremy ireland, jeremy astronomy ireland, Birr Castle, jeremy birr castle">
 
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-		<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Chivo+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-		<link rel="stylesheet" href="assets/css/home.css" />
-		<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+		<!--
+			Same trio as /f1, and the same weights: Chivo Mono needs 700 for the opening
+			title, Fraunces the full optical-size range for the chapter titles. There is
+			no fourth face and no icon font on this page.
+		-->
+		<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+		<link rel="stylesheet" href="assets/css/home-coal.css?v=20260831" />
+
+		<!--
+			Without JavaScript nothing ever adds .is-in, so every .reveal would sit at
+			opacity 0 and the header — which ships .is-hidden so the opening frame has
+			the screen to itself — would never come back. This hands all of it over
+			statically. The nav panel is a fixed overlay below 860px that only the
+			toggle can open, so it is returned to the flow here as well.
+		-->
+		<noscript>
+			<style>
+				.reveal { opacity: 1; transform: none; }
+				.line-mask > span { transform: none; }
+				.site-header,
+				.site-header.is-hidden { transform: none; opacity: 1; pointer-events: auto; }
+				@media (max-width: 860px) {
+					.nav-toggle { display: none; }
+					.site-header { position: static; height: auto; padding: 0.9rem 1.4rem; flex-wrap: wrap; }
+					.site-nav {
+						position: static;
+						flex-direction: row;
+						flex-wrap: wrap;
+						gap: 0 1.1rem;
+						padding: 0.6rem 0 0;
+						background: none;
+						border-bottom: 0;
+						transform: none;
+						opacity: 1;
+						pointer-events: auto;
+					}
+					.site-nav a { padding: 0.3rem 0; border-bottom: 1px solid transparent; }
+				}
+			</style>
+		</noscript>
 
 		<!--Cookie consent-->
 		<script src="https://web.cmp.usercentrics.eu/modules/autoblocker.js"></script>
 		<script id="usercentrics-cmp" src="https://web.cmp.usercentrics.eu/ui/loader.js" data-settings-id="nt7NWEM4FPFze0" async></script>
-	</head>
 
-	<!-- Google tag (gtag.js) -->
-	<script async src="https://www.googletagmanager.com/gtag/js?id=G-6G0WFV4TS8"></script>
-	<script>
-	  window.dataLayer = window.dataLayer || [];
-	  function gtag(){dataLayer.push(arguments);}
-	  gtag('js', new Date());
-	  gtag('config', 'G-6G0WFV4TS8');
-	</script>
+		<!-- Google tag (gtag.js) -->
+		<script async src="https://www.googletagmanager.com/gtag/js?id=G-6G0WFV4TS8"></script>
+		<script>
+		  window.dataLayer = window.dataLayer || [];
+		  function gtag(){dataLayer.push(arguments);}
+		  gtag('js', new Date());
+		  gtag('config', 'G-6G0WFV4TS8');
+		</script>
+	</head>
 
 	<body>
 
+		<!--
+			Intro overlay. Ships hidden and is only unhidden by home-coal.js, so a
+			visitor with no JavaScript — or with prefers-reduced-motion set — never sees
+			it and lands straight on the page.
+
+			The glyph is a lunar disc with its crater rims, in the coordinate space the
+			Dunsink plate was annotated in: 1 unit = 1 lunar radius, disc centred at the
+			origin. Every rim is its own path so home-coal.js can draw the limb first and
+			then let the craters land one after another; a single path would draw all of
+			them at once, and the whole thing would read as scribble.
+
+			Two rings on the lower left are one crater, rim and floor, which is what
+			makes the set read as craters rather than as dots.
+		-->
+		<div class="preload" id="preload" hidden>
+			<svg class="preload-glyph" viewBox="-1.12 -1.12 2.24 2.24" aria-hidden="true" focusable="false">
+				<path class="glyph-draw glyph-limb" d="M 1 0 A 1 1 0 0 1 -1 0 A 1 1 0 0 1 1 0" />
+				<path class="glyph-draw" d="M -0.04 0.42 A 0.26 0.26 0 0 1 -0.56 0.42 A 0.26 0.26 0 0 1 -0.04 0.42" />
+				<path class="glyph-draw" d="M 0.05 -0.1 A 0.17 0.17 0 0 1 -0.29 -0.1 A 0.17 0.17 0 0 1 0.05 -0.1" />
+				<path class="glyph-draw" d="M 0.46 -0.44 A 0.12 0.12 0 0 1 0.22 -0.44 A 0.12 0.12 0 0 1 0.46 -0.44" />
+				<path class="glyph-draw" d="M -0.17 0.42 A 0.13 0.13 0 0 1 -0.43 0.42 A 0.13 0.13 0 0 1 -0.17 0.42" />
+				<path class="glyph-draw" d="M 0.59 0.1 A 0.09 0.09 0 0 1 0.41 0.1 A 0.09 0.09 0 0 1 0.59 0.1" />
+				<path class="glyph-draw" d="M -0.43 -0.34 A 0.07 0.07 0 0 1 -0.57 -0.34 A 0.07 0.07 0 0 1 -0.43 -0.34" />
+				<path class="glyph-draw" d="M 0.3 0.56 A 0.06 0.06 0 0 1 0.18 0.56 A 0.06 0.06 0 0 1 0.3 0.56" />
+			</svg>
+			<div class="preload-bar" id="preload-bar"><span></span></div>
+			<p class="preload-meta">
+				<span>Jeremy Rigney</span>
+				<span class="preload-count" id="preload-count">0%</span>
+			</p>
+		</div>
+
 		<!-- Header -->
-		<header class="site-header" id="site-header">
-			<a class="brand" href="#top">Jeremy<span>.</span></a>
-			<nav class="nav-links" id="nav-links" aria-label="Primary">
+		<header class="site-header is-hidden" id="site-header">
+			<div class="brand">
+				<a class="masthead" href="#top">Jeremy<span class="masthead-dot">.</span></a>
+			</div>
+			<p class="header-meta">Dublin &middot; Ireland</p>
+			<button class="nav-toggle" type="button" aria-label="Open menu" aria-controls="site-nav" aria-expanded="false">
+				<span></span>
+				<span></span>
+			</button>
+			<nav class="site-nav" id="site-nav" aria-label="Site navigation">
 				<a href="#about">What I do</a>
 				<a href="#work">Work</a>
 				<a href="#education">Education</a>
@@ -54,227 +130,307 @@
 				<a href="eclipse.html">Eclipse</a>
 				<a href="f1.html">F1</a>
 				<a href="cv.html">CV</a>
-				<a href="#contact" class="nav-cta">Contact</a>
+				<a href="#contact">Contact</a>
 			</nav>
-			<button class="nav-toggle" id="nav-toggle" type="button" aria-label="Open menu" aria-controls="nav-links" aria-expanded="false">
-				<span></span><span></span><span></span>
-			</button>
 		</header>
 
 		<main id="top">
 
-			<!-- Hero -->
-			<section class="hero">
+			<!--
+				The opening frame. A title page, not a hero: no photograph and no grid,
+				set flush to the left edge of .wrap while every chapter below hangs off
+				the margin spine — the change of alignment is what marks the difference
+				between the title page and the body. The one thing it carries that the
+				body does not is the shimmer, immediately below.
+			-->
+			<section class="opening">
+
+				<!--
+					The shimmer: an etched contour field over an iridescent ground, after
+					an anodised finish where the etching is fixed and only the colour moves
+					with the viewing angle. The pointer is that angle.
+
+					Both live in one canvas: the iridescence and the etching are functions
+					of the same per-pixel value, so their composite is too, and the whole
+					thing is one lookup a pixel. They keep separate phases, which is what
+					stops the grooves travelling with the light. See home-shimmer.js.
+					All of it is decoration and none of it is exposed to assistive tech.
+				-->
+				<div class="shimmer-etch" aria-hidden="true">
+					<canvas id="shimmer-hue"></canvas>
+				</div>
+				<div class="shimmer-light" aria-hidden="true"></div>
+
 				<div class="wrap">
-					<a class="hero-announce reveal" href="eclipse.html">
-						<span class="hero-announce-tag">New</span>
-						<span class="hero-announce-text">Ireland's 2026 solar eclipse, mapped for your location</span>
-						<span class="hero-announce-arrow" aria-hidden="true">→</span>
-					</a>
-					<p class="kicker reveal">Dr. Jeremy Rigney — Dublin, Ireland</p>
-					<h1 class="reveal">Data science, grounded in <em>scientific rigour.</em></h1>
-					<p class="hero-sub reveal">Senior Data Scientist &nbsp;·&nbsp; AI R&amp;D &nbsp;·&nbsp; Astrophysicist</p>
-					<p class="hero-lead reveal">I build data pipelines and models that turn complex, large-scale datasets into clear decisions — drawing on a PhD spent observing the stars with some of the world's most advanced telescopes.</p>
-					<div class="hero-actions reveal">
-						<a href="cv.html" class="btn btn-primary">View CV</a>
-						<a href="https://jeremy.ie/dashboard" class="btn btn-ghost">Explore the Dashboard</a>
-						<ul class="socials">
-							<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a></li>
-							<li><a href="https://github.com/jeremyrigney" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a></li>
-							<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target="_blank" rel="noopener" aria-label="Google Scholar"><i class="fa-brands fa-google-scholar"></i></a></li>
-							<li><a href="https://www.instagram.com/jeremy.rigney/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a></li>
-						</ul>
+					<div class="reveal">
+						<a class="announce" href="eclipse.html">
+							<span class="announce-tag">Recap</span>
+							<span class="announce-text">Ireland&rsquo;s 12 August eclipse, as it happened</span>
+							<span class="announce-arrow" aria-hidden="true">&rarr;</span>
+						</a>
+					</div>
+
+					<div class="reveal">
+						<p class="opening-eyebrow">Dr. Jeremy Rigney &middot; Dublin, Ireland</p>
+						<h1 class="opening-title">
+							<span class="line-mask"><span>Data science,</span></span>
+							<span class="line-mask"><span>grounded in</span></span>
+							<span class="line-mask"><span>scientific rigour.</span></span>
+						</h1>
+						<!-- Breaking spaces, not &nbsp;: on a phone this line has to be allowed to wrap. -->
+						<p class="opening-sub">Senior Data Scientist &middot; AI R&amp;D &middot; Astrophysicist</p>
+						<p class="opening-lead">I build data pipelines and models that turn complex, large-scale datasets into clear decisions, drawing on a PhD spent observing the stars with some of the world&rsquo;s most advanced telescopes.</p>
+						<div class="opening-actions">
+							<a class="cta cta-lead" href="cv.html">View CV</a>
+							<a class="cta" href="https://jeremy.ie/dashboard">Explore the dashboard</a>
+						</div>
+					</div>
+				</div>
+
+				<div class="wrap">
+					<div class="opening-foot">
+						<div class="readout-rail reveal">
+							<div class="readout readout-lead">
+								<span class="readout-value">PhD 2024</span>
+								<span class="readout-label">Astrophysics, QUB</span>
+							</div>
+							<div class="readout">
+								<span class="readout-value">Dublin, IE</span>
+								<span class="readout-label">Based</span>
+							</div>
+							<div class="readout">
+								<span class="readout-value">5</span>
+								<span class="readout-label">Live projects here</span>
+							</div>
+						</div>
+						<p class="scroll-hint">
+							<span>Scroll</span>
+							<span class="scroll-hint-arrow" aria-hidden="true">&darr;</span>
+						</p>
 					</div>
 				</div>
 			</section>
 
-			<!-- What I do -->
-			<section class="section" id="about">
+			<!-- 01 — What I do -->
+			<section class="chapter" id="about">
 				<div class="wrap">
-					<div class="about-grid">
-						<div class="about-copy">
-							<p class="kicker reveal">01 — What I do</p>
-							<h2 class="reveal" style="font-size:clamp(1.9rem,4vw,3rem);max-width:20ch;">From terabyte-scale telescope data to production models.</h2>
-						</br>
-							<p class="reveal">I'm a <strong>Senior Data Scientist at Optum</strong>, with a PhD in astrophysics from Queen's University Belfast. My research centred on observing the Sun and other stars to better understand stellar dynamics — work that meant designing and running large-scale analysis pipelines end to end.</p>
-							<p class="reveal">I've led collaborative projects spanning multiple continents, worked in Agile software teams, and published peer-reviewed research. I'm also an experienced science communicator who has represented Ireland and won awards for public engagement.</p>
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>01</b> / What I do</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>From terabyte-scale telescope data to production models.</span></span></h2>
+					</div>
+
+					<div class="hang-prose reveal">
+						<span class="hang-label">Background</span>
+						<div class="hang-prose-body">
+							<p>I&rsquo;m a <strong>Senior Data Scientist at Optum</strong>, with a PhD in astrophysics from Queen&rsquo;s University Belfast. My research centred on observing the Sun and other stars to better understand stellar dynamics, which meant designing and running analysis pipelines at scale, end to end.</p>
+							<p>I&rsquo;ve led collaborative projects spanning multiple continents, worked in Agile software teams, and published peer-reviewed research. I&rsquo;m also an experienced science communicator who has represented Ireland and won awards for public engagement.</p>
 						</div>
-						<ul class="capabilities">
-							<li class="reveal"><span class="cap-num">A</span><span class="cap-text">Large-scale data pipelines in Python</span></li>
-							<li class="reveal"><span class="cap-num">B</span><span class="cap-text">High-performance &amp; scientific computing</span></li>
-							<li class="reveal"><span class="cap-num">C</span><span class="cap-text">Time-series &amp; statistical analysis</span></li>
-							<li class="reveal"><span class="cap-num">D</span><span class="cap-text">AI research &amp; development</span></li>
-							<li class="reveal"><span class="cap-num">E</span><span class="cap-text">Science communication &amp; public speaking</span></li>
-						</ul>
+					</div>
+
+					<!--
+						The five capabilities hang off the same margin column the chapter
+						head opens on. They were a lettered card list; the letters are all
+						that survives, and they carry no box.
+					-->
+					<ul class="hang-list reveal">
+						<li class="hang-row"><span class="hang-label hang-label-key">A</span><p>Large-scale data pipelines in Python</p></li>
+						<li class="hang-row"><span class="hang-label hang-label-key">B</span><p>High-performance &amp; scientific computing</p></li>
+						<li class="hang-row"><span class="hang-label hang-label-key">C</span><p>Time-series &amp; statistical analysis</p></li>
+						<li class="hang-row"><span class="hang-label hang-label-key">D</span><p>AI research &amp; development</p></li>
+						<li class="hang-row"><span class="hang-label hang-label-key">E</span><p>Science communication &amp; public speaking</p></li>
+					</ul>
+				</div>
+			</section>
+
+			<!--
+				02 — Selected work.
+
+				Six ruled rows rather than six cards. The per-row call to action each of
+				these used to carry ("Lift the circuit →", "Revisit the eclipse →", "Open
+				dashboard →", "View full CV →", "See talks →", "View profile →") collapses
+				into one arrow: six different phrasings in six identical positions was
+				card-grid thinking, and it is what made the section read as generated.
+			-->
+			<section class="chapter" id="work">
+				<div class="wrap">
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>02</b> / Selected work</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>A few places my work lives.</span></span></h2>
+					</div>
+
+					<ul class="index-list reveal">
+						<li>
+							<a class="index-row" href="f1.html">
+								<span class="index-meta">
+									<span class="index-num">01</span>
+									<span class="index-tag">Motorsport</span>
+								</span>
+								<span class="index-body">
+									<span class="index-name">Next Circuit</span>
+									<span class="index-note">The next track on the Formula 1 calendar, tilted into 3D on scroll with its elevation lifted out of the terrain. Then the turns, DRS zones and race history.</span>
+								</span>
+								<span class="index-go" aria-hidden="true">&rarr;</span>
+							</a>
+						</li>
+						<li>
+							<a class="index-row" href="eclipse.html">
+								<span class="index-meta">
+									<span class="index-num">02</span>
+									<span class="index-tag">Astronomy</span>
+								</span>
+								<span class="index-body">
+									<span class="index-name">The Sun, Interrupted</span>
+									<span class="index-note">A scroll-story of Ireland&rsquo;s 12 August 2026 solar eclipse: the timing, the coverage, and the path of totality that ran across Iceland and Spain.</span>
+								</span>
+								<span class="index-go" aria-hidden="true">&rarr;</span>
+							</a>
+						</li>
+						<li>
+							<a class="index-row" href="https://jeremy.ie/dashboard">
+								<span class="index-meta">
+									<span class="index-num">03</span>
+									<span class="index-tag">Live &middot; Data</span>
+								</span>
+								<span class="index-body">
+									<span class="index-name">Solar &amp; sky dashboard</span>
+									<span class="index-note">An interactive dashboard visualising solar and observational data.</span>
+								</span>
+								<span class="index-go" aria-hidden="true">&rarr;</span>
+							</a>
+						</li>
+						<li>
+							<a class="index-row" href="cv.html">
+								<span class="index-meta">
+									<span class="index-num">04</span>
+									<span class="index-tag">Research</span>
+								</span>
+								<span class="index-body">
+									<span class="index-name">PhD &amp; publications</span>
+									<span class="index-note">Observational astrophysics, space-weather monitoring and peer-reviewed research.</span>
+								</span>
+								<span class="index-go" aria-hidden="true">&rarr;</span>
+							</a>
+						</li>
+						<li>
+							<a class="index-row" href="speaking.html">
+								<span class="index-meta">
+									<span class="index-num">05</span>
+									<span class="index-tag">Outreach</span>
+								</span>
+								<span class="index-body">
+									<span class="index-name">Public speaking</span>
+									<span class="index-note">Conference talks, festivals and public events. Award-winning science communication.</span>
+								</span>
+								<span class="index-go" aria-hidden="true">&rarr;</span>
+							</a>
+						</li>
+						<li>
+							<a class="index-row" href="https://github.com/jeremyrigney" target="_blank" rel="noopener">
+								<span class="index-meta">
+									<span class="index-num">06</span>
+									<span class="index-tag">Code</span>
+								</span>
+								<span class="index-body">
+									<span class="index-name">Projects on GitHub</span>
+									<span class="index-note">Code and experiments from research and personal projects.</span>
+								</span>
+								<span class="index-go" aria-hidden="true">&rarr;</span>
+							</a>
+						</li>
+					</ul>
+				</div>
+			</section>
+
+			<!-- 03 — Experience & education -->
+			<section class="chapter" id="education">
+				<div class="wrap">
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>03</b> / Experience &amp; education</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>Where it was built.</span></span></h2>
+					</div>
+
+					<div class="record reveal">
+						<div class="record-row is-current">
+							<span class="record-yr">2026 to present</span>
+							<div>
+								<h3 class="record-name">Optum</h3>
+								<p class="record-role">Senior Data Scientist, building agentic data pipelines and production models.</p>
+							</div>
+						</div>
+						<div class="record-row">
+							<span class="record-yr">2025 to 2026</span>
+							<div>
+								<h3 class="record-name">LexisNexis Risk Solutions</h3>
+								<p class="record-role">Data Scientist, building data-driven models and analytics.</p>
+							</div>
+						</div>
+						<div class="record-row">
+							<span class="record-yr">2020 to 2024</span>
+							<div>
+								<h3 class="record-name">Queen&rsquo;s University Belfast</h3>
+								<p class="record-role">PhD, School of Mathematics and Physics. Observational astrophysics.</p>
+							</div>
+						</div>
+						<div class="record-row">
+							<span class="record-yr">2016 to 2020</span>
+							<div>
+								<h3 class="record-name">University College Dublin</h3>
+								<p class="record-role">BSc (Hons) in Physics with Astronomy &amp; Space Science.</p>
+							</div>
+						</div>
 					</div>
 				</div>
 			</section>
 
-			<!-- Work -->
-			<section class="section section-alt" id="work">
+			<!-- 04 — Get in touch -->
+			<section class="chapter" id="contact">
 				<div class="wrap">
-					<div class="section-head">
-						<p class="kicker reveal">02 — Selected work</p>
-						<h2 class="reveal">A few places my work lives.</h2>
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>04</b> / Get in touch</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>Let&rsquo;s talk data, research, or a talk.</span></span></h2>
+						<p class="chapter-lead">I welcome opportunities to engage in public speaking, particularly at science festivals and open days, as well as data and research collaborations. Feel free to reach out.</p>
 					</div>
-					<div class="work-grid">
-						<!-- No photograph for this one: a charcoal-to-red wash matching the
-						     circuit page's own palette reads better than a stock image. -->
-						<a class="work-card reveal" href="f1.html">
-							<span class="work-card-media" style="background-image:linear-gradient(150deg,#0a0b0c 0%,#1d2024 46%,#7a0f1f 82%,#e8112d 100%);"></span>
-							<span class="work-card-body">
-								<span class="tag">Motorsport</span>
-								<h3>Next Circuit</h3>
-								<p>The next track on the Formula 1 calendar, tilted into 3D on scroll with its elevation lifted out of the terrain — then the turns, DRS zones and race history.</p>
-								<span class="go">Lift the circuit →</span>
-							</span>
-						</a>
-						<a class="work-card reveal" href="eclipse.html">
-							<span class="work-card-media" style="background-image:url('images/JR_Dunsink_Ryanair_Moon_compressed.jpg');"></span>
-							<span class="work-card-body">
-								<span class="tag">New · Astronomy</span>
-								<h3>The Sun, Interrupted</h3>
-								<p>A scroll-story of Ireland's 12 August 2026 solar eclipse — timing, coverage and the path of totality across Iceland and Spain.</p>
-								<span class="go">Witness the eclipse →</span>
-							</span>
-						</a>
-						<a class="work-card reveal" href="https://jeremy.ie/dashboard">
-							<span class="work-card-media" style="background-image:url('images/Sun_300523_nogrid.png');"></span>
-							<span class="work-card-body">
-								<span class="tag">Live · Data</span>
-								<h3>Solar &amp; sky dashboard</h3>
-								<p>An interactive dashboard visualising solar and observational data.</p>
-								<span class="go">Open dashboard →</span>
-							</span>
-						</a>
-						<a class="work-card reveal" href="cv.html">
-							<span class="work-card-media" style="background-image:url('images/DSC_3674.jpg');"></span>
-							<span class="work-card-body">
-								<span class="tag">Research</span>
-								<h3>PhD &amp; publications</h3>
-								<p>Observational astrophysics, space-weather monitoring and peer-reviewed research.</p>
-								<span class="go">View full CV →</span>
-							</span>
-						</a>
-						<a class="work-card reveal" href="speaking.html">
-							<span class="work-card-media" style="background-image:url('images/public_speaking.png');"></span>
-							<span class="work-card-body">
-								<span class="tag">Outreach</span>
-								<h3>Public speaking</h3>
-								<p>Conference talks, festivals and public events — award-winning science communication.</p>
-								<span class="go">See talks →</span>
-							</span>
-						</a>
-						<a class="work-card reveal" href="https://github.com/jeremyrigney" target="_blank" rel="noopener">
-							<span class="work-card-media" style="background-image:url('images/gbt_img.jpg');"></span>
-							<span class="work-card-body">
-								<span class="tag">Code</span>
-								<h3>Projects on GitHub</h3>
-								<p>Code and experiments from research and personal projects.</p>
-								<span class="go">View profile →</span>
-							</span>
-						</a>
-					</div>
-				</div>
-			</section>
 
-			<!-- Education -->
-			<section class="section" id="education">
-				<div class="wrap">
-					<div class="section-head">
-						<p class="kicker reveal">03 — Experience &amp; Education</p>
-						<h2 class="reveal">Where it was built.</h2>
-					</div>
-					<div class="edu-grid">
-						<div class="edu-item reveal">
-							<span class="yr">2025 — 2026</span>
-							<h3>LexisNexis Risk Solutions</h3>
-							<p>Data Scientist — building data-driven models and analytics.</p>
-						</div>
-						<div class="edu-item reveal">
-							<span class="yr">2020 — 2024</span>
-							<h3>Queen's University Belfast</h3>
-							<p>PhD, School of Mathematics and Physics — observational astrophysics.</p>
-						</div>
-						<div class="edu-item reveal">
-							<span class="yr">2016 — 2020</span>
-							<h3>University College Dublin</h3>
-							<p>BSc (Hons) in Physics with Astronomy &amp; Space Science.</p>
-						</div>
-					</div>
+					<ul class="hang-list reveal">
+						<li class="hang-row">
+							<span class="hang-label">Location</span>
+							<p>Dublin &bull; Ireland</p>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Email</span>
+							<p><a href="mailto:jeremy.rigney@gmail.com">jeremy.rigney [at] gmail [dot] com</a></p>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Elsewhere</span>
+							<!--
+								Wordmarks, not icons. Four glyphs from a 59 KB icon font was
+								the whole reason this page loaded Font Awesome; set as type
+								they cost nothing and match everything else on the page.
+							-->
+							<ul class="wordmarks">
+								<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" rel="noopener">LinkedIn</a></li>
+								<li><a href="https://github.com/jeremyrigney" target="_blank" rel="noopener">GitHub</a></li>
+								<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target="_blank" rel="noopener">Scholar</a></li>
+								<li><a href="https://www.instagram.com/jeremy.rigney/" target="_blank" rel="noopener">Instagram</a></li>
+							</ul>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Talks</span>
+							<p><a href="speaking.html">See previous talks</a></p>
+						</li>
+					</ul>
 				</div>
 			</section>
 		</main>
 
-		<!-- Footer / Contact -->
-		<footer class="site-footer" id="contact">
+		<footer class="site-footer">
 			<div class="wrap">
-				<div class="footer-grid">
-					<div>
-						<p class="kicker reveal">04 — Get in touch</p>
-						<h2 class="reveal">Let's talk data, research, or a talk.</h2>
-						<p class="footer-lead reveal">I welcome opportunities to engage in public speaking — particularly at science festivals, open days and similar events — as well as data and research collaborations. Feel free to reach out.</p>
-						<a href="speaking.html" class="btn btn-dark">See previous talks</a>
-					</div>
-					<dl class="footer-contact reveal">
-						<dt>Location</dt>
-						<dd>Dublin &bull; Ireland</dd>
-						<dt>Email</dt>
-						<dd><a href="mailto:jeremy.rigney@gmail.com">jeremy.rigney [at] gmail [dot] com</a></dd>
-						<dt>Elsewhere</dt>
-						<dd>
-							<ul class="socials" style="margin-top:0.6rem;">
-								<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a></li>
-								<li><a href="https://github.com/jeremyrigney" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a></li>
-								<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target="_blank" rel="noopener" aria-label="Google Scholar"><i class="fa-brands fa-google-scholar"></i></a></li>
-								<li><a href="https://www.instagram.com/jeremy.rigney/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a></li>
-							</ul>
-						</dd>
-					</dl>
-				</div>
-				<div class="footer-bottom">
-					<p>&copy; <span id="year">2026</span> Jeremy Rigney</p>
-					<p><a href="cv.html">CV</a> &nbsp;·&nbsp; <a href="https://jeremy.ie/dashboard">Dashboard</a> &nbsp;·&nbsp; <a href="eclipse.html">Eclipse</a> &nbsp;·&nbsp; <a href="f1.html">F1</a> &nbsp;·&nbsp; <a href="speaking.html">Speaking</a></p>
-				</div>
+				<p>&copy; <span id="year">2026</span> Jeremy Rigney</p>
+				<p><a href="cv.html">CV</a> &nbsp;&middot;&nbsp; <a href="https://jeremy.ie/dashboard">Dashboard</a> &nbsp;&middot;&nbsp; <a href="eclipse.html">Eclipse</a> &nbsp;&middot;&nbsp; <a href="f1.html">F1</a> &nbsp;&middot;&nbsp; <a href="speaking.html">Speaking</a></p>
 			</div>
 		</footer>
 
-		<script>
-			// Sticky header background
-			const header = document.getElementById('site-header');
-			const onScroll = () => header.classList.toggle('is-stuck', window.scrollY > 40);
-			onScroll();
-			window.addEventListener('scroll', onScroll, { passive: true });
-
-			// Mobile nav
-			const toggle = document.getElementById('nav-toggle');
-			const links = document.getElementById('nav-links');
-			toggle.addEventListener('click', () => {
-				const open = links.classList.toggle('is-open');
-				toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-			});
-			links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
-				links.classList.remove('is-open');
-				toggle.setAttribute('aria-expanded', 'false');
-			}));
-
-			// Scroll reveals
-			const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-			const items = document.querySelectorAll('.reveal');
-			if (reduce || !('IntersectionObserver' in window)) {
-				items.forEach(el => el.classList.add('is-in'));
-			} else {
-				const io = new IntersectionObserver((entries, obs) => {
-					entries.forEach(e => {
-						if (e.isIntersecting) { e.target.classList.add('is-in'); obs.unobserve(e.target); }
-					});
-				}, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
-				items.forEach(el => io.observe(el));
-			}
-
-			// Current year
-			document.getElementById('year').textContent = new Date().getFullYear();
-		</script>
-
+		<script src="assets/js/home-coal.js?v=20260830"></script>
+		<script src="assets/js/home-shimmer.js?v=20260831"></script>
 	</body>
 </html>

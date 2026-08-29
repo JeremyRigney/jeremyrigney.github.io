@@ -1,0 +1,1245 @@
+/*
+ * jeremy.ie — homepage.
+ *
+ * Set in the same language as assets/css/f1.css: one continuous coal ground, hairline
+ * rules instead of panels, and a wide gap in size between a figure and its label. The
+ * constraints that file states are the constraints here too, and they are deliberate —
+ * there is no card, no rounded corner (bar the nav toggle), no box-shadow and no
+ * alternating light/dark band anywhere below. Those were exactly what made five
+ * different sections read as five copies of the same one.
+ *
+ * Three type roles, strictly separated. Chivo Mono is the UI voice and carries every
+ * eyebrow, label, index, figure and readout — plus the opening title, set at 700
+ * uppercase on tight tracking. Fraunces is reserved for two things only: chapter
+ * titles and figure-size names. Inter sets prose and nothing else.
+ *
+ * The accent is Spa-Francorchamps' Ardennes mist, borrowed from CIRCUIT_COLOURS in
+ * f1-circuit.js. It is fixed here rather than derived at runtime, because unlike /f1
+ * there is only ever one circuit — see the three tones under :root.
+ *
+ * Deliberately NOT shared with any other page. cv.html still runs on home.css and
+ * dashboard.html on dashboard.css, both still gold; eclipse and f1 are off-palette by
+ * their own design. Nothing outside index.html loads this file.
+ */
+
+:root {
+  --coal: #111214;
+  --line: rgba(236, 238, 240, 0.14);
+  --line-strong: rgba(236, 238, 240, 0.28);
+  --ink: #eceef0;
+  --ink-soft: #9aa0a6;
+  --ink-faint: #6b7178;
+  --chalk: #f6f7f8;
+
+  /*
+   * Spa's colour in three tones, the same contract f1.css:31-37 sets out. Ratios are
+   * measured against the coal ground (relative luminance 0.00602):
+   *   --accent-deep  #5A7566  3.7:1  large fills, the intro glyph
+   *   --accent       #6E8A78  5.0:1  rules, borders, hover
+   *   --accent-soft  #7E9C89  6.2:1  accent text — figures, the brand dot, numbers
+   * Anything that carries words uses --accent-soft. Anything that is a line uses
+   * --accent. Nothing on this page is large enough to need --accent-deep except the
+   * overlay glyph, which is one stroke on an otherwise empty screen.
+   */
+  --accent-deep: #5a7566;
+  --accent: #6e8a78;
+  --accent-soft: #7e9c89;
+  --accent-rgb: 110, 138, 120;
+
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Chivo Mono", "Courier New", monospace;
+  --maxw: 1180px;
+
+  --fs-chapter: clamp(2.6rem, 7vw, 5.5rem);
+  --fs-figure: clamp(2.4rem, 6vw, 4.6rem);
+  --fs-micro: 0.58rem;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Width of the left margin column that carries chapter numbers and hanging labels. */
+  --margin-col: 13rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/*
+ * Safe to set globally: unlike /f1 there is no scroll library on this page to fight
+ * with, so the nav anchors can use the browser's own smooth scroll.
+ */
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--coal);
+  color: var(--ink);
+  font-family: var(--font-body);
+  letter-spacing: -0.006em;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+}
+
+.wrap {
+  width: 100%;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 1.4rem;
+}
+
+/*
+ * Full-bleed escape from .wrap. body already has overflow-x: hidden, so the 100vw
+ * cannot open a horizontal scrollbar of its own.
+ */
+.bleed {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+}
+
+/* ---------- Motion primitives ---------- */
+
+/*
+ * The same 40px/900ms reveal /f1 uses, rather than the site's older 28px/700ms: with
+ * no photograph and no canvas on this page, these are the only motion on it and a
+ * shorter throw reads as a twitch. --d is a stagger index written per direct child by
+ * the observer in home-coal.js; unset it reads as 0 and the element moves on its own.
+ */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+}
+
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+  transition: opacity 900ms var(--ease), transform 900ms var(--ease);
+  transition-delay: calc(var(--d, 0) * 70ms);
+}
+
+/*
+ * Masked line reveal: the outer span clips, the inner one rises into it. Needs the
+ * inner to be a block so the transform has a box to move.
+ */
+.line-mask {
+  display: block;
+  overflow: hidden;
+  /* Descenders in Fraunces sit below the line box and would be clipped otherwise. */
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+
+.line-mask > span {
+  display: block;
+  transform: translateY(105%);
+  transition: transform 1000ms var(--ease);
+  transition-delay: calc(var(--d, 0) * 70ms);
+}
+
+.reveal.is-in .line-mask > span,
+.line-mask.is-in > span {
+  transform: none;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .line-mask > span {
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ---------- Header ---------- */
+
+.site-header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 30;
+  height: 3.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 1.4rem;
+  background: rgba(17, 18, 20, 0.82);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  transition: transform 420ms var(--ease), opacity 420ms ease;
+}
+
+/* Held off the screen over the opening frame, so the title page has it to itself. */
+.site-header.is-hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-header {
+    transition: none;
+  }
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.masthead {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.02rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--chalk);
+  text-decoration: none;
+}
+
+.masthead-dot {
+  color: var(--accent-soft);
+}
+
+.header-meta {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.site-nav {
+  display: flex;
+  gap: 1.3rem;
+}
+
+.site-nav a {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid transparent;
+}
+
+.site-nav a:hover,
+.site-nav a:focus-visible {
+  color: var(--chalk);
+  border-bottom-color: var(--accent);
+}
+
+.nav-toggle {
+  display: none;
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.nav-toggle span {
+  display: block;
+  width: 1.05rem;
+  height: 1.5px;
+  margin: 0.22rem auto;
+  background: var(--ink);
+}
+
+@media (max-width: 860px) {
+  .header-meta {
+    display: none;
+  }
+
+  .nav-toggle {
+    display: block;
+  }
+
+  .site-nav {
+    position: fixed;
+    inset: 3.9rem 0 auto 0;
+    flex-direction: column;
+    gap: 0;
+    padding: 0.6rem 1.4rem 1.2rem;
+    background: rgba(17, 18, 20, 0.97);
+    border-bottom: 1px solid var(--line);
+    transform: translateY(-8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms ease, transform 220ms ease;
+  }
+
+  .site-nav.is-open {
+    transform: none;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .site-nav a {
+    padding: 0.68rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+/* ---------- The opening frame ---------- */
+
+/*
+ * A title page rather than a hero: no photograph, no grid, and the whole frame set
+ * flush to the left edge of .wrap while everything below it hangs off the margin
+ * spine — the change of alignment is what separates the title page from the body.
+ *
+ * The one thing it does carry is the shimmer, below. The rule the rest of the page
+ * still keeps is narrower than it was but it is still a rule: one atmospheric layer,
+ * confined to this frame, never behind body copy.
+ */
+.opening {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4rem;
+  padding: 8rem 0 2.4rem;
+
+  /*
+   * The dial. Everything about how loud the shimmer is lives here; the material
+   * itself is shaped by the constants at the top of home-shimmer.js.
+   */
+  --shimmer-strength: 0.22;
+
+  /*
+   * Where the light is coming from. home-shimmer.js overwrites these on pointer move;
+   * the defaults are the position the old static wash sat at, so before the pointer
+   * has moved — and on touch, and with no JavaScript at all — the frame looks the way
+   * it did before any of this existed.
+   */
+  --shimmer-x: 88%;
+  --shimmer-y: 88%;
+
+  /* Where the etching is allowed to show. See .shimmer-etch. */
+  --shimmer-mask: radial-gradient(
+    115% 105% at 78% 88%,
+    rgba(0, 0, 0, 1) 8%,
+    rgba(0, 0, 0, 0.72) 42%,
+    rgba(0, 0, 0, 0.18) 78%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+/*
+ * The etched field. Painted at a fraction of CSS resolution and scaled up: at this
+ * opacity the softness of the upscale reads as material, and a sharp version of the
+ * same thing reads as a screenshot of a contour map.
+ *
+ * Empty and transparent until the script fills it, so no-JS loses the etching and
+ * keeps the highlight.
+ */
+.shimmer-etch {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+
+  /*
+   * Hidden until home-shimmer.js has finished building the field, which it does a slice
+   * at a time over about two thirds of a second. Fading up from nothing is the point:
+   * the frame simply shows the plain highlight wash until the material is ready, rather
+   * than the canvas popping into existence part-built.
+   */
+  opacity: 0;
+  transition: opacity 600ms var(--ease);
+
+  /*
+   * Weighted toward the lower right and fading out under the headline, which is where
+   * the old wash was and where there is nothing to read. Without this the field is
+   * even edge to edge and reads as wallpaper — the fade is what makes it look like
+   * light falling across a surface rather than a texture tiled behind the page. It
+   * also keeps the etching off the top edge, where the frame meets the header.
+   */
+  -webkit-mask-image: var(--shimmer-mask);
+  mask-image: var(--shimmer-mask);
+
+  /*
+   * A last low-pass over the contour bands. The field is drawn at one buffer pixel per
+   * CSS pixel and damped where it gets too steep to resolve, so most of the aliasing is
+   * already gone by the time it reaches here; this only takes the hard edge off what
+   * survives. Small enough that the contours stay legible as lines.
+   */
+  filter: blur(0.5px);
+}
+
+.opening.is-ready .shimmer-etch {
+  opacity: var(--shimmer-strength);
+}
+
+/* One canvas, filling the frame. */
+.shimmer-etch canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/*
+ * The highlight that follows the pointer. Kept in CSS rather than drawn into the
+ * canvas because the compositor already knows how to move a radial gradient for free,
+ * and because it lets the canvas loop stay down to a lookup per pixel.
+ */
+.shimmer-light {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    60% 55% at var(--shimmer-x) var(--shimmer-y),
+    rgba(var(--accent-rgb), 0.07),
+    rgba(17, 18, 20, 0) 72%
+  );
+}
+
+/*
+ * No transition on the highlight: --shimmer-x/y are plain custom properties and are
+ * not interpolable without registering them, so a transition here would be dead code.
+ * It wants to track the pointer one to one anyway — a light that lags reads as a bug.
+ * The colour sweep is the part that is smoothed, and that is lerped in the script.
+ */
+
+/* The type sits above both layers. */
+.opening > .wrap {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+ * Reduced motion keeps the material and loses the movement: home-shimmer.js paints one
+ * frame and never starts its loop, and the highlight stays at its default angle.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-light {
+    --shimmer-x: 88%;
+    --shimmer-y: 88%;
+  }
+
+  .shimmer-etch {
+    transition: none;
+  }
+}
+
+/* The announce link — a ruled row, not a pill. */
+.announce {
+  display: inline-flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+  align-items: baseline;
+  gap: 0.4rem 0.9rem;
+  padding: 0 0 0.7rem;
+  margin-bottom: 2.6rem;
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+  transition: border-color 220ms ease;
+}
+
+.announce:hover,
+.announce:focus-visible {
+  border-bottom-color: var(--accent);
+}
+
+.announce-tag {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+.announce-text {
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+.announce:hover .announce-text {
+  color: var(--ink);
+}
+
+.announce-arrow {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+  transition: transform 220ms var(--ease), color 220ms ease;
+}
+
+.announce:hover .announce-arrow {
+  color: var(--accent-soft);
+  transform: translateX(6px);
+}
+
+.opening-eyebrow {
+  margin: 0 0 1.1rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+/*
+ * Mono 700 uppercase, three masked lines. No serif italic on the last two words: a
+ * Fraunces swash dropped into a sans headline is the flourish that made the previous
+ * two versions of this page read as generated. Fraunces still runs the page — just
+ * only where it does real work, on the chapter titles and the index names.
+ */
+.opening-title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  /*
+   * The floor is lower than /f1's 1.9rem because these lines are set, not fitted:
+   * "scientific rigour." is 18 monospaced characters and has to clear a 375px
+   * viewport without breaking, which at 0.6em advance puts the cap at ~1.6rem.
+   */
+  font-size: clamp(1.6rem, 6.2vw, 4.1rem);
+  line-height: 1.06;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--chalk);
+}
+
+/*
+ * The three lines rise in sequence rather than together. --d is inherited from the
+ * h1, which the observer has already staggered against its siblings, so overriding it
+ * per line reuses the same delay mechanism instead of hardcoding milliseconds.
+ */
+.opening-title .line-mask:nth-child(2) {
+  --d: 2;
+}
+
+.opening-title .line-mask:nth-child(3) {
+  --d: 3;
+}
+
+.opening-sub {
+  margin: 1.6rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.opening-lead {
+  margin: 1.9rem 0 0;
+  max-width: min(46ch, 100%);
+  font-size: 1rem;
+  line-height: 1.62;
+  color: var(--ink-soft);
+}
+
+.opening-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.1rem 2.2rem;
+  margin-top: 2.6rem;
+}
+
+/*
+ * The page has no buttons. A call to action is a mono line with a rule under it, the
+ * same treatment every other link on the page gets — which is the point: nothing here
+ * needs a filled capsule to be found.
+ */
+.cta {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--line-strong);
+  transition: color 220ms ease, border-color 220ms ease;
+}
+
+.cta:hover,
+.cta:focus-visible {
+  color: var(--chalk);
+  border-bottom-color: var(--accent);
+}
+
+.cta-lead {
+  color: var(--accent-soft);
+  border-bottom-color: var(--accent);
+}
+
+.cta-lead:hover,
+.cta-lead:focus-visible {
+  color: var(--chalk);
+}
+
+/* Bottom of the title page: the readout rail, with the scroll cue at the far end. */
+.opening-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.readout-rail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1.6rem 2.4rem;
+}
+
+.readout {
+  min-width: 0;
+}
+
+.readout-value {
+  display: block;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: clamp(1.15rem, 2.6vw, 1.85rem);
+  letter-spacing: -0.01em;
+  color: var(--chalk);
+  font-variant-numeric: tabular-nums;
+}
+
+.readout-label {
+  display: block;
+  margin-top: 0.28rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.readout-lead .readout-value {
+  color: var(--accent-soft);
+}
+
+.scroll-hint {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.scroll-hint-arrow {
+  font-size: 0.95rem;
+  color: var(--accent-soft);
+  animation: hint-bob 2.2s ease-in-out infinite;
+}
+
+@keyframes hint-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-hint-arrow {
+    animation: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .opening {
+    padding-top: 6.4rem;
+    gap: 3rem;
+  }
+
+  /*
+   * Tracking is what makes this line expensive: 0.16em on 47 monospaced characters
+   * adds most of a phone's width on its own. It comes off before the size does.
+   */
+  .opening-sub {
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+  }
+
+  .readout-rail {
+    gap: 1rem 1.5rem;
+  }
+
+  /* Nothing to point at on a phone: the rail is already the last thing on screen. */
+  .scroll-hint {
+    display: none;
+  }
+}
+
+/* ---------- Chapters ---------- */
+
+/*
+ * Everything below the opening is one continuous coal ground. There is no alternating
+ * band and no panel fill: sections are separated by a hairline and a lot of vertical
+ * space, which is what stops the page reading as a stack of identical cards.
+ */
+.chapter {
+  padding: clamp(6rem, 14vh, 11rem) 0;
+  border-top: 1px solid var(--line);
+}
+
+.chapter-head {
+  display: grid;
+  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr);
+  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+  margin-bottom: clamp(3rem, 7vw, 5.5rem);
+}
+
+/* The chapter number sits alone in the margin column, aligned to the title's cap. */
+.chapter-index {
+  margin: 0;
+  padding-top: 0.7em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.chapter-index b {
+  font-weight: 500;
+  color: var(--accent-soft);
+}
+
+.chapter-title {
+  grid-column: 2;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-chapter);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  color: var(--chalk);
+}
+
+.chapter-lead {
+  grid-column: 2;
+  margin: 1.6rem 0 0;
+  max-width: min(46ch, 100%);
+  font-size: 1rem;
+  line-height: 1.62;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 860px) {
+  .chapter-head {
+    grid-template-columns: 1fr;
+  }
+
+  .chapter-index {
+    padding-top: 0;
+    margin-bottom: 1.1rem;
+  }
+
+  .chapter-title,
+  .chapter-lead {
+    grid-column: 1;
+  }
+}
+
+/* ---------- Hanging list ---------- */
+
+/*
+ * The page's workhorse: a mono label alone in the margin column, prose beside it,
+ * hairline between. It sets the capabilities in 01, the contact details in 04, and it
+ * is the same grid the chapter heads open on — which is what makes the margin column
+ * read as a spine running the length of the page rather than as indentation.
+ */
+.hang-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.hang-row {
+  display: grid;
+  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr);
+  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+  padding: 1.3rem 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.94rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.hang-label {
+  padding-top: 0.25em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/*
+ * A single letter at micro size disappears into the ground — a word like "Location"
+ * has enough mass to hold the column on its own, one glyph does not. The capability
+ * keys get the chapter number's treatment instead, so the spine still reads.
+ */
+.hang-label-key {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: var(--accent-soft);
+}
+
+.hang-row p {
+  margin: 0;
+  max-width: min(62ch, 100%);
+}
+
+.hang-row a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+  transition: color 220ms ease, border-color 220ms ease;
+}
+
+.hang-row a:hover,
+.hang-row a:focus-visible {
+  color: var(--chalk);
+  border-bottom-color: var(--accent);
+}
+
+/* The prose block in 01 sits on the same grid, without the rules. */
+.hang-prose {
+  display: grid;
+  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr);
+  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+  margin: 0 0 clamp(3rem, 6vw, 4.5rem);
+}
+
+.hang-prose-body {
+  max-width: min(62ch, 100%);
+}
+
+.hang-prose-body p {
+  margin: 0 0 1.2rem;
+  font-size: 1rem;
+  line-height: 1.68;
+  color: var(--ink-soft);
+}
+
+.hang-prose-body p:last-child {
+  margin-bottom: 0;
+}
+
+.hang-prose-body strong {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+/* A row of mono wordmarks — the site's links elsewhere, set as text, not as icons. */
+.wordmarks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wordmarks a {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--line-strong);
+  transition: color 220ms ease, border-color 220ms ease;
+}
+
+.wordmarks a:hover,
+.wordmarks a:focus-visible {
+  color: var(--chalk);
+  border-bottom-color: var(--accent);
+}
+
+@media (max-width: 860px) {
+  .hang-row,
+  .hang-prose {
+    grid-template-columns: 1fr;
+  }
+
+  .hang-label {
+    margin-bottom: 0.5rem;
+    padding-top: 0;
+  }
+}
+
+/* ---------- The index (selected work) ---------- */
+
+/*
+ * Six ruled rows, not six cards. The number and tag hang in the margin column, the
+ * name is set at figure size, and the whole row is the link. Hover is a wash rather
+ * than a fill and there is no border-radius on it, so a row never detaches from the
+ * page and becomes a tile.
+ */
+.index-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line-strong);
+}
+
+.index-row {
+  display: grid;
+  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr) auto;
+  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+  padding: 2rem 0;
+  border-bottom: 1px solid var(--line);
+  text-decoration: none;
+  transition: background-color 220ms ease;
+}
+
+.index-row:hover,
+.index-row:focus-visible {
+  background: rgba(var(--accent-rgb), 0.07);
+}
+
+.index-row:focus-visible {
+  outline: 1px solid var(--accent-soft);
+  outline-offset: -1px;
+}
+
+/*
+ * The whole row is one anchor, so everything inside it is a span for validity and has
+ * to be given its box back here.
+ */
+.index-meta,
+.index-body {
+  display: block;
+  min-width: 0;
+}
+
+.index-meta {
+  padding-top: 0.4em;
+}
+
+.index-num {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: var(--accent-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.index-tag {
+  display: block;
+  margin-top: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.index-name {
+  display: block;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.9rem, 4.4vw, 3.2rem);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  color: var(--chalk);
+  transition: color 220ms ease;
+}
+
+.index-row:hover .index-name,
+.index-row:focus-visible .index-name {
+  color: var(--accent-soft);
+}
+
+.index-note {
+  display: block;
+  margin: 1rem 0 0;
+  max-width: min(52ch, 100%);
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.index-go {
+  align-self: center;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--ink-faint);
+  transition: transform 220ms var(--ease), color 220ms ease;
+}
+
+.index-row:hover .index-go,
+.index-row:focus-visible .index-go {
+  color: var(--accent);
+  transform: translateX(6px);
+}
+
+@media (max-width: 860px) {
+  .index-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .index-meta {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: baseline;
+    gap: 1.1rem;
+    padding-top: 0;
+    margin-bottom: 0.9rem;
+  }
+
+  .index-tag {
+    margin-top: 0;
+  }
+}
+
+/* ---------- The record (experience & education) ---------- */
+
+/*
+ * A departure board: year, place, role, on the same margin spine. The current role is
+ * marked by an accent rule above it and a step up in size — not by a fill. A fill
+ * would make it a highlighted table cell; this makes it the top line of the board.
+ */
+.record {
+  border-top: 1px solid var(--line-strong);
+}
+
+.record-row {
+  display: grid;
+  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr);
+  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+  padding: 1.9rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.record-yr {
+  padding-top: 0.5em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.record-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.5rem, 3.2vw, 2.2rem);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.record-role {
+  margin: 0.8rem 0 0;
+  max-width: min(52ch, 100%);
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.record-row.is-current {
+  border-top: 1px solid var(--accent);
+  padding-top: 2.3rem;
+}
+
+.record-row.is-current .record-yr {
+  color: var(--accent-soft);
+}
+
+.record-row.is-current .record-name {
+  font-size: clamp(1.9rem, 4.4vw, 3.2rem);
+  color: var(--chalk);
+}
+
+@media (max-width: 860px) {
+  .record-row {
+    grid-template-columns: 1fr;
+  }
+
+  .record-yr {
+    padding-top: 0;
+    margin-bottom: 0.8rem;
+  }
+}
+
+/* ---------- Footer ---------- */
+
+.site-footer {
+  padding: 3rem 0 4rem;
+  border-top: 1px solid var(--line);
+}
+
+.site-footer p {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}
+
+.site-footer a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+  transition: color 220ms ease, border-color 220ms ease;
+}
+
+.site-footer a:hover,
+.site-footer a:focus-visible {
+  color: var(--chalk);
+  border-bottom-color: var(--accent);
+}
+
+/* ---------- Intro sequence ---------- */
+
+/*
+ * The overlay ships hidden and is only revealed by JS, so a visitor with no
+ * JavaScript — or with prefers-reduced-motion set — never sees it at all and lands
+ * straight on the page. home-coal.js tears it down on a hard 2.2s timeout regardless
+ * of what the fonts are doing; a stalled webfont must never leave a blank screen.
+ *
+ * The glyph is the lunar limb with the transit chord: the geometry of the photograph
+ * this page used to open on, in the coordinate space that photograph was annotated in
+ * (1 unit = 1 lunar radius, disc centred at the origin, the 737 at +0.364, -0.532).
+ * It is the one thing the redesign keeps of it.
+ */
+.preload {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2.4rem;
+  padding: 2rem;
+  background: var(--coal);
+  transition: opacity 700ms var(--ease), visibility 700ms;
+}
+
+.preload[hidden] {
+  display: none;
+}
+
+.preload.is-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.preload-glyph {
+  width: min(42vw, 30vh);
+  height: min(42vw, 30vh);
+  overflow: visible;
+}
+
+/*
+ * No vector-effect: non-scaling-stroke here, unlike the circuit glyphs on /f1. That
+ * property moves the stroke into screen space — and the dash pattern with it — while
+ * getTotalLength() keeps returning user units, so the draw-on that home-coal.js sets
+ * up renders as a ring of dashes instead of one advancing line. The widths below are
+ * in user units instead: the viewBox is 2.24 across, so these land at roughly a
+ * hairline and thin with the glyph on a small screen, which is the right behaviour
+ * for something this size anyway.
+ */
+.preload-glyph path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 0.011;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The limb carries the shape, so it is drawn a step heavier than the rims inside it. */
+.glyph-limb {
+  stroke-width: 0.016;
+}
+
+.preload-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 1.4rem;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.preload-count {
+  min-width: 4ch;
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  color: var(--chalk);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A hairline that fills with the same fraction the counter is showing. */
+.preload-bar {
+  width: min(42vw, 30vh);
+  height: 1px;
+  background: var(--line);
+}
+
+.preload-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(var(--p, 0));
+  transform-origin: left center;
+}
