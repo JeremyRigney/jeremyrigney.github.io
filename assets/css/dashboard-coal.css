@@ -1,0 +1,858 @@
+/*
+ * jeremy.ie/dashboard — the live data board.
+ *
+ * Loads on top of assets/css/coal.css, which carries the design system: the tokens,
+ * the motion primitives, the header, the opening type, the readout rail and the row
+ * grids. Everything in this file is something only this page has — the X-ray trace
+ * behind the opening, the panel rows the widgets sit in, and the Leaflet overrides.
+ * It cannot be loaded on its own; every var() below is defined there.
+ *
+ * The constraints coal.css states hold here too, and this is the page they cost the
+ * most: no card, no rounded corner, no box-shadow, no alternating band, no icon font.
+ * The version this replaces was nine rounded, shadowed tiles on a twelve-column grid,
+ * which is the single thing that made it read as a different site from / and /speaking.
+ * A widget here is a ruled row on the same margin spine every other row on the site
+ * hangs off — the .feature grammar from speaking.css, tightened, because there are
+ * nine of these rather than six.
+ *
+ * The one thing a dashboard has that neither other page does is third-party chrome:
+ * Leaflet's controls, CanvasJS's legend, the weather embed. Those are dragged as close
+ * to the palette as their APIs allow at the foot of this file, and where they cannot
+ * be reached they are at least stopped from drawing a shadow.
+ */
+
+/* ---------- The opening frame ---------- */
+
+/*
+ * The same 82svh as /speaking, and for the same reason: this page is entered from a
+ * link, and a second full-height title page one click in is a toll rather than an
+ * arrival. The first chapter rule sits just below the fold.
+ */
+.opening {
+  position: relative;
+  min-height: 82svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 3.5rem;
+  padding: 8.5rem 0 3rem;
+  /* The trace runs to the edges; nothing about it should be centred on .wrap. */
+  overflow: hidden;
+}
+
+/*
+ * The X-ray trace. Sized in CSS, painted in device pixels by dashboard-xray.js.
+ *
+ * It is the real three-day GOES long-channel flux, the same series the chart in
+ * chapter 02 plots — which is the whole justification for it being here. A decorative
+ * squiggle behind the headline of a data page would be the exact thing the page is
+ * arguing against. Faded out under the type on the left, weighted to the right, the
+ * same trick /speaking's map mask uses.
+ */
+.xray-trace {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+
+  /* Fades up once the trace has drawn, so the canvas never appears part-built. */
+  opacity: 0;
+  transition: opacity 900ms var(--ease);
+
+  --trace-mask: radial-gradient(
+    135% 120% at 70% 52%,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.9) 40%,
+    rgba(0, 0, 0, 0.48) 72%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-mask-image: var(--trace-mask);
+  mask-image: var(--trace-mask);
+}
+
+.xray-trace.is-ready {
+  opacity: 1;
+}
+
+.xray-trace canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xray-trace {
+    transition: none;
+  }
+}
+
+/* The type sits above the trace. */
+.opening > .wrap {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+ * A scrim behind the headline column only. The trace's flare peaks are the tallest
+ * marks on the canvas and they land wherever the Sun put them — including, on a quiet
+ * three days, directly behind the lead paragraph. One stop of separation, invisible
+ * against the ground everywhere else.
+ */
+.opening-copy {
+  position: relative;
+  max-width: 44rem;
+}
+
+.opening-copy::before {
+  content: "";
+  position: absolute;
+  inset: -2rem -3rem;
+  z-index: -1;
+  background: radial-gradient(
+    62% 56% at 26% 50%,
+    rgba(17, 18, 20, 0.72),
+    rgba(17, 18, 20, 0) 100%
+  );
+}
+
+/* The rail at the foot, with the trace key beside it. */
+.opening-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.6rem 2rem;
+  flex-wrap: wrap;
+}
+
+/*
+ * The trace's legend. One line of mono, not a boxed key — there is one series on the
+ * canvas, so the only thing needing explanation is what it is and over what window.
+ */
+.trace-key {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.trace-key-line {
+  width: 1.6rem;
+  height: 1px;
+  background: var(--accent);
+  flex: none;
+}
+
+@media (max-width: 860px) {
+  /*
+   * On a phone the trace is a texture rather than a chart — the class gridlines are
+   * unreadable at that width and the peak label would collide with the headline. It
+   * stays, quieter, and the key comes off since there is nothing legible left to key.
+   */
+  .xray-trace.is-ready {
+    opacity: 0.55;
+  }
+
+  .trace-key {
+    display: none;
+  }
+
+  .opening-copy::before {
+    inset: -1.5rem -1.5rem;
+    background: radial-gradient(
+      90% 65% at 40% 50%,
+      rgba(17, 18, 20, 0.92),
+      rgba(17, 18, 20, 0) 100%
+    );
+  }
+}
+
+@media (max-width: 700px) {
+  .opening {
+    min-height: auto;
+    padding: 6.6rem 0 2.6rem;
+    gap: 2.6rem;
+  }
+}
+
+/*
+ * Shown only from inside <noscript>, in place of the widgets. Set at prose size rather
+ * than as a warning strip: it is an explanation, and the colophon it points at is a
+ * genuinely useful thing to be sent to.
+ */
+.no-js-banner {
+  margin: 0;
+  padding: clamp(2.4rem, 6vw, 4rem) 0;
+  max-width: min(62ch, 100%);
+  border-top: 1px solid var(--line);
+  font-size: 1rem;
+  line-height: 1.68;
+  color: var(--ink-soft);
+}
+
+/* ---------- Panels ---------- */
+
+/*
+ * A widget and the writing around it, on the margin spine. This is speaking.css's
+ * .feature with the padding taken in: nine of these at .feature's clamp(2.8rem, 6vw,
+ * 4.4rem) would run the page to a dozen screens.
+ *
+ * The source and the cadence hang in the margin column, the widget itself sits in the
+ * wide one — except where it does not, see .is-wide below.
+ */
+.panel {
+  border-top: 1px solid var(--line);
+  padding: clamp(2.2rem, 5vw, 3.4rem) 0;
+}
+
+.panel:first-of-type {
+  border-top-color: var(--line-strong);
+}
+
+.panel-head {
+  display: grid;
+  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr);
+  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+  margin-bottom: clamp(1.4rem, 2.6vw, 2rem);
+}
+
+.panel-meta {
+  padding-top: 0.55em;
+}
+
+.panel-source {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+.panel-tag {
+  display: block;
+  margin-top: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/*
+ * The refresh cadence, next to the thing it describes rather than in a row of chips at
+ * the top of the page. The dot is the one filled shape allowed here, on the precedent
+ * of the map key on /speaking — and it does not pulse. A blinking dot is an animation
+ * that says "live" without carrying any information the text beside it does not.
+ */
+.panel-live {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.panel-live::before {
+  content: "";
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  flex: none;
+}
+
+.panel-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  color: var(--chalk);
+}
+
+.panel-note {
+  margin: 0.9rem 0 0;
+  max-width: min(62ch, 100%);
+  font-size: 0.94rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.panel-note a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+  transition: color 220ms ease, border-color 220ms ease;
+}
+
+.panel-note a:hover,
+.panel-note a:focus-visible {
+  color: var(--chalk);
+  border-bottom-color: var(--accent);
+}
+
+/*
+ * The body sits in the wide column, beside the spine — the same offset the chapter
+ * titles take, so the whole page reads on one left edge.
+ */
+.panel-body {
+  display: grid;
+  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr);
+  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+}
+
+.panel-body > * {
+  grid-column: 2;
+}
+
+/*
+ * The map and the chart. Both are figures with their own internal axes and legends,
+ * and both stop being readable at the ~62% of the measure the content column gives
+ * them. They take the full width and the spine holds them by the head above instead.
+ */
+.panel-body.is-wide > * {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 860px) {
+  .panel-head,
+  .panel-body {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-body > * {
+    grid-column: 1;
+  }
+
+  .panel-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 1.1rem;
+    padding-top: 0;
+    margin-bottom: 0.9rem;
+  }
+
+  .panel-tag,
+  .panel-live {
+    margin-top: 0;
+  }
+}
+
+/* ---------- 01 · Transit ---------- */
+
+/*
+ * A hairline frame and nothing else. Leaflet insists on a background of its own, so
+ * the container is given the coal ground explicitly rather than left to show grey
+ * between tiles.
+ *
+ * z-index is load-bearing: Leaflet's panes stack from 200 up, and without a stacking
+ * context here they ride straight over the fixed header at coal.css:192.
+ */
+#trainmap {
+  position: relative;
+  z-index: 0;
+  /* Was a flat 560px that never shrank; this holds a usable map on a phone. */
+  height: clamp(360px, 62vh, 620px);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--coal);
+}
+
+/*
+ * The route panel. Scrolls rather than running the page, and is capped against the
+ * map so a long Cork service does not leave the transit chapter twice the height of
+ * the others.
+ */
+.route-panel {
+  max-height: clamp(300px, 48vh, 480px);
+  overflow-y: auto;
+  border-top: 1px solid var(--line);
+}
+
+.route-empty {
+  display: block;
+  padding: 1.3rem 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/*
+ * One stop per row, on the spine: scheduled time in the margin column, station beside
+ * it. Written by dashboard-rail.js — the markup it emits is the .hang-row grammar
+ * with its own class, so the times can be tabular without touching every hanging label
+ * on the site.
+ */
+.stop-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stop-row {
+  display: grid;
+  grid-template-columns: minmax(0, 7.5rem) minmax(0, 1fr);
+  gap: 0 1.4rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.stop-row:last-child {
+  border-bottom: 0;
+}
+
+.stop-when {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.12em;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.stop-name {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+/* ---------- 02 · Solar ---------- */
+
+/*
+ * CanvasJS draws into this. It sizes to the container, so the height is set here and
+ * the library is left to find it — the same clamp shape as the map, one step shorter
+ * because a flux trace does not need the depth a map does.
+ */
+#chartContainer {
+  height: clamp(280px, 42vh, 400px);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+/*
+ * The ephemeris values. .hang-row from coal.css carries the layout; this only makes
+ * the figures tabular, so sunrise and sunset line up their colons down the column.
+ */
+.ephem-value {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.ephem-date {
+  margin: 0 0 1.2rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The SDO frames. Flush in the grid with a hairline over and under, no frame and no
+ * radius — the same treatment the photographs on /speaking get, without the
+ * desaturation. Those are press photographs of varying colour temperature that need
+ * pulling together; these are the Sun in two passbands, and the colour is the data.
+ */
+.sdo-figure {
+  margin: 0;
+}
+
+.sdo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(0.8rem, 2vw, 1.4rem);
+  margin: 0;
+}
+
+.sdo-grid a {
+  display: block;
+}
+
+.sdo-grid img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--coal);
+}
+
+.sdo-caption {
+  margin: 0.8rem 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/*
+ * The lunar disc. The vendor's snippet injects an SVG and two lines of text into the
+ * children of #contain_moon by index, so the shape of this block is fixed by their
+ * API rather than chosen — all that can be done is to set the type on it and take off
+ * the drop-shadow the old version wrapped it in.
+ */
+#contain_moon {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  line-height: 1.7;
+}
+
+/* Left, with everything else. A centred disc is the only centred thing on the site. */
+#contain_moon svg {
+  display: block;
+}
+
+.moon-figure {
+  padding: 0.4rem 0 0.4rem;
+}
+
+.moon-next {
+  margin-top: 0.4rem;
+}
+
+/* The inline disc the vendor puts before the next-full-moon date. */
+.moon-next svg {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* ---------- 03 · Research ---------- */
+
+/*
+ * Three papers as ruled rows. The index number and the source hang in the margin
+ * column, exactly as the record rows on /speaking do — an abstract is a paragraph, and
+ * a paragraph in a card is the thing this redesign exists to stop.
+ */
+.paper-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line-strong);
+}
+
+.paper {
+  display: grid;
+  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr);
+  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+  padding: 1.8rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.paper-meta {
+  padding-top: 0.35em;
+}
+
+.paper-num {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: var(--accent-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.paper-src {
+  display: block;
+  margin-top: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.paper-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.25rem, 2.4vw, 1.7rem);
+  line-height: 1.14;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+
+.paper-authors {
+  margin: 0.7rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.63rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.paper-abstract {
+  margin: 0.9rem 0 0;
+  max-width: min(62ch, 100%);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+/*
+ * The link is a .cta, which is an inline element with a rule under it; it needs a box
+ * of its own to sit on a line by itself rather than butting the abstract.
+ */
+.paper-link {
+  display: inline-block;
+  margin-top: 1.1rem;
+}
+
+/* Until the feed lands there is nothing to rule off. */
+.paper:not(.is-loaded) .paper-link {
+  visibility: hidden;
+}
+
+.feed-credit {
+  margin: 1.8rem 0 0;
+  max-width: min(62ch, 100%);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.14em;
+  line-height: 1.9;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.feed-credit a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+  transition: color 220ms ease, border-color 220ms ease;
+}
+
+.feed-credit a:hover,
+.feed-credit a:focus-visible {
+  color: var(--chalk);
+  border-bottom-color: var(--accent);
+}
+
+@media (max-width: 860px) {
+  .paper {
+    grid-template-columns: 1fr;
+  }
+
+  .paper-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 1.1rem;
+    padding-top: 0;
+    margin-bottom: 0.9rem;
+  }
+
+  .paper-src {
+    margin-top: 0;
+  }
+}
+
+/* ---------- 04 · Environment ---------- */
+
+/*
+ * The weather embed. A third-party iframe whose interior cannot be reached from here
+ * — its colours are passed as data- attributes in the markup instead. All this does is
+ * stop it floating: hairlines above and below, and the coal ground behind it.
+ */
+.widget-shell {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 0.6rem 0;
+  background: var(--coal);
+}
+
+.widget-shell iframe {
+  display: block;
+  border: 0;
+}
+
+/*
+ * The colophon closes on an index row, under the list of sources. coal.css gives
+ * .index-list a top rule but no space above it, since on the homepage it opens a
+ * chapter rather than following one.
+ */
+.hang-list + .index-list {
+  margin-top: clamp(3rem, 6vw, 4.5rem);
+}
+
+/* ---------- Leaflet ---------- */
+
+/*
+ * The map's own chrome, dragged onto the palette. The tile filter is deliberately
+ * mild: unlike the eclipse page, which rotates a neutral basemap onto its blue, coal's
+ * ground is grey and CARTO's dark_all already sits on it. A hue-rotate here would only
+ * tint the place names.
+ */
+.leaflet-container {
+  background: var(--coal);
+  font-family: var(--font-body);
+}
+
+.leaflet-tile-pane {
+  filter: brightness(0.88) saturate(0.6);
+}
+
+.leaflet-bar,
+.leaflet-control-layers {
+  border: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  background: rgba(17, 18, 20, 0.92);
+  backdrop-filter: blur(6px);
+}
+
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background: transparent;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.leaflet-bar a:hover {
+  color: var(--chalk);
+  background: rgba(var(--accent-rgb), 0.12);
+}
+
+.leaflet-bar a:last-child {
+  border-bottom: 0;
+}
+
+.leaflet-control-layers-toggle {
+  filter: invert(1) brightness(0.9);
+}
+
+.leaflet-control-layers-expanded {
+  padding: 0.6rem 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.leaflet-control-layers-selector {
+  accent-color: var(--accent);
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: rgba(17, 18, 20, 0.96);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.leaflet-popup-content {
+  margin: 0.8rem 1rem;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.leaflet-popup-content strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--ink-faint);
+}
+
+.leaflet-container a.leaflet-popup-close-button:hover {
+  color: var(--chalk);
+}
+
+.leaflet-control-attribution {
+  background: rgba(17, 18, 20, 0.82);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+
+.leaflet-control-attribution a {
+  color: var(--ink-soft);
+}
+
+/* The train legend. Mono text on the ground, not a boxed key. */
+.info_legend {
+  padding: 0.6rem 0.8rem;
+  background: rgba(17, 18, 20, 0.92);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  line-height: 1.9;
+}
+
+.info_legend h4 {
+  margin: 0 0 0.4rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.info_legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ---------- CanvasJS ---------- */
+
+/*
+ * The chart's colours and fonts are set through its own config in dashboard-feeds.js;
+ * these are the two pieces of its chrome that config cannot reach. The credit link the
+ * free build injects is left in place — it is a condition of using it — and only set
+ * in the page's own micro type instead of its default blue.
+ */
+.canvasjs-chart-credit {
+  font-family: var(--font-mono) !important;
+  font-size: 0.55rem !important;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint) !important;
+  text-decoration: none;
+}
+
+.canvasjs-chart-toolbar button {
+  background: rgba(17, 18, 20, 0.92) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 0 !important;
+}

@@ -29,7 +29,14 @@
 			no fourth face and no icon font on this page.
 		-->
 		<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-		<link rel="stylesheet" href="assets/css/home-coal.css?v=20260831" />
+		<!--
+			coal.css is the design system — tokens, motion, header, the row grids — and is
+			shared with /speaking. home-coal.css is only what this page owns: the opening
+			frame and its shimmer, the record board, the intro overlay. Order matters; the
+			second file depends on the first's custom properties.
+		-->
+		<link rel="stylesheet" href="assets/css/coal.css?v=20260901" />
+		<link rel="stylesheet" href="assets/css/home-coal.css?v=20260901" />
 
 		<!--
 			Without JavaScript nothing ever adds .is-in, so every .reveal would sit at
@@ -126,6 +133,7 @@
 				<a href="#about">What I do</a>
 				<a href="#work">Work</a>
 				<a href="#education">Education</a>
+				<a href="speaking.html">Speaking</a>
 				<a href="https://jeremy.ie/dashboard">Dashboard</a>
 				<a href="eclipse.html">Eclipse</a>
 				<a href="f1.html">F1</a>

@@ -1,669 +1,539 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>Jeremy Rigney | Data Dashboard</title>
 		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Jeremy Rigney | Data Dashboard</title>
+
+		<script type="application/ld+json">
+		{
+		  "@context": "https://schema.org",
+		  "@type": "WebPage",
+		  "url": "https://jeremy.ie/dashboard",
+		  "name": "Jeremy Rigney — Data Dashboard",
+		  "description": "Live widgets built from public APIs: Irish Rail train positions, GOES X-ray flux, Dublin solar ephemeris and an arXiv flare-star feed.",
+		  "author": {
+		    "@type": "Person",
+		    "name": "Jeremy Rigney",
+		    "url": "https://jeremy.ie/"
+		  }
+		}
+		</script>
 		<!-- Favicon-->
 		<link rel="icon" type="image/x-icon" href="images/favicon.png"/>
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<meta name="theme-color" content="#06140e" />
+		<meta name="theme-color" content="#111214" />
 		<meta name="author" content="Jeremy Rigney">
 		<meta name="description" content="A data dashboard of live widgets built by Jeremy Rigney — Irish Rail train positions, arXiv flare-star summaries, GOES X-ray flux, and live solar data."/>
 		<meta name="keywords" content="Jeremy Rigney, data dashboard, Irish Rail live map, GOES X-ray, solar data, arXiv, astronomy ireland, data scientist ireland"/>
 
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-		<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Chivo+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-		<link rel="stylesheet" href="assets/css/dashboard.css" />
-		<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-
+		<!--
+			The same trio, and the same weights, as / and /speaking: Chivo Mono needs 700
+			for the opening title, Fraunces the full optical-size range for the chapter
+			titles. There is no fourth face and no icon font on this page — the social
+			links at the foot are set as type, which is what let this page drop its 59 KB
+			of Font Awesome along with its four footer icons and the five PNG glyphs that
+			used to sit beside the ephemeris rows.
+		-->
+		<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+		<!--
+			Leaflet first. Its control styles are written at the same specificity as the
+			overrides in dashboard-coal.css — .leaflet-bar a against .leaflet-bar a — so
+			whichever sheet loads last wins, and with Leaflet last the zoom buttons and
+			the layer switcher stay white boxes on a coal page.
+		-->
 		<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-		<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-		<script src="assets/js/carto-basemap.js?v=20260828"></script>
-		<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+
+		<!--
+			coal.css is the design system, shared with the homepage and /speaking.
+			dashboard-coal.css is only what this page owns: the X-ray trace, the panel
+			rows and the Leaflet overrides. Order matters; the second depends on the
+			first's tokens.
+		-->
+		<link rel="stylesheet" href="assets/css/coal.css?v=20260901" />
+		<link rel="stylesheet" href="assets/css/dashboard-coal.css?v=20260901" />
+
+		<!--
+			Without JavaScript nothing ever adds .is-in, so every .reveal would sit at
+			opacity 0. This hands all of it over statically. The nav panel is a fixed
+			overlay below 860px that only the toggle can open, so it is returned to the
+			flow here as well.
+
+			Every widget below is live data by definition, so with scripting off they are
+			hidden rather than left as empty frames captioned "live" — the panel heads
+			stay, since they are what says where each one comes from, and the colophon
+			in chapter 05 lists every source as links that work without any of this.
+		-->
+		<noscript>
+			<style>
+				.reveal { opacity: 1; transform: none; }
+				.line-mask > span { transform: none; }
+				.needs-js { display: none; }
+				@media (max-width: 860px) {
+					.nav-toggle { display: none; }
+					.site-header { position: static; height: auto; padding: 0.9rem 1.4rem; flex-wrap: wrap; }
+					.site-nav {
+						position: static;
+						flex-direction: row;
+						flex-wrap: wrap;
+						gap: 0 1.1rem;
+						padding: 0.6rem 0 0;
+						background: none;
+						border-bottom: 0;
+						transform: none;
+						opacity: 1;
+						pointer-events: auto;
+					}
+					.site-nav a { padding: 0.3rem 0; border-bottom: 1px solid transparent; }
+				}
+			</style>
+		</noscript>
+
+		<!--Cookie consent-->
+		<script src="https://web.cmp.usercentrics.eu/modules/autoblocker.js"></script>
+		<script id="usercentrics-cmp" src="https://web.cmp.usercentrics.eu/ui/loader.js" data-settings-id="nt7NWEM4FPFze0" async></script>
+
+		<!-- Google tag (gtag.js) -->
+		<script async src="https://www.googletagmanager.com/gtag/js?id=G-6G0WFV4TS8"></script>
+		<script>
+		  window.dataLayer = window.dataLayer || [];
+		  function gtag(){dataLayer.push(arguments);}
+		  gtag('js', new Date());
+		  gtag('config', 'G-6G0WFV4TS8');
+		</script>
 	</head>
 
 	<body>
 
 		<!-- Header -->
 		<header class="site-header" id="site-header">
-			<a class="brand" href="https://jeremy.ie">Jeremy<span>.</span></a>
-			<nav class="nav-links" id="nav-links" aria-label="Primary">
-				<a href="https://jeremy.ie">Home</a>
-				<a href="cv.html">CV</a>
-				<a href="#projects">Projects</a>
-				<a href="#contact" class="nav-cta">Contact</a>
-			</nav>
-			<button class="nav-toggle" id="nav-toggle" type="button" aria-label="Open menu" aria-controls="nav-links" aria-expanded="false">
-				<span></span><span></span><span></span>
+			<div class="brand">
+				<a class="masthead" href="index.html">Jeremy<span class="masthead-dot">.</span></a>
+			</div>
+			<p class="header-meta">Dublin &middot; Ireland</p>
+			<button class="nav-toggle" type="button" aria-label="Open menu" aria-controls="site-nav" aria-expanded="false">
+				<span></span>
+				<span></span>
 			</button>
+			<nav class="site-nav" id="site-nav" aria-label="Site navigation">
+				<a href="index.html">Home</a>
+				<a href="speaking.html">Speaking</a>
+				<a href="https://jeremy.ie/dashboard" aria-current="page">Dashboard</a>
+				<a href="eclipse.html">Eclipse</a>
+				<a href="f1.html">F1</a>
+				<a href="cv.html">CV</a>
+				<a href="#contact">Contact</a>
+			</nav>
 		</header>
 
 		<main id="top">
 
-			<!-- Intro -->
-			<section class="page-intro">
+			<!--
+				The opening frame. Behind the type is the real GOES long-channel flux over
+				the last three days — the same series the chart in chapter 02 plots, drawn
+				without axes. See assets/js/dashboard-xray.js, which also owns the fetch
+				both of them read from.
+			-->
+			<section class="opening">
+
+				<div class="xray-trace" aria-hidden="true">
+					<canvas id="xray-trace"></canvas>
+				</div>
+
 				<div class="wrap">
-					<p class="kicker reveal">Live data · Dublin, Ireland</p>
-					<h1 class="reveal">Data Dashboard</h1>
-					<p class="lead reveal">A growing collection of widgets I've built and collated. The Irish Rail map, arXiv summaries, GOES X-ray plot and solar info are live widgets I developed from scratch, pulling from publicly available data via APIs I host. The weather and lunar widgets are lightly modified from free existing widgets. This board expands as I add new tools and projects.</p>
-					<div class="status-row reveal">
-						<span class="status-chip"><span class="status-dot"></span> Irish Rail · ~60s refresh</span>
-						<span class="status-chip"><span class="status-dot"></span> GOES X-ray · near-realtime</span>
-						<span class="status-chip"><span class="status-dot"></span> SDO AIA · −15 min</span>
-						<span class="status-chip"><span class="status-dot"></span> arXiv · daily</span>
+					<div class="reveal opening-copy">
+						<p class="opening-eyebrow">Live data &middot; Dublin, Ireland</p>
+						<h1 class="opening-title">
+							<span class="line-mask"><span>Things that</span></span>
+							<span class="line-mask"><span>are happening</span></span>
+							<span class="line-mask"><span>right now</span></span>
+						</h1>
+						<p class="opening-sub">Rail &middot; Solar &middot; Research &middot; Weather</p>
+						<p class="opening-lead">A board of widgets I have built and collated. The rail map, the X-ray plot, the ephemeris and the paper feed are mine, pulling from public APIs through a Flask service I host; the weather and the Moon are lightly modified from free existing widgets. It grows as I add tools.</p>
+						<div class="opening-actions">
+							<a class="cta cta-lead" href="#transit">See the board</a>
+							<a class="cta" href="#sources">Where the data comes from</a>
+						</div>
+					</div>
+				</div>
+
+				<div class="wrap">
+					<div class="opening-foot">
+						<!--
+							The values in the markup are the fallbacks, not placeholders: with
+							scripting off, or a feed down, these are what the page says. Each is
+							replaced in place by window.dashboardReadout when its feed lands.
+						-->
+						<div class="readout-rail reveal">
+							<div class="readout readout-lead">
+								<span class="readout-value" data-readout="flare">&mdash;</span>
+								<span class="readout-label">Peak flare, 3 days</span>
+							</div>
+							<div class="readout">
+								<span class="readout-value" data-readout="trains" data-counts>&mdash;</span>
+								<span class="readout-label">Trains running</span>
+							</div>
+							<div class="readout">
+								<span class="readout-value" data-readout="daylength">&mdash;</span>
+								<span class="readout-label">Daylight in Dublin</span>
+							</div>
+							<div class="readout">
+								<span class="readout-value" data-readout="papers">3</span>
+								<span class="readout-label">Papers in feed</span>
+							</div>
+						</div>
+						<p class="trace-key">
+							<span class="trace-key-line"></span>
+							<span>GOES 0.1&ndash;0.8 nm &middot; 3 days</span>
+						</p>
 					</div>
 				</div>
 			</section>
 
-			<!-- Grid -->
-			<div class="wrap">
-
-				<!-- Transit -->
-				<div class="section-label reveal"><h2>Transit</h2></div>
-				<div class="tile-grid grid-section">
-					<article class="tile map-tile span-8 reveal">
-						<div class="tile-head">
-							<div class="tile-head-stack">
-								<span class="t-label">Live · Interactive</span>
-								<h3>Irish Rail Train Positions</h3>
-							</div>
-							<span class="t-meta">Flask API · Google Cloud</span>
-						</div>
-						<div class="tile-body flush">
-							<div id="trainmap"></div>
-						</div>
-					</article>
-					<article class="tile span-4 reveal">
-						<div class="tile-head">
-							<div class="tile-head-stack">
-								<span class="t-label">Selected route</span>
-								<h3>Stops &amp; Times</h3>
-							</div>
-						</div>
-						<div class="route-panel">
-							<div id="station-list"><span class="route-empty">Click a train on the map to see its stops.</span></div>
-						</div>
-					</article>
+			<noscript>
+				<div class="wrap">
+					<p class="no-js-banner">Every widget on this page reads a live API in the browser, so with JavaScript off there is nothing for them to show. The colophon at the foot lists each source, and those links work as they are.</p>
 				</div>
+			</noscript>
 
-				<!-- Solar -->
-				<div class="section-label reveal"><h2>Solar activity</h2></div>
-				<div class="tile-grid grid-section">
-					<article class="tile span-8 reveal">
-						<div class="tile-head">
-							<div class="tile-head-stack">
-								<span class="t-label">GOES · X-ray flux</span>
-								<h3>3-Day Solar X-Ray</h3>
+			<!-- 01 — Transit -->
+			<section class="chapter" id="transit">
+				<div class="wrap">
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>01</b> / Transit</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>Every train on the island, once a minute.</span></span></h2>
+					</div>
+
+					<article class="panel reveal">
+						<div class="panel-head">
+							<span class="panel-meta">
+								<span class="panel-source">Irish Rail</span>
+								<span class="panel-tag">Flask &middot; Cloud Run</span>
+								<span class="panel-live">60s refresh</span>
+							</span>
+							<div>
+								<h3 class="panel-name">Live train positions</h3>
+								<p class="panel-note">Services more than ten minutes from their scheduled departure are filtered out, so what is on the map has actually left. Click a train to draw its route and list its calling points below.</p>
 							</div>
-							<span class="t-meta">Flares classed A–X</span>
 						</div>
-						<div class="tile-body">
-							<div id="chartContainer"></div>
+						<div class="panel-body is-wide">
+							<div id="trainmap" class="needs-js"></div>
 						</div>
 					</article>
-					<article class="tile span-4 reveal">
-						<div class="tile-head">
-							<div class="tile-head-stack">
-								<span class="t-label">Ephemeris · Dublin</span>
-								<h3>Solar Information</h3>
+
+					<article class="panel reveal">
+						<div class="panel-head">
+							<span class="panel-meta">
+								<span class="panel-source">Irish Rail</span>
+								<span class="panel-tag">Selected route</span>
+							</span>
+							<div>
+								<h3 class="panel-name">Stops &amp; times</h3>
 							</div>
 						</div>
-						<div class="tile-body">
-							<p class="solar-date"><span class="todaydate"></span> · UTC</p>
-							<div class="solar-list">
-								<div class="solar-row"><img src="images/sunrise (2).png" alt=""><span class="s-label">Sunrise</span><span class="s-value srise"></span></div>
-								<div class="solar-row"><img src="images/sunset (1).png" alt=""><span class="s-label">Sunset</span><span class="s-value sset"></span></div>
-								<div class="solar-row"><img src="images/solarnoon (1).png" alt=""><span class="s-label">Solar Noon</span><span class="s-value snoon"></span></div>
-								<div class="solar-row"><img src="images/twilight.png" alt=""><span class="s-label">Lunar Phase</span><span class="s-value mphse"></span></div>
-								<div class="solar-row"><img src="images/clock.png" alt=""><span class="s-label">Day Length</span><span class="s-value daylen"></span></div>
-							</div>
-						</div>
-					</article>
-					<article class="tile span-4 reveal">
-						<div class="tile-head">
-							<div class="tile-head-stack">
-								<span class="t-label">NASA SDO · AIA / HMI</span>
-								<h3>The Sun Now</h3>
-							</div>
-							<span class="t-meta">−15 min</span>
-						</div>
-						<div class="tile-body">
-							<div class="sdo-grid">
-								<a href="https://sdo.gsfc.nasa.gov/data/" target="_blank" rel="noopener"><img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_2048_0171.jpg" alt="SDO AIA 171 image of the Sun"/></a>
-								<a href="https://sdo.gsfc.nasa.gov/data/" target="_blank" rel="noopener"><img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_2048_HMIIC.jpg" alt="SDO HMI continuum image of the Sun"/></a>
-							</div>
-							<p class="sdo-caption">AIA 171 Å · HMI Continuum</p>
-						</div>
-					</article>
-					<article class="tile span-4 reveal">
-						<div class="tile-head">
-							<div class="tile-head-stack">
-								<span class="t-label">icalendar37</span>
-								<h3>Current Lunar Phase</h3>
-							</div>
-						</div>
-						<div class="tile-body">
-							<div id="contain_moon" style="text-align:center;">
-								<div style="font-weight:bold">Current Lunar Phase</div>
-								<div style="margin-top:-7px;margin-bottom:40px;padding:20px;filter:drop-shadow(0 0 24px rgba(111,208,160,0.25))"></div>
-								<div>.</div>
-								<div style="font-size:small">.</div>
+						<div class="panel-body">
+							<div class="route-panel">
+								<div id="station-list"><span class="route-empty">Click a train on the map to see its stops.</span></div>
 							</div>
 						</div>
 					</article>
 				</div>
+			</section>
 
-				<!-- Research -->
-				<div class="section-label reveal"><h2>Research feed</h2></div>
-				<div class="tile-grid grid-section">
-					<article class="tile arxiv-card span-4 reveal">
-						<div class="tile-head"><div class="tile-head-stack"><span class="t-label">arXiv · flare stars</span></div></div>
-						<div class="tile-body">
-							<div class="arxiv-title firsttitle"></div>
-							<div class="arxiv-authors"><span class="authorp1"></span> et al.</div>
-							<div class="arxiv-abstract"><span class="firstabstract"></span>…</div>
-							<button class="link1 btn-mini">Read on arXiv</button>
-						</div>
-					</article>
-					<article class="tile arxiv-card span-4 reveal">
-						<div class="tile-head"><div class="tile-head-stack"><span class="t-label">arXiv · flare stars</span></div></div>
-						<div class="tile-body">
-							<div class="arxiv-title secondtitle"></div>
-							<div class="arxiv-authors"><span class="authorp2"></span> et al.</div>
-							<div class="arxiv-abstract"><span class="secondabstract"></span>…</div>
-							<button class="link2 btn-mini">Read on arXiv</button>
-						</div>
-					</article>
-					<article class="tile arxiv-card span-4 reveal">
-						<div class="tile-head"><div class="tile-head-stack"><span class="t-label">arXiv · flare stars</span></div></div>
-						<div class="tile-body">
-							<div class="arxiv-title thirdtitle"></div>
-							<div class="arxiv-authors"><span class="authorp3"></span> et al.</div>
-							<div class="arxiv-abstract"><span class="thirdabstract"></span>…</div>
-							<button class="link3 btn-mini">Read on arXiv</button>
-						</div>
-					</article>
-				</div>
-				<p class="feed-credit reveal">Paper metadata via the <a href="https://info.arxiv.org/help/api/index.html" target="_blank" rel="noopener">arXiv API</a> (CC0). Thank you to arXiv for use of its open access interoperability.</p>
+			<!-- 02 — Solar -->
+			<section class="chapter" id="solar">
+				<div class="wrap">
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>02</b> / Solar</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>What the Sun has been doing.</span></span></h2>
+					</div>
 
-				<!-- Environment -->
-				<div class="section-label reveal"><h2>Environment</h2></div>
-				<div class="tile-grid grid-section">
-					<article class="tile span-8 reveal">
-						<div class="tile-head">
-							<div class="tile-head-stack">
-								<span class="t-label">weatherwidget.io</span>
-								<h3>Dublin Weather</h3>
+					<article class="panel reveal">
+						<div class="panel-head">
+							<span class="panel-meta">
+								<span class="panel-source">NOAA SWPC</span>
+								<span class="panel-tag">GOES primary</span>
+								<span class="panel-live">Near-realtime</span>
+							</span>
+							<div>
+								<h3 class="panel-name">Three days of X-ray flux</h3>
+								<p class="panel-note">Two passbands on a log scale, labelled by flare class: each letter is a decade, from A at 10<sup>&minus;8</sup> W/m&sup2; to X at 10<sup>&minus;4</sup>. Drag to zoom.</p>
 							</div>
 						</div>
-						<div class="tile-body widget-shell">
-							<a class="weatherwidget-io" href="https://forecast7.com/en/53d35n6d26/dublin/" data-label_1="DUBLIN" data-label_2="WEATHER" data-theme="dark" data-basecolor="#0b2419" data-accent="rgba(205,176,106,0.08)" data-textcolor="#dbe4dd" data-highcolor="#e4cf96" data-lowcolor="#6cc6d6" data-mooncolor="#dbe4dd" data-cloudcolor="#9fb0a6" data-cloudfill="#9fb0a6" data-raincolor="#6cc6d6" data-suncolor="#e4cf96" data-shadecolor="#081b13">DUBLIN WEATHER</a>
+						<div class="panel-body is-wide">
+							<div id="chartContainer" class="needs-js"></div>
 						</div>
 					</article>
 
-					<!-- Projects / links: modular tiles, add more here -->
-					<article class="tile link-tile span-4 reveal" id="projects" onclick="window.open('https://github.com/jeremyrigney','_blank')" style="cursor:pointer;">
-						<div class="tile-head"><div class="tile-head-stack"><span class="t-label">Code</span></div></div>
-						<div class="tile-body">
-							<span class="lt-name">Projects on GitHub</span>
-							<span class="lt-desc">Source for these widgets and other experiments.</span>
-							<span class="lt-go">View profile →</span>
+					<article class="panel reveal">
+						<div class="panel-head">
+							<span class="panel-meta">
+								<span class="panel-source">sunrise-sunset.org</span>
+								<span class="panel-tag">Visual Crossing</span>
+							</span>
+							<div>
+								<h3 class="panel-name">Dublin ephemeris</h3>
+							</div>
+						</div>
+						<!--
+							is-wide because .hang-list carries a margin column of its own. Left
+							in the content column it would nest one spine inside another and
+							push the figures two indents in — the trap speaking.css:346-353
+							documents for .feature-figure-note.
+						-->
+						<div class="panel-body is-wide needs-js">
+							<div>
+								<p class="ephem-date"><span data-ephem="date">&mdash;</span> &middot; UTC</p>
+								<ul class="hang-list">
+									<li class="hang-row">
+										<span class="hang-label">Sunrise</span>
+										<span class="ephem-value" data-ephem="sunrise">&mdash;</span>
+									</li>
+									<li class="hang-row">
+										<span class="hang-label">Sunset</span>
+										<span class="ephem-value" data-ephem="sunset">&mdash;</span>
+									</li>
+									<li class="hang-row">
+										<span class="hang-label">Solar noon</span>
+										<span class="ephem-value" data-ephem="noon">&mdash;</span>
+									</li>
+									<li class="hang-row">
+										<span class="hang-label">Day length</span>
+										<span class="ephem-value" data-ephem="daylength">&mdash;</span>
+									</li>
+									<li class="hang-row">
+										<span class="hang-label">Lunar phase</span>
+										<span class="ephem-value" data-ephem="moonphase">&mdash;</span>
+									</li>
+								</ul>
+							</div>
+						</div>
+					</article>
+
+					<article class="panel reveal">
+						<div class="panel-head">
+							<span class="panel-meta">
+								<span class="panel-source">NASA SDO</span>
+								<span class="panel-tag">AIA &middot; HMI</span>
+								<span class="panel-live">&minus;15 min</span>
+							</span>
+							<div>
+								<h3 class="panel-name">The Sun now</h3>
+								<p class="panel-note">The corona at 171 &Aring;, where the million-degree loops are, beside the visible disc in white light &mdash; the same Sun, an atmosphere apart.</p>
+							</div>
+						</div>
+						<div class="panel-body">
+							<figure class="sdo-figure">
+								<div class="sdo-grid">
+									<a href="https://sdo.gsfc.nasa.gov/data/" target="_blank" rel="noopener"><img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0171.jpg" width="1024" height="1024" loading="lazy" alt="SDO AIA 171 image of the Sun"/></a>
+									<a href="https://sdo.gsfc.nasa.gov/data/" target="_blank" rel="noopener"><img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_HMIIC.jpg" width="1024" height="1024" loading="lazy" alt="SDO HMI continuum image of the Sun"/></a>
+								</div>
+								<figcaption class="sdo-caption">AIA 171 &Aring; &middot; HMI continuum</figcaption>
+							</figure>
+						</div>
+					</article>
+
+					<article class="panel reveal">
+						<div class="panel-head">
+							<span class="panel-meta">
+								<span class="panel-source">icalendar37</span>
+								<span class="panel-tag">Lunar phase</span>
+							</span>
+							<div>
+								<h3 class="panel-name">The Moon tonight</h3>
+							</div>
+						</div>
+						<div class="panel-body needs-js">
+							<!--
+								The vendor's snippet addresses these four divs by index and writes
+								into the last three. The order is their contract; do not reorder.
+							-->
+							<div id="contain_moon">
+								<div class="visually-hidden">Current lunar phase</div>
+								<div class="moon-figure"></div>
+								<div class="moon-phase"></div>
+								<div class="moon-next"></div>
+							</div>
 						</div>
 					</article>
 				</div>
+			</section>
 
-			</div>
+			<!-- 03 — Research -->
+			<section class="chapter" id="research">
+				<div class="wrap">
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>03</b> / Research</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>The three newest papers on flare stars.</span></span></h2>
+						<p class="chapter-lead">Pulled each day from the arXiv astro-ph listings, through my own proxy &mdash; the field I did my PhD in, and the fastest way to see what landed overnight.</p>
+					</div>
+
+					<ul class="paper-list reveal needs-js">
+						<li class="paper">
+							<span class="paper-meta">
+								<span class="paper-num">01</span>
+								<span class="paper-src">arXiv &middot; astro-ph</span>
+							</span>
+							<div>
+								<h3 class="paper-title">Loading&hellip;</h3>
+								<p class="paper-authors"></p>
+								<p class="paper-abstract"></p>
+								<a class="cta paper-link" href="https://arxiv.org" target="_blank" rel="noopener">Read on arXiv →</a>
+							</div>
+						</li>
+						<li class="paper">
+							<span class="paper-meta">
+								<span class="paper-num">02</span>
+								<span class="paper-src">arXiv &middot; astro-ph</span>
+							</span>
+							<div>
+								<h3 class="paper-title">Loading&hellip;</h3>
+								<p class="paper-authors"></p>
+								<p class="paper-abstract"></p>
+								<a class="cta paper-link" href="https://arxiv.org" target="_blank" rel="noopener">Read on arXiv →</a>
+							</div>
+						</li>
+						<li class="paper">
+							<span class="paper-meta">
+								<span class="paper-num">03</span>
+								<span class="paper-src">arXiv &middot; astro-ph</span>
+							</span>
+							<div>
+								<h3 class="paper-title">Loading&hellip;</h3>
+								<p class="paper-authors"></p>
+								<p class="paper-abstract"></p>
+								<a class="cta paper-link" href="https://arxiv.org" target="_blank" rel="noopener">Read on arXiv →</a>
+							</div>
+						</li>
+					</ul>
+
+					<p class="feed-credit reveal">Paper metadata via the <a href="https://info.arxiv.org/help/api/index.html" target="_blank" rel="noopener">arXiv API</a> (CC0). Thank you to arXiv for use of its open access interoperability.</p>
+				</div>
+			</section>
+
+			<!-- 04 — Environment -->
+			<section class="chapter" id="environment">
+				<div class="wrap">
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>04</b> / Environment</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>And what it is doing outside.</span></span></h2>
+					</div>
+
+					<article class="panel reveal">
+						<div class="panel-head">
+							<span class="panel-meta">
+								<span class="panel-source">weatherwidget.io</span>
+								<span class="panel-tag">forecast7</span>
+							</span>
+							<div>
+								<h3 class="panel-name">Dublin weather</h3>
+								<p class="panel-note">One of the two widgets here I did not build &mdash; a free embed, recoloured to the page.</p>
+							</div>
+						</div>
+						<div class="panel-body is-wide needs-js">
+							<div class="widget-shell">
+								<a class="weatherwidget-io" href="https://forecast7.com/en/53d35n6d26/dublin/" data-label_1="DUBLIN" data-label_2="WEATHER" data-theme="dark" data-basecolor="#111214" data-accent="rgba(110,138,120,0.08)" data-textcolor="#eceef0" data-highcolor="#7e9c89" data-lowcolor="#9aa0a6" data-mooncolor="#eceef0" data-cloudcolor="#6b7178" data-cloudfill="#6b7178" data-raincolor="#9aa0a6" data-suncolor="#7e9c89" data-shadecolor="#111214">DUBLIN WEATHER</a>
+							</div>
+						</div>
+					</article>
+				</div>
+			</section>
+
+			<!-- 05 — Sources -->
+			<section class="chapter" id="sources">
+				<div class="wrap">
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>05</b> / Colophon</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>Where all of this comes from.</span></span></h2>
+						<p class="chapter-lead">Nothing on this page is scraped and nothing is stored. Each widget reads a public API on load; the two that browsers will not call directly go through a small Flask service of mine on Cloud Run.</p>
+					</div>
+
+					<ul class="hang-list reveal">
+						<li class="hang-row">
+							<span class="hang-label">Rail</span>
+							<p>Positions and routes from <a href="https://api.irishrail.ie/realtime/" target="_blank" rel="noopener">Irish Rail's realtime API</a>, proxied for CORS and polled once a minute. Basemap tiles from CARTO and Esri.</p>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Solar</span>
+							<p>X-ray flux from <a href="https://www.swpc.noaa.gov/" target="_blank" rel="noopener">NOAA SWPC</a>'s GOES feed. Images from <a href="https://sdo.gsfc.nasa.gov/data/" target="_blank" rel="noopener">NASA's Solar Dynamics Observatory</a>, roughly fifteen minutes behind the Sun.</p>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Ephemeris</span>
+							<p>Sunrise, sunset and day length from <a href="https://sunrise-sunset.org/api" target="_blank" rel="noopener">sunrise-sunset.org</a> and Visual Crossing; lunar phase from icalendar37.</p>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Papers</span>
+							<p>The newest flare-star preprints from the <a href="https://info.arxiv.org/help/api/index.html" target="_blank" rel="noopener">arXiv API</a>, cached by the same Flask service.</p>
+						</li>
+					</ul>
+
+					<ul class="index-list reveal">
+						<li>
+							<a class="index-row" href="https://github.com/jeremyrigney" target="_blank" rel="noopener">
+								<span class="index-meta">
+									<span class="index-num">01</span>
+									<span class="index-tag">Code</span>
+								</span>
+								<span class="index-body">
+									<span class="index-name">Projects on GitHub</span>
+									<span class="index-note">Source for these widgets, the Flask API behind them, and other experiments.</span>
+								</span>
+								<span class="index-go">&rarr;</span>
+							</a>
+						</li>
+					</ul>
+				</div>
+			</section>
+
+			<!-- 06 — Contact -->
+			<section class="chapter" id="contact">
+				<div class="wrap">
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>06</b> / Contact</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>Questions about the data?</span></span></h2>
+						<p class="chapter-lead">I welcome opportunities in data, research and public speaking. If something here is broken, or you want one of these pointed at your own feed, say so.</p>
+					</div>
+
+					<ul class="hang-list reveal">
+						<li class="hang-row">
+							<span class="hang-label">Location</span>
+							<p>Dublin &bull; Ireland</p>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Email</span>
+							<p><a href="mailto:jeremy.rigney@gmail.com">jeremy.rigney [at] gmail [dot] com</a></p>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Elsewhere</span>
+							<ul class="wordmarks">
+								<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" rel="noopener">LinkedIn</a></li>
+								<li><a href="https://github.com/jeremyrigney" target="_blank" rel="noopener">GitHub</a></li>
+								<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&amp;hl=en" target="_blank" rel="noopener">Scholar</a></li>
+								<li><a href="https://www.instagram.com/jeremy.rigney/" target="_blank" rel="noopener">Instagram</a></li>
+							</ul>
+						</li>
+					</ul>
+				</div>
+			</section>
+
 		</main>
 
-		<!-- Footer -->
-		<footer class="site-footer" id="contact">
+		<footer class="site-footer">
 			<div class="wrap">
-				<div class="footer-grid">
-					<div>
-						<p class="kicker reveal">Get in touch</p>
-						<h2 class="reveal">Questions about the data, or a collaboration?</h2>
-						<p class="footer-lead reveal">I welcome opportunities in data, research and public speaking. Feel free to reach out.</p>
-						<ul class="socials">
-							<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a></li>
-							<li><a href="https://github.com/jeremyrigney" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a></li>
-							<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target="_blank" rel="noopener" aria-label="Google Scholar"><i class="fa-brands fa-google-scholar"></i></a></li>
-							<li><a href="https://www.instagram.com/jeremy.rigney/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a></li>
-						</ul>
-					</div>
-					<dl class="footer-contact reveal">
-						<dt>Location</dt>
-						<dd>Dublin &bull; Ireland</dd>
-						<dt>Email</dt>
-						<dd><a href="mailto:jeremy.rigney@gmail.com">jeremy.rigney [at] gmail [dot] com</a></dd>
-					</dl>
-				</div>
-				<div class="footer-bottom">
-					<p>&copy; <span id="year">2026</span> Jeremy Rigney</p>
-					<p><a href="https://jeremy.ie">Home</a> &nbsp;·&nbsp; <a href="cv.html">CV</a> &nbsp;·&nbsp; <a href="speaking.html">Speaking</a></p>
-				</div>
+				<p>&copy; <span id="year">2026</span> Jeremy Rigney</p>
+				<p><a href="index.html">Home</a> &nbsp;&middot;&nbsp; <a href="cv.html">CV</a> &nbsp;&middot;&nbsp; <a href="speaking.html">Speaking</a> &nbsp;&middot;&nbsp; <a href="eclipse.html">Eclipse</a> &nbsp;&middot;&nbsp; <a href="f1.html">F1</a></p>
 			</div>
 		</footer>
 
-		<!-- Scripts -->
+		<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+		<script src="assets/js/carto-basemap.js?v=20260901"></script>
+		<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
 		<script src="assets/js/jquery.min.js"></script>
-
-		<!-- UI: sticky header, mobile nav, reveals, year -->
-		<script>
-			const header = document.getElementById('site-header');
-			const onScroll = () => header.classList.toggle('is-stuck', window.scrollY > 40);
-			onScroll();
-			window.addEventListener('scroll', onScroll, { passive: true });
-
-			const toggle = document.getElementById('nav-toggle');
-			const links = document.getElementById('nav-links');
-			toggle.addEventListener('click', () => {
-				const open = links.classList.toggle('is-open');
-				toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-			});
-			links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
-				links.classList.remove('is-open');
-				toggle.setAttribute('aria-expanded', 'false');
-			}));
-
-			const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-			const items = document.querySelectorAll('.reveal');
-			if (reduce || !('IntersectionObserver' in window)) {
-				items.forEach(el => el.classList.add('is-in'));
-			} else {
-				const io = new IntersectionObserver((entries, obs) => {
-					entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('is-in'); obs.unobserve(e.target); } });
-				}, { rootMargin: '0px 0px -6% 0px', threshold: 0.06 });
-				items.forEach(el => io.observe(el));
-			}
-			document.getElementById('year').textContent = new Date().getFullYear();
-		</script>
-
-		<!-- Weather widget loader -->
-		<script>
-			!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src='https://weatherwidget.io/js/widget.min.js';fjs.parentNode.insertBefore(js,fjs);}}(document,'script','weatherwidget-io-js');
-		</script>
-
-		<!-- Lunar phase widget -->
-		<script>(function(){var d=new Date().getDate();var m=document.querySelectorAll("#contain_moon div");var a=new XMLHttpRequest();var url="https://www.icalendar37.net/lunar/api/?lang=en&month="+(new Date().getMonth()+1)+"&year="+(new Date().getFullYear())+"&size=100&lightColor=rgb(240,244,240)&shadeColor=rgb(20,32,25)&t&LDZ="+new Date(new Date().getFullYear(),new Date().getMonth(),1)/1000+"";m[1].style.height="100px";a.onreadystatechange=function(){if(a.readyState==4&&a.status==200){var b=JSON.parse(a.responseText);m[1].innerHTML=b.phase[d].svg;if(typeof moon_widget_loaded=="function")moon_widget_loaded(b);m[2].innerHTML=b.phase[d].npWidget;m[3].innerHTML="<br>Next full moon<br>"+b.nextFullMoon}};a.open("GET",url,true);a.send()})()</script>
-
-		<!-- GOES 3-day X-ray plot (CanvasJS) -->
-		<script type='text/javascript'>
-			var goesDataShort;
-			var goesDataLong;
-			$.getJSON('https://services.swpc.noaa.gov/json/goes/primary/xrays-3-day.json', function(data) {
-
-				const energy = data.map(i => `${i.energy}`);
-				const obs_flux = data.map(i => `${i.observed_flux}`);
-				const times = data.map(i => `${i.time_tag}`);
-
-				var short = [];
-				var long = [];
-				var shortData = [];
-				var longData = [];
-
-				let idx = energy.indexOf('0.05-0.4nm');
-				while (idx != -1) {
-					short.push(obs_flux[idx])
-					idx = energy.indexOf('0.05-0.4nm', idx + 1);
-				};
-				for (const x1 of short.keys()){
-					var temp = {x:new Date(Date.parse(times[x1])), y:parseFloat(short[x1])};
-					shortData.push(temp);
-				};
-
-				let idx2 = energy.indexOf('0.1-0.8nm');
-				while (idx2 != -1) {
-					long.push(obs_flux[idx2])
-					idx2 = energy.indexOf('0.1-0.8nm', idx2 + 1);
-				};
-				for (const x2 of long.keys()){
-					var temp = {x:new Date(Date.parse(times[x2])), y:parseFloat(long[x2])};
-					longData.push(temp);
-				};
-
-				var chart = new CanvasJS.Chart("chartContainer", {
-					zoomEnabled: true,
-					zoomType: "xy",
-					exportEnabled: true,
-					backgroundColor: "transparent",
-					title: {
-						text: "GOES 3-Day X-Ray Flux",
-						fontFamily: "Chivo Mono, monospace",
-						fontColor: "#dbe4dd",
-						fontWeight: "normal",
-						fontSize: 15
-					},
-					axisX: {
-						valueFormatString: "HH:MM DD/MM",
-						title: "Time and Date",
-						titleFontColor: "#8fa398",
-						titleFontFamily: "Inter, sans-serif",
-						titleFontSize: 12,
-						labelFontColor: "#8fa398",
-						labelFontFamily: "Chivo Mono, monospace",
-						labelFontSize: 10,
-						lineColor: "rgba(210,232,220,0.18)",
-						tickColor: "rgba(210,232,220,0.18)",
-						gridColor: "rgba(210,232,220,0.06)"
-					},
-					axisY: {
-						logarithmic: true,
-						title: "Flare class",
-						titleFontColor: "#8fa398",
-						titleFontFamily: "Inter, sans-serif",
-						titleFontSize: 12,
-						labelFontColor: "#cdb06a",
-						labelFontFamily: "Chivo Mono, monospace",
-						labelFontSize: 11,
-						lineColor: "rgba(210,232,220,0.18)",
-						tickColor: "rgba(210,232,220,0.18)",
-						gridColor: "rgba(210,232,220,0.06)",
-						prefix: "",
-						suffix: "",
-						maximum: 0.0005,
-						minimum: 0.00000001,
-						labelFormatter: function ( e ) {
-							var ret;
-							switch(e.value){
-								case 0.00000001: ret = "A"; break;
-								case 0.0000001: ret = "B"; break;
-								case 0.000001: ret = "C"; break;
-								case 0.00001: ret = "M"; break;
-								case 0.0001: ret = "X"; break;
-							}
-							return ret;
-						}
-					},
-					toolTip: { shared: true },
-					legend: {
-						cursor: "pointer",
-						fontColor: "#dbe4dd",
-						fontFamily: "Chivo Mono, monospace",
-						fontSize: 12,
-						verticalAlign: "top",
-						horizontalAlign: "center",
-						dockInsidePlotArea: true,
-						itemclick: toogleDataSeries
-					},
-					data: [{
-						type:"line",
-						name: "GOES 0.05-0.4 nm",
-						color:'#6cc6d6',
-						showInLegend: true,
-						markerSize: 1,
-						yValueFormatString: "#.##########",
-						dataPoints: shortData
-					},
-					{
-						type: "line",
-						name: "GOES 0.1-0.8 nm",
-						color:'#e4cf96',
-						showInLegend: true,
-						markerSize: 1,
-						yValueFormatString: "#.##########",
-						dataPoints: longData
-					}]
-				});
-				chart.render();
-
-				function toogleDataSeries(e){
-					if (typeof(e.dataSeries.visible) === "undefined" || e.dataSeries.visible) {
-						e.dataSeries.visible = false;
-					} else{
-						e.dataSeries.visible = true;
-					}
-					chart.render();
-				}
-			});
-		</script>
-
-		<!-- Solar info + arXiv feed -->
-		<script type='text/javascript'>
-			$.getJSON('https://api.sunrise-sunset.org/json?lat=53.3871&lng=-6.3375&date=today', function(data) {
-				$(".snoon").html(data.results.solar_noon);
-				$(".daylen").html(data.results.day_length);
-				$(".asttwibegin").html(data.results.astronomical_twilight_begin);
-				$(".asttwiend").html(data.results.astronomical_twilight_end);
-
-				var today = new Date();
-				var dd = String(today.getDate()).padStart(2, '0');
-				var mm = String(today.getMonth() + 1).padStart(2, '0');
-				var yyyy = today.getFullYear();
-				var todayStr = dd + '/' + mm + '/' + yyyy;
-				$(".todaydate").html(todayStr);
-			});
-
-			$.getJSON('https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/Dublin?unitGroup=metric&include=current&key=WUTWMSAENKK9ZK69JSY48FJSQ&contentType=json', function(data) {
-				$(".srise").html(data.currentConditions.sunrise);
-				$(".sset").html(data.currentConditions.sunset);
-				$(".mphse").html(data.currentConditions.moonphase);
-			});
-
-			// arXiv is proxied through my Flask API (CORS + caching) — see app.py /arxiv.
-			// Direct browser calls to export.arxiv.org are blocked (no CORS header) and
-			// discouraged by arXiv's own API terms.
-			(function () {
-				var ARXIV_FEED = "https://irishrail-api-737590149980.europe-west1.run.app/arxiv";
-				var slots = ["first", "second", "third"];
-
-				function authorName(entry) {
-					var a = entry.getElementsByTagName("author")[0];
-					if (!a) return "";
-					var n = a.getElementsByTagName("name")[0];
-					return n ? n.textContent.trim() : "";
-				}
-				function trimAbstract(text, n) {
-					var t = text.trim().substr(0, n);
-					return t.substr(0, Math.min(t.length, t.lastIndexOf(" ")));
-				}
-				function feedError() {
-					slots.forEach(function (s, i) {
-						$("." + s + "title").text("Feed unavailable");
-						$("." + s + "abstract").text("The arXiv feed could not be loaded right now — please check back later.");
-						$(".authorp" + (i + 1)).text("");
-						$(".link" + (i + 1)).html('<a href="https://arxiv.org" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;">Visit arXiv →</a>');
-					});
-				}
-
-				var x = new XMLHttpRequest();
-				x.open("GET", ARXIV_FEED, true);
-				x.onreadystatechange = function () {
-					if (x.readyState !== 4) return;
-					if (x.status !== 200) { feedError(); return; }
-					try {
-						var doc = x.responseXML;
-						var entries = doc ? doc.getElementsByTagName("entry") : [];
-						if (!entries || entries.length === 0) { feedError(); return; }
-
-						slots.forEach(function (s, i) {
-							var entry = entries[i];
-							if (!entry) return;
-							var title = entry.getElementsByTagName("title")[0];
-							var summary = entry.getElementsByTagName("summary")[0];
-							var id = entry.getElementsByTagName("id")[0];
-							$("." + s + "title").text(title ? title.textContent.trim() : "");
-							$("." + s + "abstract").text(summary ? trimAbstract(summary.textContent, 270) : "");
-							$(".authorp" + (i + 1)).text(authorName(entry));
-							if (id) {
-								$(".link" + (i + 1)).html('<a href="' + id.textContent.trim() + '" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;">Read on arXiv →</a>');
-							}
-						});
-					} catch (err) {
-						console.error("arXiv parse error:", err);
-						feedError();
-					}
-				};
-				x.onerror = feedError;
-				x.send(null);
-			})();
-		</script>
-
-		<!-- Irish Rail live map (Leaflet) -->
-		<script>
-			const dartIcon = L.icon({ iconUrl: 'images/dart.png', iconSize: [18, 18], iconAnchor: [16, 16], popupAnchor: [0, -32] });
-			const icIcon = L.icon({ iconUrl: 'images/ictrain.png', iconSize: [18, 18], iconAnchor: [16, 16], popupAnchor: [0, -32] });
-
-			// Dark base layer to match the dashboard theme. CARTO needs a key; without
-			// one, the dashboard falls back to satellite rather than to watermarked tiles.
-			const cartoDarkUrl = window.cartoTiles && window.cartoTiles('dark_all', { subdomain: '{s}', retina: '{r}' });
-			const dark = cartoDarkUrl ? L.tileLayer(cartoDarkUrl, {
-				maxZoom: 19,
-				subdomains: 'abcd',
-				attribution: '© OpenStreetMap contributors © CARTO'
-			}) : null;
-			const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-				maxZoom: 19,
-				attribution: 'Tiles © Esri & contributors'
-			});
-
-			const map = L.map('trainmap', { center: [53.4495, -7.5030], zoom: 7, layers: [dark || satellite] });
-			const baseMaps = dark ? { "Dark": dark, "Satellite": satellite } : { "Satellite": satellite };
-			L.control.layers(baseMaps).addTo(map);
-
-			let stationLookup = {};
-			let routeMarkers = [];
-
-			function loadStations() {
-				fetch("https://irishrail-api-737590149980.europe-west1.run.app/stations")
-					.then(res => res.json())
-					.then(stations => {
-						stations.forEach(station => {
-							const name = station.StationDesc;
-							const lat = parseFloat(station.StationLatitude);
-							const lon = parseFloat(station.StationLongitude);
-							stationLookup[name] = { lat, lon };
-						});
-					})
-					.catch(err => console.error("Error loading stations:", err));
-			}
-			loadStations();
-
-			function clearRouteMarkers() {
-				routeMarkers.forEach(m => map.removeLayer(m));
-				routeMarkers = [];
-			}
-
-			window.trainMarkers = [];
-
-			function loadTrains() {
-				fetch('https://irishrail-api-737590149980.europe-west1.run.app/')
-					.then(res => res.json())
-					.then(trains => {
-						if (window.trainMarkers && Array.isArray(window.trainMarkers)) {
-							window.trainMarkers.forEach(marker => marker.remove());
-						}
-						window.trainMarkers = [];
-
-						trains.forEach(train => {
-							const lat = parseFloat(train.TrainLatitude);
-							const lon = parseFloat(train.TrainLongitude);
-							const code = train.TrainCode;
-							const message = train.PublicMessage;
-							const messageparsed = message.replace(/\\n/g, '<br>');
-
-							if (isNaN(lat) || isNaN(lon)) {
-								console.warn(`Skipping train ${code}: invalid coordinates.`);
-								return;
-							}
-							if (lat < 51.3 || lat > 55.5 || lon < -10.7 || lon > -5.3) {
-								console.warn(`Skipping train ${code}: out-of-bounds coordinates (${lat}, ${lon})`);
-								return;
-							}
-
-							const trainCode = train.TrainCode || '';
-							const isDART = trainCode.startsWith('E');
-							const icon = isDART ? dartIcon : icIcon;
-
-							const scheduledTimeMatch = message.match(/(\d{2}:\d{2})/i);
-							if (scheduledTimeMatch) {
-								const scheduledTimeStr = scheduledTimeMatch[1];
-								const [h, m] = scheduledTimeStr.split(':');
-								const now = new Date();
-								const sched = new Date(now);
-								sched.setHours(parseInt(h), parseInt(m), 0);
-								const diffMinutes = (sched - now) / 60000;
-								if (diffMinutes > 10) { return; }
-							}
-
-							const popupMessage = isDART
-								? `<strong>DART Service: ${code}</strong><br>${messageparsed}`
-								: `<strong>Train: ${code}</strong><br>${messageparsed}`;
-
-							const marker = L.marker([lat, lon], { icon: icon }).addTo(map).bindPopup(popupMessage);
-
-							marker.on('click', () => {
-								const today = new Date().toISOString().split('T')[0];
-								fetch(`https://irishrail-api-737590149980.europe-west1.run.app/trainroute?code=${code}&date=${today}`)
-									.then(res => res.json())
-									.then(route => {
-										clearRouteMarkers();
-										if (!Array.isArray(route) || route.length === 0) {
-											marker.bindPopup(`${popupMessage}<br><br><em>No route data available.</em>`).openPopup();
-											return;
-										}
-
-										const latlngs = [];
-										route.forEach(stop => {
-											const name = stop.LocationFullName;
-											const coords = stationLookup[name];
-											if (coords) {
-												const stopMarker = L.circleMarker([coords.lat, coords.lon], {
-													radius: 5, color: "#cdb06a", weight: 2, fillColor: "#cdb06a", fillOpacity: 0.85
-												}).addTo(map);
-												stopMarker.bindPopup(`<strong>${name}</strong><br>Scheduled: ${stop.ScheduledArrival || ''} - ${stop.ScheduledDeparture || ''}`);
-												routeMarkers.push(stopMarker);
-												latlngs.push([coords.lat, coords.lon]);
-											}
-										});
-
-										const polyline = L.polyline(latlngs, { color: "#6fd0a0", weight: 2, opacity: 0.7 }).addTo(map);
-										routeMarkers.push(polyline);
-
-										let stationHTML = `<ul>`;
-										route.forEach(stop => {
-											const name = stop.LocationFullName;
-											let arr = stop.ScheduledArrival || '';
-											let dep = stop.ScheduledDeparture || '';
-											if (arr !== dep) {
-												arr = (arr === '00:00:00') ? '' : arr;
-												dep = (dep === '00:00:00') ? '' : dep;
-												let timeText = (arr && dep) ? `${arr} → ${dep}` :
-													(arr) ? `Arr: ${arr}` :
-													(dep) ? `Dep: ${dep}` : '';
-												stationHTML += `<li><strong>${name}</strong><br><small>${timeText}</small></li>`;
-											}
-										});
-										stationHTML += `</ul>`;
-										document.getElementById("station-list").innerHTML = stationHTML;
-									})
-									.catch(error => {
-										marker.bindPopup(`${popupMessage}<br><br><em>Unable to load route.</em>`).openPopup();
-										console.error('Error fetching route:', error);
-									});
-							});
-
-							window.trainMarkers.push(marker);
-						});
-					})
-					.catch(error => console.error('Error fetching train data:', error));
-			}
-
-			loadTrains();
-			setInterval(loadTrains, 60000);
-
-			const legend = L.control({ position: "topleft" });
-			legend.onAdd = function (map) {
-				const div = L.DomUtil.create("div", "info_legend");
-				div.innerHTML = `
-					<h4>Legend</h4>
-					<div style="display:flex;align-items:center;margin-bottom:4px;"><img src="images/ictrain.png" width="22" style="margin-right:6px;"> IC / Regional</div>
-					<div style="display:flex;align-items:center;"><img src="images/dart.png" width="22" style="margin-right:6px;"> DART</div>
-				`;
-				return div;
-			};
-			legend.addTo(map);
-		</script>
+		<script src="assets/js/dashboard-coal.js?v=20260901"></script>
+		<script src="assets/js/dashboard-xray.js?v=20260901"></script>
+		<script src="assets/js/dashboard-feeds.js?v=20260901"></script>
+		<script src="assets/js/dashboard-rail.js?v=20260901"></script>
 
 	</body>
 </html>

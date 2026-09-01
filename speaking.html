@@ -1,373 +1,707 @@
-<!DOCTYPE HTML>
-<!--
-	Stellar by HTML5 UP
-	html5up.net | @ajlkn
-	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
--->
-<html>
+<!DOCTYPE html>
+<html lang="en">
 	<head>
-		<title>Jeremy Rigney | Public Speaking</title>
 		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Jeremy Rigney | Public Speaking</title>
+
+		<script type="application/ld+json">
+		{
+		  "@context": "https://schema.org",
+		  "@type": "ProfilePage",
+		  "url": "https://jeremy.ie/speaking",
+		  "name": "Jeremy Rigney — Public Speaking",
+		  "mainEntity": {
+		    "@type": "Person",
+		    "name": "Jeremy Rigney",
+		    "jobTitle": "Senior Data Scientist",
+		    "url": "https://jeremy.ie/",
+		    "knowsAbout": ["Astrophysics", "Solar physics", "Radio astronomy", "Science communication"]
+		  }
+		}
+		</script>
 		<!-- Favicon-->
-        <link rel="icon" type="image/x-icon" href="images/favicon.png"/>
-		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		<link rel="stylesheet" href="assets/css/main.css" />
-		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
-		<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+		<link rel="icon" type="image/x-icon" href="images/favicon.png"/>
+		<meta name="theme-color" content="#111214" />
 		<meta name="author" content="Jeremy Rigney">
-		<meta name="description" content="I hold a PhD in astrophysics from Queen's University Belfast. My research focused on observing the Sun and other stars using some of the largest and most advanced telescopes in the world to better understand stellar dynamics. Throughout my PhD I have presented my research at international conferences, and published peer reviewed research, collaborating with colleagues across the globe."/>
-		<meta name="keywords" content="Jeremy Rigney, Jeremy, astronomy ireland, irish astronomy, jeremy astronomy, jeremy irish astronomy, jeremy science communication, science communication ireland, Jeremy Rigney astro, Dublin Institute for Advanced Studies, AOP, Armagh Observatory, Queen's University Belfast, Lindsay Scholar, jeremy queens, jeremy dias, jeremy armagh"/>
+		<meta name="description" content="Over 60 talks, tours and conference presentations across six countries, from the Royal Institution in London to eclipse viewings at Birr Castle Demesne. Winner of the Peter Curran Award, the Rosse Medal, and the IOP Three Minute Wonder Audience Vote."/>
+		<meta name="keywords" content="Jeremy Rigney, public speaking, science communication ireland, astronomy speaker ireland, irish astronomy, Birr Castle, I-LOFAR, Leviathan of Parsonstown, science festival speaker, Rosse Medal, Three Minute Wonder, Peter Curran Award, book an astronomer, astronomy talk ireland">
 
-		<script type='text/javascript'>
-        	function toggleMenu() {
-        	    var menu = document.getElementById("menu");
-        	    if (menu.style.display === "flex") {
-        	        menu.style.display = "none";
-        	    } else {
-        	        menu.style.display = "flex";
-        	    }
-        	}
-    	</script>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<!--
+			The same trio, and the same weights, as / and /f1: Chivo Mono needs 700 for the
+			opening title, Fraunces the full optical-size range for the chapter titles.
+			There is no fourth face and no icon font on this page — the social links at the
+			foot are set as type, which is what let the old version of this page drop its
+			59 KB of Font Awesome.
+		-->
+		<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+		<!--
+			coal.css is the design system, shared with the homepage. speaking.css is only
+			what this page owns: the map frame, the marquee figures, the filter rail and
+			the record rows. Order matters; the second depends on the first's tokens.
+		-->
+		<link rel="stylesheet" href="assets/css/coal.css?v=20260901" />
+		<link rel="stylesheet" href="assets/css/speaking.css?v=20260901" />
+
+		<!--
+			Without JavaScript nothing ever adds .is-in, so every .reveal would sit at
+			opacity 0. This hands all of it over statically. The nav panel is a fixed
+			overlay below 860px that only the toggle can open, so it is returned to the
+			flow here as well. The filter rail ships hidden and stays hidden — the record
+			list is complete without it.
+		-->
+		<noscript>
+			<style>
+				.reveal { opacity: 1; transform: none; }
+				.line-mask > span { transform: none; }
+				@media (max-width: 860px) {
+					.nav-toggle { display: none; }
+					.site-header { position: static; height: auto; padding: 0.9rem 1.4rem; flex-wrap: wrap; }
+					.site-nav {
+						position: static;
+						flex-direction: row;
+						flex-wrap: wrap;
+						gap: 0 1.1rem;
+						padding: 0.6rem 0 0;
+						background: none;
+						border-bottom: 0;
+						transform: none;
+						opacity: 1;
+						pointer-events: auto;
+					}
+					.site-nav a { padding: 0.3rem 0; border-bottom: 1px solid transparent; }
+				}
+			</style>
+		</noscript>
+
+		<!--Cookie consent-->
+		<script src="https://web.cmp.usercentrics.eu/modules/autoblocker.js"></script>
+		<script id="usercentrics-cmp" src="https://web.cmp.usercentrics.eu/ui/loader.js" data-settings-id="nt7NWEM4FPFze0" async></script>
+
+		<!-- Google tag (gtag.js) -->
+		<script async src="https://www.googletagmanager.com/gtag/js?id=G-6G0WFV4TS8"></script>
+		<script>
+		  window.dataLayer = window.dataLayer || [];
+		  function gtag(){dataLayer.push(arguments);}
+		  gtag('js', new Date());
+		  gtag('config', 'G-6G0WFV4TS8');
+		</script>
 	</head>
-	<body class="is-preload">
 
-		<!-- Wrapper -->
-			<div id="wrapper">
-
-
-				<div class="hamburger" onclick="toggleMenu()">
-   				    <div class="bar"></div>
-   				    <div class="bar"></div>
-   				    <div class="bar"></div>
-   				</div>
-   				<div class="menu" id="menu">
-    			    <a href="https://jeremy.ie" class="active">Home</a>
-					<a href="https://jeremy.ie/cv">CV</a>
-					<a href="#cta">Contact</a>
-    			</div>
-
-				<!-- Nav -->
-					<nav id="nav">
-						<ul>
-							<li><a href="https://jeremy.ie" class="active">Home</a></li>
-							<li><a href="https://jeremy.ie/cv">CV</a></li>
-							<li><a href="#cta">Contact</a></li>
-						</ul>
-					</nav>
-
-				<!-- Main -->
-					<div id="main">
-
-						<!-- Content -->
-							<section id="first" class="main">
-
-								<h1 class="cvtitle">Public Speaking</h1>
-							</br>
-
-							<p style='width:90%; margin: 0px auto; margin-bottom:10px;'>
-							Throughout my academic journey, particularly during my PhD, I have been deeply involved in science communication, sharing my research and expertise with a wide range of audiences. I have presented at professional conferences, delivered invited seminars, and given engaging talks to astronomical societies, as well as to college and professional groups. These experiences have allowed me to communicate complex scientific ideas effectively to diverse audiences, from experts in the field to members of the general public. Having spoken to thousands of people in various settings, I have developed the ability to tailor my presentations to different levels of expertise, ensuring clarity and accessibility while maintaining scientific rigor. 
-							</p>
-							<p style='width:90%; margin: 0px auto; margin-bottom:10px;'>
-							My dedication to public speaking and science communication has been recognized through several prestigious awards. In 2022, I received the Peter Curran Award for Best Postgraduate Presentation at the Irish National Astronomy Meeting. In 2024, I was honored with the Rosse Medal for Best Postgraduate Presentation at the Institute of Physics Ireland Spring Conference, which qualified me for the IOP Three Minute Wonder UK and Ireland Final at the historic Royal Institution in London. At this competition, I was delighted to win the Audience Vote Award for my presentation.
-							</p>
-							<p style='width:90%; margin: 0px auto; margin-bottom:25px;'>
-							Below, you will find a selection of my past presentations and talks. If you are interested in booking me for a speaking engagement or would like to learn more, please <a href ="#cta">click here</a> to access my contact information and social media.	
-							</p>
-
-							<ul class="statistics">
-									<li class="style1">
-										<span class="icon solid fa-rocket"></span>
-										<!--<img src='images/public_speaking.png' height='300' width='400'/>-->
-										<strong>>55</strong> Appearances
-									</li>
-									<li class="style2">
-										<span class="icon solid fa-users-line"></span>
-										<strong>>3000</strong> Audience Reached
-									</li>
-									<li class="style3">
-										<span class="icon solid fa-earth-europe"></span>
-										<strong>6</strong> Countries
-									</li>
-									<li class="style4">
-										<span class="icon solid fa-trophy"></span>
-										<strong>3</strong> Awards
-									</li>
-									<!--<li class="style5">
-										<span class="icon fa-gem"></span>
-										<strong></strong> Nullam
-									</li>-->
-								</ul>
-
-							</br>
-							
-								<h3 style="margin-bottom:5px;">Upcoming Techincal University of Galway Astronomy Society</h3>
-								<h5 style="margin-bottom:0px;">May 2025 - Birr Castle Demesne, Ireland</h5><h6><b>Education and Public Engagment</b></h6>
-								<p><span class="image left"><img src="images/pic05.png" alt=""/></span>This  tour for the University of Galway Astronomy Society will explore the history of astronomy at Birr Castle Demesne. The Irish LOw Frequency ARray (I-LOFAR) will be in detail, highlighting country-wide and international research collaborations.
-								</p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">University of Galway Astronomy Society</h3>
-								<h5 style="margin-bottom:0px;">April 2025 - Birr Castle Demesne, Ireland</h5><h6><b>Education and Public Engagment</b></h6>
-								<p><span class="image left"><img src="images/pic05.png" alt=""/></span>This  tour for the University of Galway Astronomy Society explored the history of astronomy at Birr Castle Demesne. The Irish LOw Frequency ARray (I-LOFAR) was discussed in detail, highlighting countrywide and international research collaborations.
-								</p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">LFI Dublin</h3>
-								<h5 style="margin-bottom:0px;">April 2025 - Birr Castle Demesne, Ireland</h5><h6><b>Education and Public Engagment</b></h6>
-								<p><span class="image left"><img src="images/pic05.png" alt=""/></span>Students from the Lycée Français International Samuel Beckett (LFI) school attended the demesne, exploring the history of astronomy at Birr Castle Demesne, from the Leviathan to I-LOFAR.
-								</p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">Eclipse Observing at Birr Castle</h3>
-								<h5 style="margin-bottom:0px;">March 29, 2025 - Birr Castle Demesne, Ireland</h5><h6><b>Education and Public Engagment</b></h6>
-								<p><span class="image left"><img src="images/birr_gen_tour_img.jpg" alt=""/></span>
-								Join Birr Castle for a stunning partial solar eclipse viewing this Saturday morning! Dr. Jeremy Rigney will guide you through the experience with a telescope (please note, you will not be viewing through the Great Leviathan Telescope).
-								</br>
-								This event is included in the general admission price and is free for Friends of Birr Castle Demesne. General admission <a href="https://ecom.roller.app/birrcastledemesne/generaladmission/en/product/627460?date=2025-03-29&fbclid=IwY2xjawJSJkpleHRuA2FlbQIxMAABHY13WncUIW1ZRmeD16b8w71apxlhYJ2fgZlqhuar204tQvkpVQIaBr0L1w_aem_EQcpaeuyMnZMYdsDim-7IQ">tickets can be pre-booked</a> or paid for on the day.
-								</p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-
-								<h3 style="margin-bottom:5px;">Hank Green Visit to Birr Castle</h3>
-								<h5 style="margin-bottom:0px;">March 2025 - Birr Castle Demesne, Ireland</h5><h6><b>Private Tour</b></h6>
-								<p><span class="image left"><img src="images/Hank_Green_Birr_Castle.jpg" alt=""/></span>Famous Science Communicator and novelist <a href = "https://en.wikipedia.org/wiki/Hank_Green">Hank Green</a> stopped by Birr as part of his visit to Ireland. Hank had previously made a <a href="https://youtu.be/GuErXHIPS7A?si=lmn4wTn5kjYce5F9">video on the Leviathan of Parsonstown</a>. I provided a private tour for him and his family, detailing the history of astronomy at Birr. 
-								</p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">Irish Astronomy Week "Walk and Talk" Tours</h3>
-								<h5 style="margin-bottom:0px;">March 2025 - Birr Castle Demesne, Ireland</h5><h6><b>Education and Public Engagment</b></h6>
-								<p><span class="image left"><img src="images/alberto_leviathan.png" alt=""/></span>I gave two tours as part of Irish Astronomy Week, titled “Leviathan to LOFAR Walk and Talk" at <a href="https://birrcastle.com/" target="_blank">Birr Castle Demesne</a>.
-								</br>
-								This guided tour explored the rich astronomical heritage of Birr, from the historic 19th-century Leviathan telescope to the cutting-edge 21st-century I-LOFAR radio telescope. I covered the engineering marvels of the Leviathan, once the world’s largest telescope, and the groundbreaking research conducted at I-LOFAR, highlighting Ireland’s pivotal role in the future of radio astronomy.
-								</p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">IAU Symposium 388: Solar and Stellar Coronal Mass Ejections</h3>
-								<h5 style="margin-bottom:0px;">May 2024 - Krakow, Poland</h5><h6><b>Academic &nbsp;|&nbsp; Science Meeting</b></h6>
-								<p><span class="image left"><img src="images/iau_krakow.jpg" alt=""/></span>I had the opportunity to attend the 388th IAU Symposium in Poland in mid-2024. I was accepted for a poster presentation for my research examining a solar flare and corresponding shockwave. The conference took place over five days in the culture-rich city of Krakow. Over 150 attendees participated in talks, breakout sessions and poster presntations thoughout. I had excellent discussions with leaders in the field of solar physics and space weather.</p>
-								<div style="clear:left"></div>
-
-								<hr>
-								
-								<h3 style="margin-bottom:5px;">Pint of Science Birr 2024 - Organiser and Host</h3>
-								<h5 style="margin-bottom:0px;">May 2024 - Birr, Ireland</h5><h6><b>Education and Public Engagment</b></h6>
-								<p><span class="image left"><img src="images/pintofscience_square.png" alt=""/></span>Pint of Science aims to bring local science to a local audience in the fun and relaxing environment of a local pub! I led the organisation of a Pint of Science event in the Chestnut Pub in Birr, Ireland in 2024. Three speakers were recruited to talk on a wide range of topics from black holes, radio astronomy and coffee as a treatment for dementia to local ecology and biodiversity. I acted as the host for the evening, with introductions for each of the speakers and a fun pub quiz for the audience with questions related to each of the speaker topics. It was an ecxceelent opportunity to engage with a cohort of the general public who may not be comfortable attending more traditional, formal public science events!</p>
-								<div style="clear:left"></div>
-								
-								<hr>
-
-								<h3 style="margin-bottom:5px;">Institute of Physics Three Minute Wonder Final</h3>
-								<h5 style="margin-bottom:0px;">April 2024 - London, UK</h5><h6><b>Education and Public Engagment</b></h6>
-								<p><span class="image left"><img src="images/IOP_3MW.jpg" alt="" /></span>Having won the best postgraduate presentation at the IOP Spring conference in March, I qualified for the final of the Three Minute Wonder competition. Three Minute Wonder is an IOP competition run yearly across Ireland and the UK. The aim is to present a research topic to a general audience in three minutes, with only one slide and the option of using props. The final was held in the <a href='https://venue.rigb.org/our-spaces/theatre' target='_blank'>historic Theatre at the Royal Institution</a>. 8 finalists from across the UK and Ireland presented our research to the full auditorium. My presentation won the Audience Vote Award, chosen by the over 200 members of the public in attendance. It was an incredible end to a brilliant competition.</p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">Institute of Physics Ireland Spring Conference</h3>
-								<h5 style="margin-bottom:0px;">March 2024 - Dublin, Ireland</h5><h6><b>Education and Public Engagment</b></h6>
-								<p><span class="image left"><img src="images/IOP_dublin_crop.jpeg" alt="" /></span>  
-								The 2024 <a href="https://www.iop.org/events/ireland-spring-conference-2024" target="_blank">Institute of Physics Ireland Spring Conference</a> was the annual gathering for members of the physics community. Celebrating 60 years of the IOP Ireland Committee, it explored the theme "Past, Present & Future." The event featured invited talks, networking opportunities, and an evening dinner. It also hosted the prestigious Rosse Medal competition, which I won for my presentation on solar physics research.
-								</p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">Invited Seminar</h3>
-								<h5 style="margin-bottom:0px;">October 2023 - Armagh, Northern Ireland</h5><h6><b>Academic &nbsp;|&nbsp; Science Meeting</b></h6>
-								<p><span class="image left"><img src="https://visitarmagh.com/wp-content/uploads/2021/08/180418-0222-observatory-main-lg.jpg" alt="" /></span> </p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">Irish National Astronomy Meeting</h3>
-								<h5 style="margin-bottom:0px;">August 2023 - Cork, Ireland</h5><h6><b>Academic &nbsp;|&nbsp; Science Meeting</b></h6>
-								<p><span class="image left"><img src="images/pic05.jpg" alt="" /></span> </p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">STELLAR Project Final Conference</h3>
-								<h5 style="margin-bottom:0px;">July 2023 - Plovdiv, Bulgaria</h5><h6><b>Academic &nbsp;|&nbsp; Science Meeting</b></h6>
-								<p><span class="image left"><img src="images/STELLAR_plovdiv.jpg" alt="" /></span> </p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">STELLAR Science School</h3>
-								<h5 style="margin-bottom:0px;">May 2023 - Sofia, Bulgaria</h5><h6><b>Academic &nbsp;|&nbsp; Science Meeting</b></h6>
-								<p><span class="image left"><img src="images/STELLAR_sofia.jpeg" alt="" /></span>  </p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">Irish Astronomical Society Invited Public Talk</h3>
-								<h5 style="margin-bottom:0px;">March 2023 - University College Dublin, Ireland</h5><h6><b>Education and Public Engagment</b></h6>
-								<p><span class="image left"><img src="images/pic05.jpg" alt="" /></span> </p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">Irish Astronomical Association Invited Talk Series</h3>
-								<h5 style="margin-bottom:0px;">March 2023 - Queen's University Belfast, Northern Ireland</h5><h6><b>Education and Public Engagment</b></h6>
-								<p><span class="image left"><img src="images/pic05.jpg" alt="" /></span> </p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">Invited Seminar, Institute of Astronomy of the Bulgarian Academy of Sciences</h3>
-								<h5 style="margin-bottom:0px;">January 2023 - Sofia, Bulgaria</h5><h6><b>Academic &nbsp;|&nbsp; Science Meeting</b></h6>
-								<p><span class="image left"><img src="images/pic05.jpg" alt="" /></span> </p>
-								<div style="clear:left"></div>
-								
-								<hr>
-
-								<h3 style="margin-bottom:5px;">University of Limerick Physics Society</h3>
-								<h5 style="margin-bottom:0px;">January 2023 - I-LOFAR, Birr, Ireland</h5><h6><b>Education and Public Engagment</b></h6>
-								<p><span class="image left"><img src="images/pic05.jpg" alt="" /></span>  </p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">Atlantic Technological University Undergraduate Physics</h3>
-								<h5 style="margin-bottom:0px;">January 2023 - I-LOFAR, Birr, Ireland</h5><h6><b>Education and Public Engagment</b></h6>
-								<p><span class="image left"><img src="images/pic05.jpg" alt="" /></span>  </p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">Invited Speaker at Astrofest - Galway Astronomical Society</h3>
-								<h5 style="margin-bottom:0px;">January 2023 - Galway, Ireland</h5><h6><b>Education and Public Engagment</b></h6>
-								<p><span class="image left"><img src="images/galway_astrofest.jpeg" alt="" /></span> </p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">TESS Science Team Meeting Invited Presentation</h3>
-								<h5 style="margin-bottom:0px;">October 2022 - Massachusetts, USA</h5> <h6><b>Academic &nbsp;|&nbsp; Science Meeting</b></h6>
-								<p><span class="image left"><img src="images/pic05.jpg" alt="" /></span> 
-								See a recording of my presentation at the Transiting Exoplanet Survey Satellite 2022 Team Meeting #29 <a href="https://youtu.be/gnw9FmfhKKY?si=nbQC0QT77Cq2oQpm", target=_blank">by clicking here</a>. I was invited by the TESS Science Director to present my research at the meeting, within which I participated in the "Contributed papers on exoplanet science" section.
-								</p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">Planetary, Solar, and Heliospheric Radio Emissions Conference</h3>
-								<h5 style="margin-bottom:0px;">September 2022 - Dublin, Ireland</h5> <h6><b>Academic &nbsp;|&nbsp; Science Meeting</b></h6>
-								<p><span class="image left"><img src="images/PRE_dublin.jpeg" alt="" /></span> </p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">Irish National Astronomy Meeting</h3>
-								<h5 style="margin-bottom:0px;">August 2022 - DIAS Dunsink Observatory, Dublin, Ireland</h5> <h6><b>Academic &nbsp;|&nbsp; Science Meeting</b></h6>
-								<p><span class="image left"><img src="images/INAM_dublin_2022.jpeg" alt="" /></span> I was presented with the Peter Curran Award for best postgraduate presentation.</p>								
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">CoolStars21 Conference</h3>
-								<h5 style="margin-bottom:0px;">July 2022 - Toulouse, France</h5> <h6><b>Academic &nbsp;|&nbsp; Science Meeting</b></h6>
-								<p><span class="image left"><img src="images/Coolstars_toulouse.jpeg" alt="" /></span> Specialist conference on stellar astrophysics hosted at the Pierre Baudis Conference Centre from the 4th - 9th July. I presented my research on stellar flares during the 'Solar and stellar coronal mass ejections' session and fielded questions from the audience. Attending the conference was an amazing opportunity to meet researchers from across the world.</p>		
-								<div style="clear:left"></div>						
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">University College Cork Astronomy Society</h3>
-								<h5 style="margin-bottom:0px;">June 2022 - I-LOFAR, Birr, Ireland</h5> <h6><b>Education and Public Engagment</b></h6>
-								<p><span class="image left"><img src="images/pic05.jpg" alt="" /></span> </p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">Maynooth University Undergraduate Physics </h3>
-								<h5 style="margin-bottom:0px;">April 2022 - I-LOFAR, Birr, Ireland</h5> <h6><b>Education and Public Engagment</b></h6>
-								<p><span class="image left"><img src="images/pic05.jpg" alt="" /></span>  </p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">University of Galway Undergraduate Physics</h3>
-								<h5 style="margin-bottom:0px;">April 2022 - I-LOFAR, Birr, Ireland</h5> <h6><b>Education and Public Engagment</b></h6>
-								<p><span class="image left"><img src="images/pic05.jpg" alt="" /></span>The Universe at Radio Wavelengths  </p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">STFC Introductory Course in Solar and Solar-Terrestrial Physics</h3>
-								<h5 style="margin-bottom:0px;">August 2021 - University of Warwick, United Kingdom</h5> <h6><b>Academic &nbsp;|&nbsp; Science Meeting</b></h6>
-								<p><span class="image left"><img src="images/pic05.jpg" alt="" /></span>https://www.uksolphys.org/summer-schools/stfc-introductory-course-in-solar-and-solar-terrestrial-physics-2021%E2%80%A8/</p>
-								<div style="clear:left"></div>
-
-								<hr>
-
-								<h3 style="margin-bottom:5px;">ASKAP-MeerKAT Telescope Consortium Meeting</h3>
-								<h5 style="margin-bottom:0px;">April 2021 - Online (Australia & South Africa)</h5> <h6><b>Academic &nbsp;|&nbsp; Science Meeting</b></h6>
-								<p><span class="image left"><img src="images/pic005.jpg" alt="" /></span></p>
-
-								
-
-								
-
-							</section>
-
-
-
-							
-
+	<body>
+
+		<!--
+			No intro overlay. That sequence is the site's front door; /speaking is entered
+			from a link, and replaying it on an internal navigation is friction rather
+			than atmosphere. The header is present from the first frame for the same
+			reason — it never ships .is-hidden here.
+		-->
+		<header class="site-header" id="site-header">
+			<div class="brand">
+				<a class="masthead" href="index.html">Jeremy<span class="masthead-dot">.</span></a>
+			</div>
+			<p class="header-meta">Dublin &middot; Ireland</p>
+			<button class="nav-toggle" type="button" aria-label="Open menu" aria-controls="site-nav" aria-expanded="false">
+				<span></span>
+				<span></span>
+			</button>
+			<nav class="site-nav" id="site-nav" aria-label="Site navigation">
+				<a href="index.html">Home</a>
+				<a href="speaking.html" aria-current="page">Speaking</a>
+				<a href="https://jeremy.ie/dashboard">Dashboard</a>
+				<a href="eclipse.html">Eclipse</a>
+				<a href="f1.html">F1</a>
+				<a href="cv.html">CV</a>
+				<a href="#contact">Contact</a>
+			</nav>
+		</header>
+
+		<main id="top">
+
+			<!--
+				The opening frame. A title page over the talk map: every venue in the record
+				below, drawn once on arrival. See assets/js/speaking-map.js — the venue
+				coordinates live at the top of that file and the coastline is a committed
+				17 KB derivative of Natural Earth 110m, not a tile service.
+			-->
+			<section class="opening">
+
+				<div class="talk-map" aria-hidden="true">
+					<canvas id="talk-map"></canvas>
+				</div>
+
+				<div class="wrap">
+					<div class="reveal opening-copy">
+						<p class="opening-eyebrow">Public speaking &middot; 2021 &ndash; 2026</p>
+						<!--
+							No figure in the headline: the rail below already carries four, and a
+							count in the title is one more thing to keep in step with the record
+							every time a talk is added.
+						-->
+						<h1 class="opening-title">
+							<span class="line-mask"><span>From a castle</span></span>
+							<span class="line-mask"><span>lawn to the</span></span>
+							<span class="line-mask"><span>Royal Institution</span></span>
+						</h1>
+						<p class="opening-sub">Conferences &middot; Festivals &middot; Societies &middot; Tours</p>
+						<p class="opening-lead">Five years of talking about the Sun and the stars &mdash; at international symposia, at astronomical societies, on the lawn at Birr Castle, and in the theatre at the Royal Institution.</p>
+						<div class="opening-actions">
+							<a class="cta cta-lead" href="#contact">Book a talk</a>
+							<a class="cta" href="#record">See the full record</a>
+						</div>
+					</div>
+				</div>
+
+				<div class="wrap">
+					<div class="opening-foot">
+						<div class="readout-rail reveal">
+							<div class="readout readout-lead">
+								<span class="readout-value" data-count="60">&gt;60</span>
+								<span class="readout-label">Appearances</span>
+							</div>
+							<div class="readout">
+								<span class="readout-value" data-count="4000">&gt;4,000</span>
+								<span class="readout-label">Audience reached</span>
+							</div>
+							<div class="readout">
+								<span class="readout-value" data-count="6">6</span>
+								<span class="readout-label">Countries</span>
+							</div>
+							<div class="readout">
+								<span class="readout-value" data-count="3">3</span>
+								<span class="readout-label">Awards</span>
+							</div>
+						</div>
+						<p class="map-key">
+							<span class="map-key-dot map-key-dot-big"></span>
+							<span class="map-key-dot"></span>
+							<span>Disc scales with visits</span>
+						</p>
+					</div>
+				</div>
+			</section>
+
+			<!-- 01 — The practice -->
+			<section class="chapter" id="practice">
+				<div class="wrap">
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>01</b> / The practice</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>The same physics, pitched three different ways.</span></span></h2>
 					</div>
 
-				<!-- Footer -->
-					<footer id="footer">
-						<section id="cta">
-							<h2>Get in Touch</h2>
-							<p>I welcome opportunities to engage in public speaking, particularly at science festivals, open days, and similar events. Feel free to reach out with any enquiries.</p>
-							<ul class="actions">
-								<li><a href="https://jeremy.ie/speaking" class="button">See Previous Talks</a></li>
-							</ul>
-						</section>
-						<section>
-							<h2 style='color:#03220C;'>Contact Information</h2>
-							<dl class="alt">
-								<dt>Location</dt>
-								<dd>Dublin &bull; Ireland</dd>
-								<!--<dt>Phone</dt>
-								<dd>(000) 000-0000 x 0000</dd>-->
-								<dt>Email</dt>
-								<dd><a href="#">jeremy.rigney [at] gmail [dot] com</a></dd>
-							</dl>
-							<ul class="icons">
-								<li><a href="https://x.com/jeremyrigney" target='_blank' class="icon brands fa-x-twitter alt"><span class="label">Twitter</span></a></li>
-								<li><a href="https://www.instagram.com/jeremy.rigney/" target='_blank' class="icon brands fa-instagram alt"><span class="label">Instagram</span></a></li>
-								<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" class="icon brands fa-linkedin alt"><span class="label">LinkedIn</span></a></li>
-								<li><a href="https://github.com/jeremyrigney" target='_blank' class="icon brands fa-github alt"><span class="label">GitHub</span></a></li>
-								<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target='_blank' class="icon brands fa-google-scholar alt"><span class="label">Google Scholar</span></a></li>
-							</ul>
-						</section>
-						<p class="copyright">&copy;Template from <a href="https://html5up.net">HTML5 UP</a>.</p>
-					</footer>
+					<div class="hang-prose reveal">
+						<span class="hang-label">Background</span>
+						<div class="hang-prose-body">
+							<p>Science communication ran alongside the whole of my PhD and has continued past it. I have presented at professional conferences, delivered invited seminars, and given talks to astronomical societies, university societies and school groups &mdash; and spent three years guiding visitors around <strong>Birr Castle Demesne</strong>, where the story runs from the 19th-century Leviathan of Parsonstown to the I-LOFAR radio telescope operating on the same grounds today.</p>
+							<p>Those audiences want different things. A symposium wants the method and the error bars; a society wants the result and why it matters; a family at a public viewing wants to know what they are looking at. I have done enough of all three to judge which one I am in front of.</p>
+						</div>
+					</div>
 
+					<ul class="hang-list reveal">
+						<li class="hang-row">
+							<span class="hang-label">2024</span>
+							<p><strong>Audience Vote Award</strong>, Institute of Physics Three Minute Wonder UK &amp; Ireland Final, the Royal Institution, London &mdash; chosen by the public in the room.</p>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">2024</span>
+							<p><strong>Rosse Medal</strong> for best postgraduate presentation, Institute of Physics Ireland Spring Conference.</p>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">2022</span>
+							<p><strong>Peter Curran Award</strong> for best postgraduate presentation, Irish National Astronomy Meeting.</p>
+						</li>
+					</ul>
+				</div>
+			</section>
+
+			<!--
+				02 — Selected talks.
+
+				Six entries with room to breathe, rather than thirty compressed. The full
+				list is the chapter below; this one is for the ones with a story.
+			-->
+			<section class="chapter" id="selected">
+				<div class="wrap">
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>02</b> / Selected</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>Six of them in more detail.</span></span></h2>
+					</div>
+
+					<article class="feature reveal">
+						<div class="feature-head">
+							<span class="feature-meta">
+								<span class="feature-when">12 Aug 2026</span>
+								<span class="feature-tag">Public engagement</span>
+							</span>
+							<div>
+								<h3 class="feature-name">The partial eclipse, live</h3>
+								<p class="feature-where">Birr Castle Demesne, Ireland</p>
+							</div>
+						</div>
+						<div class="feature-body">
+							<p>Ireland&rsquo;s partial solar eclipse of 12 August 2026 brought roughly <strong>250 people</strong> onto the lawn at Birr. I ran the viewing across the morning: filtered telescopes on the Sun, an explanation of the geometry overhead, and questions throughout.</p>
+							<p>It is the largest audience I have spoken to. Very few had come as astronomers.</p>
+							<a class="announce" href="eclipse.html">
+								<span class="announce-tag">Companion</span>
+								<span class="announce-text">The eclipse, mapped and explained</span>
+								<span class="announce-arrow" aria-hidden="true">&rarr;</span>
+							</a>
+							<div class="feature-figure-note">
+								<span class="figure-value">~250</span>
+								<p>People on the lawn across the morning.</p>
+							</div>
+						</div>
+					</article>
+
+					<article class="feature reveal">
+						<figure class="feature-figure">
+							<img src="images/derived/alberto_leviathan-1600.jpg" alt="The Leviathan of Parsonstown, the 72-inch reflecting telescope at Birr Castle Demesne, silhouetted between its masonry walls." loading="lazy" decoding="async" />
+							<figcaption>The Leviathan of Parsonstown, Birr Castle Demesne</figcaption>
+						</figure>
+						<div class="feature-head">
+							<span class="feature-meta">
+								<span class="feature-when">13 Aug 2026</span>
+								<span class="feature-tag">Tour</span>
+							</span>
+							<div>
+								<h3 class="feature-name">Leviathan to I&#8209;LOFAR</h3>
+								<p class="feature-where">Lowell Observatory group &middot; Birr Castle Demesne, Ireland</p>
+							</div>
+						</div>
+						<div class="feature-body">
+							<p>A visiting group from <a href="https://lowell.edu/" target="_blank" rel="noopener">Lowell Observatory</a> in Arizona, taken from one end of Birr&rsquo;s astronomical history to the other: the 72-inch Leviathan, the largest telescope in the world for most of the 19th century, and the I-LOFAR station on the same estate, part of a radio array spread across Europe.</p>
+							<p>A well-informed audience, and a technical set of questions to match.</p>
+						</div>
+					</article>
+
+					<article class="feature reveal">
+						<figure class="feature-figure">
+							<img src="images/derived/IOP_3MW-1600.jpg" alt="Jeremy Rigney presenting at the Institute of Physics Three Minute Wonder final in the theatre at the Royal Institution, London." loading="lazy" decoding="async" />
+							<figcaption>Three Minute Wonder final, the Royal Institution, London</figcaption>
+						</figure>
+						<div class="feature-head">
+							<span class="feature-meta">
+								<span class="feature-when">Apr 2024</span>
+								<span class="feature-tag">Public engagement</span>
+							</span>
+							<div>
+								<h3 class="feature-name">Three Minute Wonder</h3>
+								<p class="feature-where">The Royal Institution, London, UK</p>
+							</div>
+						</div>
+						<div class="feature-body">
+							<p>Having won the Rosse Medal at the IOP Ireland Spring Conference in March, I qualified for the UK and Ireland final of Three Minute Wonder: one research topic presented to a general audience in three minutes, with a single slide and the option of props.</p>
+							<p>The final was held in the <a href="https://venue.rigb.org/our-spaces/theatre" target="_blank" rel="noopener">historic theatre at the Royal Institution</a>. Eight finalists presented to a full auditorium.</p>
+							<div class="feature-figure-note">
+								<span class="figure-value">200+</span>
+								<p>Members of the public in the room, whose vote decided the Audience Vote Award.</p>
+							</div>
+						</div>
+					</article>
+
+					<article class="feature reveal">
+						<figure class="feature-figure">
+							<img src="images/derived/Hank_Green_Birr_Castle-1600.jpg" alt="Hank Green and family at Birr Castle Demesne during a private tour of the Leviathan telescope." loading="lazy" decoding="async" />
+							<figcaption>Hank Green&rsquo;s visit to Birr Castle Demesne</figcaption>
+						</figure>
+						<div class="feature-head">
+							<span class="feature-meta">
+								<span class="feature-when">Mar 2025</span>
+								<span class="feature-tag">Private tour</span>
+							</span>
+							<div>
+								<h3 class="feature-name">Hank Green at Birr</h3>
+								<p class="feature-where">Birr Castle Demesne, Ireland</p>
+							</div>
+						</div>
+						<div class="feature-body">
+							<p>Science communicator and novelist <a href="https://en.wikipedia.org/wiki/Hank_Green" target="_blank" rel="noopener">Hank Green</a> stopped at Birr during a visit to Ireland, having previously made <a href="https://youtu.be/GuErXHIPS7A?si=lmn4wTn5kjYce5F9" target="_blank" rel="noopener">a video about the Leviathan of Parsonstown</a>. I gave him and his family a private tour of the telescope and the history around it.</p>
+						</div>
+					</article>
+
+					<article class="feature reveal">
+						<figure class="feature-figure">
+							<img src="images/derived/iau_krakow-1600.jpg" alt="The 388th IAU Symposium on solar and stellar coronal mass ejections, Krakow, Poland." loading="lazy" decoding="async" />
+							<figcaption>IAU Symposium 388, Krak&oacute;w</figcaption>
+						</figure>
+						<div class="feature-head">
+							<span class="feature-meta">
+								<span class="feature-when">May 2024</span>
+								<span class="feature-tag">Academic</span>
+							</span>
+							<div>
+								<h3 class="feature-name">IAU Symposium 388</h3>
+								<p class="feature-where">Krak&oacute;w, Poland</p>
+							</div>
+						</div>
+						<div class="feature-body">
+							<p>Five days on solar and stellar coronal mass ejections, with over 150 attendees. I presented my work on a solar flare and the shockwave that followed it, and had excellent discussions with leaders in solar physics and space weather across the week.</p>
+						</div>
+					</article>
+
+					<article class="feature reveal">
+						<figure class="feature-figure">
+							<img src="images/derived/pintofscience_square-1600.jpg" alt="Pint of Science Birr, held in the Chestnut pub." loading="lazy" decoding="async" />
+							<figcaption>Pint of Science, the Chestnut, Birr</figcaption>
+						</figure>
+						<div class="feature-head">
+							<span class="feature-meta">
+								<span class="feature-when">May 2024</span>
+								<span class="feature-tag">Organiser &amp; host</span>
+							</span>
+							<div>
+								<h3 class="feature-name">Pint of Science, Birr</h3>
+								<p class="feature-where">The Chestnut, Birr, Ireland</p>
+							</div>
+						</div>
+						<div class="feature-body">
+							<p>Pint of Science puts local research in front of a local audience in a pub. I organised the Birr event and recruited three speakers, covering black holes, radio astronomy, coffee as a treatment for dementia, and local ecology and biodiversity. I hosted the evening, introducing each speaker and running a quiz written from their talks.</p>
+							<p>It reaches people who would not attend a more formal science event, which is the point of it.</p>
+						</div>
+					</article>
+				</div>
+			</section>
+
+			<!--
+				03 — The full record.
+
+				Every appearance, newest first. The rows carry a data-cat that the filter
+				rail in speaking.js switches on; with no JavaScript the rail stays hidden
+				and the list is simply complete.
+			-->
+			<section class="chapter" id="record">
+				<div class="wrap">
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>03</b> / The record</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>Every talk, tour and presentation.</span></span></h2>
+					</div>
+
+					<div class="filter-rail reveal" hidden>
+						<button class="filter-chip" type="button" data-filter="all" aria-pressed="true">All</button>
+						<button class="filter-chip" type="button" data-filter="public" aria-pressed="false">Public engagement</button>
+						<button class="filter-chip" type="button" data-filter="academic" aria-pressed="false">Academic</button>
+						<button class="filter-chip" type="button" data-filter="tour" aria-pressed="false">Tours</button>
+						<p class="filter-count" id="record-count"></p>
+					</div>
+
+					<ul class="record-list reveal" id="record-list">
+
+						<li class="record-item" data-cat="tour">
+							<span class="record-when">Aug 2026<span class="record-cat">Tour</span></span>
+							<div>
+								<h3 class="record-title">Lowell Observatory group &mdash; Leviathan to I-LOFAR</h3>
+								<p class="record-where">Birr Castle Demesne, Ireland</p>
+								<p class="record-note">A visiting group from Lowell Observatory, Arizona, walked from the 72-inch Leviathan to the I-LOFAR station on the same estate.</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="public">
+							<span class="record-when">Aug 2026<span class="record-cat">Public</span></span>
+							<div>
+								<h3 class="record-title">Partial solar eclipse viewing</h3>
+								<p class="record-where">Birr Castle Demesne, Ireland</p>
+								<p class="record-note">Around 250 people on the lawn for Ireland&rsquo;s 12 August partial eclipse, with filtered telescopes and an explanation of the geometry. <a href="eclipse.html">The eclipse, mapped</a>.</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="tour">
+							<span class="record-when">May 2025<span class="record-cat">Tour</span></span>
+							<div>
+								<h3 class="record-title">University of Galway Astronomy Society</h3>
+								<p class="record-where">Birr Castle Demesne, Ireland</p>
+								<p class="record-note">A second visit for the society, covering the history of astronomy at Birr and I-LOFAR&rsquo;s place in a Europe-wide array.</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="tour">
+							<span class="record-when">Apr 2025<span class="record-cat">Tour</span></span>
+							<div>
+								<h3 class="record-title">University of Galway Astronomy Society</h3>
+								<p class="record-where">Birr Castle Demesne, Ireland</p>
+								<p class="record-note">The history of astronomy at Birr, with I-LOFAR discussed in detail alongside its national and international collaborations.</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="tour">
+							<span class="record-when">Apr 2025<span class="record-cat">Tour</span></span>
+							<div>
+								<h3 class="record-title">Lyc&eacute;e Fran&ccedil;ais International Samuel Beckett</h3>
+								<p class="record-where">Birr Castle Demesne, Ireland</p>
+								<p class="record-note">School group from the LFI in Dublin, taken from the Leviathan through to I-LOFAR.</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="public">
+							<span class="record-when">Mar 2025<span class="record-cat">Public</span></span>
+							<div>
+								<h3 class="record-title">Partial solar eclipse observing</h3>
+								<p class="record-where">Birr Castle Demesne, Ireland</p>
+								<p class="record-note">A public morning viewing of the 29 March partial eclipse, included in general admission to the demesne.</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="tour">
+							<span class="record-when">Mar 2025<span class="record-cat">Private tour</span></span>
+							<div>
+								<h3 class="record-title">Hank Green visit to Birr Castle</h3>
+								<p class="record-where">Birr Castle Demesne, Ireland</p>
+								<p class="record-note">A private tour of the Leviathan for the science communicator and novelist, and his family.</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="public">
+							<span class="record-when">Mar 2025<span class="record-cat">Public</span></span>
+							<div>
+								<h3 class="record-title">Irish Astronomy Week &mdash; &ldquo;Leviathan to LOFAR&rdquo; walk and talk</h3>
+								<p class="record-where">Birr Castle Demesne, Ireland</p>
+								<p class="record-note">Two guided tours across Birr&rsquo;s astronomical heritage: the engineering of the 19th-century Leviathan, and the research running at I-LOFAR today.</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="academic">
+							<span class="record-when">May 2024<span class="record-cat">Academic</span></span>
+							<div>
+								<h3 class="record-title">IAU Symposium 388 &mdash; Solar and Stellar Coronal Mass Ejections</h3>
+								<p class="record-where">Krak&oacute;w, Poland</p>
+								<p class="record-note">Poster presentation on a solar flare and its corresponding shockwave, across a five-day symposium of over 150 attendees.</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="public">
+							<span class="record-when">May 2024<span class="record-cat">Public</span></span>
+							<div>
+								<h3 class="record-title">Pint of Science Birr &mdash; organiser and host</h3>
+								<p class="record-where">The Chestnut, Birr, Ireland</p>
+								<p class="record-note">Organised and hosted the Birr event: three speakers, introductions, and a quiz written from their talks.</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="public">
+							<span class="record-when">Apr 2024<span class="record-cat">Public</span></span>
+							<div>
+								<h3 class="record-title">Institute of Physics Three Minute Wonder Final</h3>
+								<p class="record-where">The Royal Institution, London, UK</p>
+								<p class="record-note">One of eight UK and Ireland finalists presenting to a full auditorium in three minutes, with one slide.</p>
+								<span class="record-award">Audience Vote Award</span>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="academic">
+							<span class="record-when">Mar 2024<span class="record-cat">Academic</span></span>
+							<div>
+								<h3 class="record-title"><a href="https://www.iop.org/events/ireland-spring-conference-2024" target="_blank" rel="noopener">Institute of Physics Ireland Spring Conference</a></h3>
+								<p class="record-where">Dublin, Ireland</p>
+								<p class="record-note">The annual gathering of the Irish physics community, marking 60 years of the IOP Ireland Committee, and host to the Rosse Medal competition.</p>
+								<span class="record-award">Rosse Medal</span>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="academic">
+							<span class="record-when">Oct 2023<span class="record-cat">Academic</span></span>
+							<div>
+								<h3 class="record-title">Invited seminar</h3>
+								<p class="record-where">Armagh Observatory &amp; Planetarium, Northern Ireland</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="academic">
+							<span class="record-when">Aug 2023<span class="record-cat">Academic</span></span>
+							<div>
+								<h3 class="record-title">Irish National Astronomy Meeting</h3>
+								<p class="record-where">Cork, Ireland</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="academic">
+							<span class="record-when">Jul 2023<span class="record-cat">Academic</span></span>
+							<div>
+								<h3 class="record-title">STELLAR Project Final Conference</h3>
+								<p class="record-where">Plovdiv, Bulgaria</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="academic">
+							<span class="record-when">May 2023<span class="record-cat">Academic</span></span>
+							<div>
+								<h3 class="record-title">STELLAR Science School</h3>
+								<p class="record-where">Sofia, Bulgaria</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="public">
+							<span class="record-when">Mar 2023<span class="record-cat">Public</span></span>
+							<div>
+								<h3 class="record-title">Irish Astronomical Society &mdash; invited public talk</h3>
+								<p class="record-where">University College Dublin, Ireland</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="public">
+							<span class="record-when">Mar 2023<span class="record-cat">Public</span></span>
+							<div>
+								<h3 class="record-title">Irish Astronomical Association &mdash; invited talk series</h3>
+								<p class="record-where">Queen&rsquo;s University Belfast, Northern Ireland</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="academic">
+							<span class="record-when">Jan 2023<span class="record-cat">Academic</span></span>
+							<div>
+								<h3 class="record-title">Invited seminar, Institute of Astronomy</h3>
+								<p class="record-where">Bulgarian Academy of Sciences, Sofia, Bulgaria</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="tour">
+							<span class="record-when">Jan 2023<span class="record-cat">Tour</span></span>
+							<div>
+								<h3 class="record-title">University of Limerick Physics Society</h3>
+								<p class="record-where">I-LOFAR, Birr, Ireland</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="tour">
+							<span class="record-when">Jan 2023<span class="record-cat">Tour</span></span>
+							<div>
+								<h3 class="record-title">Atlantic Technological University &mdash; undergraduate physics</h3>
+								<p class="record-where">I-LOFAR, Birr, Ireland</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="public">
+							<span class="record-when">Jan 2023<span class="record-cat">Public</span></span>
+							<div>
+								<h3 class="record-title">Astrofest &mdash; invited speaker</h3>
+								<p class="record-where">Galway Astronomical Society, Galway, Ireland</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="academic">
+							<span class="record-when">Oct 2022<span class="record-cat">Academic</span></span>
+							<div>
+								<h3 class="record-title">TESS Science Team Meeting #29 &mdash; invited presentation</h3>
+								<p class="record-where">Massachusetts, USA</p>
+								<p class="record-note">Invited by the TESS Science Director to present in the contributed exoplanet science session. <a href="https://youtu.be/gnw9FmfhKKY?si=nbQC0QT77Cq2oQpm" target="_blank" rel="noopener">Recording on YouTube</a>.</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="academic">
+							<span class="record-when">Sep 2022<span class="record-cat">Academic</span></span>
+							<div>
+								<h3 class="record-title">Planetary, Solar and Heliospheric Radio Emissions Conference</h3>
+								<p class="record-where">Dublin, Ireland</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="academic">
+							<span class="record-when">Aug 2022<span class="record-cat">Academic</span></span>
+							<div>
+								<h3 class="record-title">Irish National Astronomy Meeting</h3>
+								<p class="record-where">DIAS Dunsink Observatory, Dublin, Ireland</p>
+								<span class="record-award">Peter Curran Award</span>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="academic">
+							<span class="record-when">Jul 2022<span class="record-cat">Academic</span></span>
+							<div>
+								<h3 class="record-title">CoolStars 21</h3>
+								<p class="record-where">Pierre Baudis Conference Centre, Toulouse, France</p>
+								<p class="record-note">Presented my research on stellar flares in the solar and stellar coronal mass ejections session, and took questions from the floor.</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="tour">
+							<span class="record-when">Jun 2022<span class="record-cat">Tour</span></span>
+							<div>
+								<h3 class="record-title">University College Cork Astronomy Society</h3>
+								<p class="record-where">I-LOFAR, Birr, Ireland</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="tour">
+							<span class="record-when">Apr 2022<span class="record-cat">Tour</span></span>
+							<div>
+								<h3 class="record-title">Maynooth University &mdash; undergraduate physics</h3>
+								<p class="record-where">I-LOFAR, Birr, Ireland</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="tour">
+							<span class="record-when">Apr 2022<span class="record-cat">Tour</span></span>
+							<div>
+								<h3 class="record-title">University of Galway &mdash; undergraduate physics</h3>
+								<p class="record-where">I-LOFAR, Birr, Ireland</p>
+								<p class="record-note">&ldquo;The Universe at Radio Wavelengths&rdquo;.</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="academic">
+							<span class="record-when">Aug 2021<span class="record-cat">Academic</span></span>
+							<div>
+								<h3 class="record-title"><a href="https://www.uksolphys.org/summer-schools/stfc-introductory-course-in-solar-and-solar-terrestrial-physics-2021%E2%80%A8/" target="_blank" rel="noopener">STFC Introductory Course in Solar and Solar-Terrestrial Physics</a></h3>
+								<p class="record-where">University of Warwick, United Kingdom</p>
+							</div>
+						</li>
+
+						<li class="record-item" data-cat="academic">
+							<span class="record-when">Apr 2021<span class="record-cat">Academic</span></span>
+							<div>
+								<h3 class="record-title">ASKAP&ndash;MeerKAT Telescope Consortium Meeting</h3>
+								<p class="record-where">Online &middot; Australia &amp; South Africa</p>
+							</div>
+						</li>
+
+					</ul>
+				</div>
+			</section>
+
+			<!-- 04 — Get in touch -->
+			<section class="chapter" id="contact">
+				<div class="wrap">
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>04</b> / Get in touch</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>Available for talks.</span></span></h2>
+						<p class="chapter-lead">I welcome speaking invitations, particularly for science festivals, open days, societies and schools. Get in touch with the details and I will come back to you.</p>
+					</div>
+
+					<ul class="hang-list reveal">
+						<li class="hang-row">
+							<span class="hang-label">Location</span>
+							<p>Dublin &bull; Ireland &mdash; and happy to travel</p>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Email</span>
+							<p><a href="mailto:jeremy.rigney@gmail.com">jeremy.rigney [at] gmail [dot] com</a></p>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Elsewhere</span>
+							<ul class="wordmarks">
+								<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" rel="noopener">LinkedIn</a></li>
+								<li><a href="https://github.com/jeremyrigney" target="_blank" rel="noopener">GitHub</a></li>
+								<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target="_blank" rel="noopener">Scholar</a></li>
+								<li><a href="https://www.instagram.com/jeremy.rigney/" target="_blank" rel="noopener">Instagram</a></li>
+							</ul>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Research</span>
+							<p><a href="cv.html">PhD, publications and full CV</a></p>
+						</li>
+					</ul>
+				</div>
+			</section>
+		</main>
+
+		<footer class="site-footer">
+			<div class="wrap">
+				<p>&copy; <span id="year">2026</span> Jeremy Rigney</p>
+				<p><a href="index.html">Home</a> &nbsp;&middot;&nbsp; <a href="cv.html">CV</a> &nbsp;&middot;&nbsp; <a href="https://jeremy.ie/dashboard">Dashboard</a> &nbsp;&middot;&nbsp; <a href="eclipse.html">Eclipse</a> &nbsp;&middot;&nbsp; <a href="f1.html">F1</a></p>
 			</div>
+		</footer>
 
-		<!-- Scripts -->
-			<script src="assets/js/jquery.min.js"></script>
-			<script src="assets/js/jquery.scrollex.min.js"></script>
-			<script src="assets/js/jquery.scrolly.min.js"></script>
-			<script src="assets/js/browser.min.js"></script>
-			<script src="assets/js/breakpoints.min.js"></script>
-			<script src="assets/js/util.js"></script>
-			<script src="assets/js/main.js"></script>
-
+		<script src="assets/js/speaking.js?v=20260901"></script>
+		<script src="assets/js/speaking-map.js?v=20260901"></script>
 	</body>
 </html>

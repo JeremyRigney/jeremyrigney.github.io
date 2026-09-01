@@ -1,0 +1,602 @@
+/*
+ * jeremy.ie/speaking — public speaking.
+ *
+ * Loads on top of assets/css/coal.css, which carries the design system: the tokens,
+ * the motion primitives, the header, the opening type, and the row grids. Everything
+ * in this file is something only this page has — the map frame, the marquee figures,
+ * the filter rail and the record rows. It cannot be loaded on its own; every var()
+ * below is defined there.
+ *
+ * The constraints coal.css states hold here too: no card, no rounded corner, no
+ * box-shadow, no alternating band, no icon font. The photographs are the one thing
+ * this page has that the homepage does not, and they are handled the same way
+ * everything else is — set flush into the grid with a hairline under them, never
+ * floated into a paragraph and never given a frame.
+ */
+
+/* ---------- The opening frame ---------- */
+
+/*
+ * Shorter than the homepage's full-viewport title page: /speaking is entered from a
+ * link, and a second full-height hero one click in is a toll rather than an arrival.
+ * 82svh puts the first chapter rule just below the fold, so the page announces there
+ * is something under it without asking for a scroll to prove it.
+ */
+.opening {
+  position: relative;
+  min-height: 82svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 3.5rem;
+  padding: 8.5rem 0 3rem;
+  /* The map runs to the edges; nothing about it should be centred on .wrap. */
+  overflow: hidden;
+}
+
+/*
+ * The map layer. Sized in CSS and painted in device pixels by speaking-map.js.
+ *
+ * Weighted to the right and faded out under the type, the same trick the homepage's
+ * shimmer mask uses: a chart at even strength edge to edge reads as wallpaper behind
+ * the words, and the fade is what makes it read as something the page is sitting on.
+ * The headline is on the left, so that is where the map gives way.
+ */
+.talk-map {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+
+  /* Fades up once the coastline has loaded, so the canvas never appears part-built. */
+  opacity: 0;
+  transition: opacity 900ms var(--ease);
+
+  /*
+   * Centred left of the venues rather than on them. The transatlantic arc is the one
+   * thing on this map that has to survive — it is the only mark that reaches out of
+   * Europe — and it runs west across the frame under the headline. A mask centred on
+   * Ireland fades exactly the half of the arc worth seeing.
+   */
+  --map-mask: radial-gradient(
+    130% 118% at 62% 44%,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.9) 42%,
+    rgba(0, 0, 0, 0.5) 72%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-mask-image: var(--map-mask);
+  mask-image: var(--map-mask);
+}
+
+.talk-map.is-ready {
+  opacity: 1;
+}
+
+.talk-map canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .talk-map {
+    transition: none;
+  }
+}
+
+/* The type sits above the map. */
+.opening > .wrap {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+ * A scrim behind the headline column only. The map's arcs converge on Ireland, which
+ * on a wide screen lands close enough to the lead paragraph to compete with it; this
+ * is one stop of separation and is invisible against the ground everywhere else.
+ */
+.opening-copy {
+  position: relative;
+  max-width: 44rem;
+}
+
+.opening-copy::before {
+  content: "";
+  position: absolute;
+  inset: -2rem -3rem;
+  z-index: -1;
+  /*
+   * Kept off full strength on purpose. At 0.88 this reads as a dark plate laid over
+   * the map and wipes the Massachusetts arc out entirely; the type only ever needed
+   * about a stop of separation, and the map is faint enough that this is it.
+   */
+  background: radial-gradient(
+    62% 56% at 26% 50%,
+    rgba(17, 18, 20, 0.72),
+    rgba(17, 18, 20, 0) 100%
+  );
+}
+
+/* The rail at the foot, with the map key beside it. */
+.opening-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.6rem 2rem;
+  flex-wrap: wrap;
+}
+
+/*
+ * The map's legend. One line of mono, not a boxed key with swatches — the map has
+ * exactly one mark on it, so the only thing needing explanation is what the size of
+ * a disc means.
+ */
+.map-key {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.map-key-dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  flex: none;
+}
+
+.map-key-dot-big {
+  width: 0.72rem;
+  height: 0.72rem;
+}
+
+@media (max-width: 860px) {
+  /*
+   * On a phone the map is a texture rather than a chart — Ireland is a few pixels
+   * across and the labels would collide with the headline. It stays, quieter, and
+   * the key comes off since there is nothing legible left to key.
+   */
+  .talk-map.is-ready {
+    opacity: 0.55;
+  }
+
+  .map-key {
+    display: none;
+  }
+
+  .opening-copy::before {
+    inset: -1.5rem -1.5rem;
+    background: radial-gradient(
+      90% 65% at 40% 50%,
+      rgba(17, 18, 20, 0.92),
+      rgba(17, 18, 20, 0) 100%
+    );
+  }
+}
+
+@media (max-width: 700px) {
+  .opening {
+    min-height: auto;
+    padding: 6.6rem 0 2.6rem;
+    gap: 2.6rem;
+  }
+}
+
+/* ---------- Selected talks ---------- */
+
+/*
+ * The marquee entries. A wide figure, then the writing under it on the same margin
+ * spine every other row on the site hangs off — not an image floated into a
+ * paragraph, which is what the old page did and what made every entry look like a
+ * blog post from 2011.
+ */
+.feature {
+  border-top: 1px solid var(--line);
+  padding: clamp(2.8rem, 6vw, 4.4rem) 0;
+}
+
+.feature:first-child {
+  border-top: 1px solid var(--line-strong);
+}
+
+.feature-head {
+  display: grid;
+  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr);
+  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+  margin-bottom: clamp(1.6rem, 3vw, 2.4rem);
+}
+
+.feature-meta {
+  padding-top: 0.55em;
+}
+
+.feature-when {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.feature-tag {
+  display: block;
+  margin-top: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.feature-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.9rem, 4.4vw, 3.2rem);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  color: var(--chalk);
+}
+
+.feature-where {
+  margin: 0.9rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/*
+ * The body sits in the wide column, beside the margin spine — the same offset the
+ * chapter titles take, so the whole page reads on one left edge.
+ */
+.feature-body {
+  display: grid;
+  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr);
+  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+}
+
+.feature-body > * {
+  grid-column: 2;
+}
+
+.feature-body p {
+  margin: 0 0 1.1rem;
+  max-width: min(62ch, 100%);
+  font-size: 1rem;
+  line-height: 1.68;
+  color: var(--ink-soft);
+}
+
+.feature-body p:last-child {
+  margin-bottom: 0;
+}
+
+.feature-body a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+  transition: color 220ms ease, border-color 220ms ease;
+}
+
+.feature-body a:hover,
+.feature-body a:focus-visible {
+  color: var(--chalk);
+  border-bottom-color: var(--accent);
+}
+
+/*
+ * The photograph. A 16:9 crop with a hairline over it and nothing else — no frame,
+ * no radius, no shadow. The desaturation is what lets a set of press photographs of
+ * wildly different colour temperature sit on one page without the section turning
+ * into a scrapbook; it lifts on hover, which is the only reward-for-attention on the
+ * page and the only place a photograph is shown at full strength.
+ */
+.feature-figure {
+  margin: 0 0 clamp(1.8rem, 3.5vw, 2.6rem);
+}
+
+.feature-figure img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  filter: grayscale(0.55) contrast(1.04) brightness(0.9);
+  transition: filter 600ms var(--ease);
+}
+
+.feature-figure:hover img {
+  filter: grayscale(0) contrast(1) brightness(1);
+}
+
+.feature-figure figcaption {
+  margin-top: 0.8rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-figure img {
+    transition: none;
+  }
+}
+
+/*
+ * A pull figure inside a feature — the attendance number on the eclipse entry, the
+ * audience vote on the Royal Institution one. Set at readout size in the margin
+ * column, so it lands on the spine rather than interrupting the prose.
+ */
+/*
+ * The note carries its own margin column, so inside .feature-body — where everything
+ * else is pushed into column 2 — it has to span both or its value would sit in a
+ * margin column nested inside the content column, one indent too far in.
+ */
+.feature-body > .feature-figure-note {
+  grid-column: 1 / -1;
+}
+
+/* Likewise the announce row, which is a rule across the measure, not a paragraph. */
+.feature-body > .announce {
+  margin-bottom: 0;
+}
+
+.feature-figure-note {
+  display: grid;
+  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr);
+  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+  margin: clamp(1.6rem, 3vw, 2.2rem) 0 0;
+  padding-top: 1.3rem;
+  border-top: 1px solid var(--line);
+}
+
+.feature-figure-note .figure-value {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: clamp(1.6rem, 3.4vw, 2.4rem);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--accent-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.feature-figure-note p {
+  margin: 0;
+  max-width: min(52ch, 100%);
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 860px) {
+  .feature-head,
+  .feature-body,
+  .feature-figure-note {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-body > * {
+    grid-column: 1;
+  }
+
+  .feature-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 1.1rem;
+    padding-top: 0;
+    margin-bottom: 0.9rem;
+  }
+
+  .feature-tag {
+    margin-top: 0;
+  }
+
+  .feature-figure-note .figure-value {
+    margin-bottom: 0.6rem;
+  }
+}
+
+/* ---------- The full record ---------- */
+
+/*
+ * The filter rail. Ships hidden and is unhidden by speaking.js, so with no JavaScript
+ * there are no dead chips above a list that cannot be filtered.
+ */
+.filter-rail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.8rem 1.6rem;
+  margin-bottom: 2.2rem;
+}
+
+.filter-rail[hidden] {
+  display: none;
+}
+
+/*
+ * Chips in the loosest sense: mono text with a hairline under it, exactly like every
+ * other control on the site. A real chip — a filled, rounded capsule — is the one
+ * thing coal.css rules out everywhere else, and a filter is not special enough to
+ * earn an exception.
+ */
+.filter-chip {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  padding: 0 0 0.35rem;
+  cursor: pointer;
+  transition: color 220ms ease, border-color 220ms ease;
+}
+
+.filter-chip:hover,
+.filter-chip:focus-visible {
+  color: var(--ink);
+  border-bottom-color: var(--line-strong);
+}
+
+.filter-chip.is-on {
+  color: var(--accent-soft);
+  border-bottom-color: var(--accent);
+}
+
+/* Pushed to the far end of the rail: it is a result, not a control. */
+.filter-count {
+  margin: 0 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.record-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line-strong);
+}
+
+/*
+ * One row per appearance. The same three-column grid the index rows on the homepage
+ * use, but tighter: thirty of these in a column means the 2rem padding that suits six
+ * work entries would run the section to four screens.
+ */
+.record-item {
+  display: grid;
+  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr);
+  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+/*
+ * The filter. The list carries the active category and each row its own, so hiding is
+ * one selector rather than a style write per row. `data-filter="all"` matches nothing
+ * here and the whole list shows — which is also the no-JS state, since the attribute
+ * is only ever written by speaking.js.
+ */
+.record-list[data-filter="public"] .record-item:not([data-cat="public"]),
+.record-list[data-filter="academic"] .record-item:not([data-cat="academic"]),
+.record-list[data-filter="tour"] .record-item:not([data-cat="tour"]) {
+  display: none;
+}
+
+.record-when {
+  padding-top: 0.35em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The category, under the date in the margin column. */
+.record-cat {
+  display: block;
+  margin-top: 0.5rem;
+  color: var(--accent-soft);
+  opacity: 0.75;
+}
+
+.record-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.25rem, 2.4vw, 1.7rem);
+  line-height: 1.14;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+
+.record-where {
+  margin: 0.6rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.63rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.record-note {
+  margin: 0.8rem 0 0;
+  max-width: min(62ch, 100%);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.record-note a,
+.record-title a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+  transition: color 220ms ease, border-color 220ms ease;
+}
+
+.record-note a:hover,
+.record-title a:hover,
+.record-note a:focus-visible,
+.record-title a:focus-visible {
+  color: var(--chalk);
+  border-bottom-color: var(--accent);
+}
+
+/* An award on a record row — the one thing allowed to interrupt the grey. */
+.record-award {
+  display: inline-block;
+  margin-top: 0.8rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+  border-bottom: 1px solid var(--accent);
+  padding-bottom: 0.25rem;
+}
+
+@media (max-width: 860px) {
+  .record-item {
+    grid-template-columns: 1fr;
+  }
+
+  .record-when {
+    display: flex;
+    align-items: baseline;
+    gap: 1.1rem;
+    padding-top: 0;
+    margin-bottom: 0.7rem;
+  }
+
+  .record-cat {
+    margin-top: 0;
+  }
+
+  .filter-count {
+    margin-left: 0;
+    width: 100%;
+  }
+}
