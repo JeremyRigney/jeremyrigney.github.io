@@ -1,404 +1,485 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>Jeremy Rigney | Curriculum Vitae</title>
-
-		<!-- Favicon-->
-		<link rel="icon" type="image/x-icon" href="images/favicon.png"/>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<meta name="theme-color" content="#06140e" />
+		<title>Jeremy Rigney | Curriculum Vitae</title>
+
+		<script type="application/ld+json">
+		{
+		  "@context": "https://schema.org",
+		  "@type": "ProfilePage",
+		  "url": "https://jeremy.ie/cv",
+		  "name": "Jeremy Rigney — Curriculum Vitae",
+		  "mainEntity": {
+		    "@type": "Person",
+		    "name": "Jeremy Rigney",
+		    "jobTitle": "Senior Data Scientist",
+		    "url": "https://jeremy.ie/",
+		    "alumniOf": ["Queen's University Belfast", "University College Dublin"],
+		    "knowsAbout": ["Data science", "Machine learning", "Astrophysics", "Solar physics", "Python", "Time-series analysis"]
+		  }
+		}
+		</script>
+		<!-- Favicon-->
+		<link rel="icon" type="image/x-icon" href="images/favicon.png"/>
+		<meta name="theme-color" content="#111214" />
 		<meta name="author" content="Jeremy Rigney">
 		<meta name="description" content="I hold a PhD in astrophysics from Queen's University Belfast. My research focused on observing the Sun and other stars using some of the largest and most advanced telescopes in the world to better understand stellar dynamics. Throughout my PhD I have presented my research at international conferences, and published peer reviewed research, collaborating with colleagues across the globe."/>
 		<meta name="keywords" content="Jeremy Rigney, Jeremy, astronomy ireland, irish astronomy, jeremy astronomy, jeremy science communication, science communication ireland, Jeremy Rigney astronomy, Dublin Institute for Advanced Studies, AOP, Armagh Observatory, Queen's University Belfast, Lindsay Scholar, jeremy dias, jeremy ireland">
 
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-		<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Chivo+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-		<link rel="stylesheet" href="assets/css/home.css" />
-		<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+		<!--
+			The same trio, and the same weights, as /, /speaking and /dashboard: Chivo Mono
+			needs 700 for the opening title, Fraunces the full optical-size range for the
+			chapter titles. There is no fourth face and no icon font on this page — the
+			social links at the foot are set as type, which is what let this page drop the
+			59 KB of Font Awesome the old CV loaded for four glyphs.
+		-->
+		<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+		<!--
+			coal.css is the design system, shared with the homepage, /speaking and
+			/dashboard. cv.css is only what this page owns: the opening timeline, the
+			bullet list under a record row, and the publication rows. Order matters; the
+			second depends on the first's tokens.
+		-->
+		<link rel="stylesheet" href="assets/css/coal.css?v=20260902" />
+		<link rel="stylesheet" href="assets/css/cv.css?v=20260902" />
 
-		<style>
-			/* ---------- CV-specific (built on home.css tokens) ---------- */
-			.cv-list { display: grid; gap: 1.3rem; }
-			.cv-entry {
-				padding: 1.8rem 2rem;
-				border: 1px solid var(--rule);
-				border-radius: var(--radius);
-				background: var(--paper);
-			}
-			.section-alt .cv-entry { background: #fff; }
-			.cv-entry-head {
-				display: flex;
-				flex-wrap: wrap;
-				justify-content: space-between;
-				align-items: baseline;
-				gap: 0.35rem 1.5rem;
-			}
-			.cv-entry .yr {
-				font-family: var(--font-mono);
-				font-size: 0.74rem;
-				letter-spacing: 0.08em;
-				text-transform: uppercase;
-				color: var(--accent);
-				white-space: nowrap;
-			}
-			.cv-entry h3 { font-size: 1.35rem; }
-			.cv-entry .org { margin: 0.45rem 0 0; color: var(--ink-soft); font-weight: 500; }
-			.cv-entry .org strong { color: var(--ink); font-weight: 600; }
-			.cv-entry ul { margin: 1.1rem 0 0; padding-left: 1.15rem; color: var(--ink-soft); }
-			.cv-entry li { margin: 0 0 0.55rem; }
-			.cv-entry li:last-child { margin-bottom: 0; }
-			.cv-link {
-				color: var(--ink);
-				font-weight: 600;
-				text-decoration: underline;
-				text-decoration-color: var(--accent);
-				text-underline-offset: 0.18em;
-				text-decoration-thickness: 1.5px;
-				transition: color 180ms ease;
-			}
-			.cv-link:hover { color: var(--accent); }
-
-			/* Skills */
-			.skills-grid {
-				display: grid;
-				grid-template-columns: repeat(2, 1fr);
-				gap: 1.3rem;
-			}
-			.skill-card {
-				padding: 1.6rem 1.8rem;
-				border: 1px solid var(--rule);
-				border-radius: var(--radius);
-				background: #fff;
-			}
-			.skill-card h3 {
-				font-family: var(--font-mono);
-				font-size: 0.72rem;
-				font-weight: 600;
-				letter-spacing: 0.12em;
-				text-transform: uppercase;
-				color: var(--accent);
-			}
-			.skill-card p { margin: 0.7rem 0 0; color: var(--ink-soft); }
-
-			/* Awards */
-			.award-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
-			.award-list li {
-				padding: 1.15rem 0;
-				border-bottom: 1px solid var(--rule);
-				display: flex;
-				gap: 1rem;
-				align-items: baseline;
-				color: var(--ink);
-			}
-			.award-list .award-yr { font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); letter-spacing: 0.06em; flex: none; }
-
-			/* Publications */
-			.pub-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
-			.pub-list li { padding: 1.4rem 0; border-bottom: 1px solid var(--rule); }
-			.pub-title { display: block; font-weight: 600; color: var(--ink); }
-			.pub-meta { margin: 0.45rem 0 0; font-size: 0.9rem; color: var(--ink-faint); line-height: 1.55; }
-			.pub-meta strong { color: var(--ink-soft); }
-			.pub-meta em { color: var(--ink-soft); font-style: italic; }
-
-			@media screen and (max-width: 850px) {
-				.skills-grid { grid-template-columns: 1fr; }
-				.cv-entry { padding: 1.5rem 1.5rem; }
-			}
-		</style>
+		<!--
+			Without JavaScript nothing ever adds .is-in, so every .reveal would sit at
+			opacity 0. This hands all of it over statically. The nav panel is a fixed
+			overlay below 860px that only the toggle can open, so it is returned to the
+			flow here as well.
+		-->
+		<noscript>
+			<style>
+				.reveal { opacity: 1; transform: none; }
+				.line-mask > span { transform: none; }
+				@media (max-width: 860px) {
+					.nav-toggle { display: none; }
+					.site-header { position: static; height: auto; padding: 0.9rem 1.4rem; flex-wrap: wrap; }
+					.site-nav {
+						position: static;
+						flex-direction: row;
+						flex-wrap: wrap;
+						gap: 0 1.1rem;
+						padding: 0.6rem 0 0;
+						background: none;
+						border-bottom: 0;
+						transform: none;
+						opacity: 1;
+						pointer-events: auto;
+					}
+					.site-nav a { padding: 0.3rem 0; border-bottom: 1px solid transparent; }
+				}
+			</style>
+		</noscript>
 
 		<!--Cookie consent-->
 		<script src="https://web.cmp.usercentrics.eu/modules/autoblocker.js"></script>
 		<script id="usercentrics-cmp" src="https://web.cmp.usercentrics.eu/ui/loader.js" data-settings-id="nt7NWEM4FPFze0" async></script>
-	</head>
 
-	<!-- Google tag (gtag.js) -->
-	<script async src="https://www.googletagmanager.com/gtag/js?id=G-6G0WFV4TS8"></script>
-	<script>
-	  window.dataLayer = window.dataLayer || [];
-	  function gtag(){dataLayer.push(arguments);}
-	  gtag('js', new Date());
-	  gtag('config', 'G-6G0WFV4TS8');
-	</script>
+		<!-- Google tag (gtag.js) -->
+		<script async src="https://www.googletagmanager.com/gtag/js?id=G-6G0WFV4TS8"></script>
+		<script>
+		  window.dataLayer = window.dataLayer || [];
+		  function gtag(){dataLayer.push(arguments);}
+		  gtag('js', new Date());
+		  gtag('config', 'G-6G0WFV4TS8');
+		</script>
+	</head>
 
 	<body>
 
-		<!-- Header -->
+		<!--
+			No intro overlay, and the header is present from the first frame — it never
+			ships .is-hidden here. That sequence is the site's front door; this page is
+			entered from a link, and replaying it on an internal navigation is friction
+			rather than atmosphere. The same reasoning /speaking and /dashboard use.
+		-->
 		<header class="site-header" id="site-header">
-			<a class="brand" href="https://jeremy.ie">Jeremy<span>.</span></a>
-			<nav class="nav-links" id="nav-links" aria-label="Primary">
-				<a href="https://jeremy.ie">Home</a>
-				<a href="#education">Education</a>
-				<a href="#experience">Experience</a>
-				<a href="#skills">Skills</a>
-				<a href="#publications">Publications</a>
-				<a href="#contact" class="nav-cta">Contact</a>
-			</nav>
-			<button class="nav-toggle" id="nav-toggle" type="button" aria-label="Open menu" aria-controls="nav-links" aria-expanded="false">
-				<span></span><span></span><span></span>
+			<div class="brand">
+				<a class="masthead" href="index.html">Jeremy<span class="masthead-dot">.</span></a>
+			</div>
+			<p class="header-meta">Dublin &middot; Ireland</p>
+			<button class="nav-toggle" type="button" aria-label="Open menu" aria-controls="site-nav" aria-expanded="false">
+				<span></span>
+				<span></span>
 			</button>
+			<nav class="site-nav" id="site-nav" aria-label="Site navigation">
+				<a href="index.html">Home</a>
+				<a href="speaking.html">Speaking</a>
+				<a href="https://jeremy.ie/dashboard">Dashboard</a>
+				<a href="eclipse.html">Eclipse</a>
+				<a href="f1.html">F1</a>
+				<a href="cv.html" aria-current="page">CV</a>
+				<a href="#contact">Contact</a>
+			</nav>
 		</header>
 
 		<main id="top">
 
-			<!-- Hero -->
-			<section class="hero">
+			<!--
+				The opening frame. A title page over the record itself: the four
+				institutions in chapters 01 and 02 as spans, and a tick for every paper in
+				chapter 05. See assets/js/cv-timeline.js — the years live at the top of
+				that file and are a second copy of what the markup below says, which is
+				stated there too.
+			-->
+			<section class="opening">
+
+				<div class="cv-timeline" aria-hidden="true">
+					<canvas id="cv-timeline"></canvas>
+				</div>
+
 				<div class="wrap">
-					<p class="kicker reveal">Curriculum Vitae</p>
-					<h1 class="reveal">Dr. <em>Jeremy</em> Rigney</h1>
-					<p class="hero-sub reveal">Senior Data Scientist &nbsp;·&nbsp; AI R&amp;D &nbsp;·&nbsp; Astrophysicist</p>
-					<p class="hero-lead reveal">A PhD physicist turned data scientist — building large-scale data pipelines and models, with a decade of Python and a research record spanning international, peer-reviewed astrophysics.</p>
-					<div class="hero-actions reveal">
-						<a href="JeremyRigneyCV.pdf" class="btn btn-primary" download="JeremyRigney_CV">Download full CV</a>
-						<a href="https://jeremy.ie" class="btn btn-ghost">Back to home</a>
-						<ul class="socials">
-							<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a></li>
-							<li><a href="https://github.com/jeremyrigney" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a></li>
-							<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target="_blank" rel="noopener" aria-label="Google Scholar"><i class="fa-brands fa-google-scholar"></i></a></li>
-							<li><a href="https://www.instagram.com/jeremy.rigney/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a></li>
-						</ul>
+					<div class="reveal opening-copy">
+						<p class="opening-eyebrow">Curriculum Vitae &middot; Dr. Jeremy Rigney</p>
+						<h1 class="opening-title">
+							<span class="line-mask"><span>From stellar</span></span>
+							<span class="line-mask"><span>physics to</span></span>
+							<span class="line-mask"><span>production AI</span></span>
+						</h1>
+						<p class="opening-sub">Senior Data Scientist &middot; AI R&amp;D &middot; Astrophysicist</p>
+						<p class="opening-lead">A PhD physicist turned data scientist &mdash; building large-scale data pipelines and models, with a decade of Python and a research record spanning international, peer-reviewed astrophysics.</p>
+						<div class="opening-actions">
+							<a class="cta cta-lead" href="JeremyRigneyCV.pdf" download="JeremyRigney_CV">Download full CV</a>
+							<a class="cta" href="index.html">Back to home</a>
+						</div>
+					</div>
+				</div>
+
+				<div class="wrap">
+					<div class="opening-foot">
+						<div class="readout-rail reveal">
+							<div class="readout readout-lead">
+								<span class="readout-value">PhD 2024</span>
+								<span class="readout-label">Astrophysics, QUB</span>
+							</div>
+							<div class="readout">
+								<span class="readout-value" data-count="6">6</span>
+								<span class="readout-label">Publications</span>
+							</div>
+							<div class="readout">
+								<span class="readout-value" data-count="3">3</span>
+								<span class="readout-label">Awards</span>
+							</div>
+							<div class="readout">
+								<span class="readout-value" data-count="8">8+</span>
+								<span class="readout-label">Years of Python</span>
+							</div>
+						</div>
+						<p class="timeline-key">
+							<span class="timeline-key-rule"></span>
+							<span>Roles</span>
+							<span class="timeline-key-dot"></span>
+							<span>Publications</span>
+						</p>
 					</div>
 				</div>
 			</section>
 
-			<!-- Education -->
-			<section class="section" id="education">
+			<!--
+				01 — Experience.
+
+				The detailed chapter. The PhD bullet list used to appear verbatim in both
+				this section and Education; it now lives here once, and the two industry
+				roles carry their own detail rather than a bare job title.
+			-->
+			<section class="chapter" id="experience">
 				<div class="wrap">
-					<div class="section-head">
-						<p class="kicker reveal">01 — Education</p>
-						<h2 class="reveal">Where it was built.</h2>
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>01</b> / Experience</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>A few places my work lives.</span></span></h2>
 					</div>
-					<div class="cv-list">
-						<div class="cv-entry reveal">
-							<div class="cv-entry-head">
-								<h3>Doctorate of Philosophy — Astrophysics</h3>
-								<span class="yr">2020 — 2024</span>
+
+					<div class="record reveal">
+						<div class="record-row is-current">
+							<span class="record-yr">2026 to present</span>
+							<div>
+								<h3 class="record-name">Optum</h3>
+								<p class="record-sub">Senior Data Scientist</p>
+								<ul class="record-points">
+									<li>AI R&amp;D: designing and deploying agentic systems for production use.</li>
+									<li>Building and evaluating LLM-based pipelines, from prototype through to deployment.</li>
+									<li>Production ML models in a regulated healthcare data environment.</li>
+								</ul>
 							</div>
-							<p class="org"><strong>Queen's University Belfast</strong> · School of Mathematics and Physics</p>
-							<ul>
-								<li>2020 Eric Lindsay Scholarship, jointly hosted by <a class="cv-link" href="https://www.dias.ie" target="_blank" rel="noopener">Dublin Institute for Advanced Studies</a> and <a class="cv-link" href="https://www.armagh.space" target="_blank" rel="noopener">Armagh Observatory and Planetarium</a>.</li>
-								<li>Designed and operated high-throughput data pipelines processing &gt;100TB of time-series data from multi-instrument sensor arrays.</li>
-								<li>Managed real-time data acquisition as Chief Observer, overseeing streams of up to 3 GB/s with a focus on data integrity, storage, and downstream signal processing.</li>
-								<li>Engineered feature extraction and anomaly detection systems to identify rare signals in high-noise environments.</li>
-								<li>Implemented parallelised, containerised workflows (Slurm, Singularity) to ensure repeatable, audited data processing in high-compute environments.</li>
-								<li>Validated complex models by comparing simulated datasets against empirical measurements.</li>
-								<li>Published peer-reviewed research in leading international journals (Nature Astronomy and Astronomy &amp; Astrophysics).</li>
-								<li>Award-winning science communicator, recognised for translating highly technical astrophysical and mathematical concepts for diverse, non-specialist audiences.</li>
-							</ul>
 						</div>
-						<div class="cv-entry reveal">
-							<div class="cv-entry-head">
-								<h3>Bachelor of Science (Honours) — Physics with Astronomy &amp; Space Science</h3>
-								<span class="yr">2016 — 2020</span>
+						<div class="record-row">
+							<span class="record-yr">2025 to 2026</span>
+							<div>
+								<h3 class="record-name">LexisNexis Risk Solutions</h3>
+								<p class="record-sub">Data Scientist</p>
+								<ul class="record-points">
+									<li>Vehicle data: risk models and analytics over large-scale vehicle datasets.</li>
+									<li>Feature engineering and validation on high-volume records.</li>
+									<li>Production Python, SQL and cloud ETL.</li>
+								</ul>
 							</div>
-							<p class="org"><strong>University College Dublin</strong></p>
-							<ul>
-								<li>Relevant coursework: Probability and Statistics, Databases and Information Systems (SQL), Applied Mathematics, Linear Algebra, Calculus.</li>
-							</ul>
+						</div>
+						<div class="record-row">
+							<span class="record-yr">2020 to 2024</span>
+							<div>
+								<h3 class="record-name">Queen&rsquo;s University Belfast</h3>
+								<p class="record-sub">PhD Researcher</p>
+								<ul class="record-points">
+									<li>Designed and operated high-throughput data pipelines processing &gt;100TB of time-series data from multi-instrument sensor arrays.</li>
+									<li>Managed real-time data acquisition as Chief Observer, overseeing streams of up to 3 GB/s with a focus on data integrity, storage, and downstream signal processing.</li>
+									<li>Engineered feature extraction and anomaly detection systems to identify rare signals in high-noise environments.</li>
+									<li>Implemented parallelised, containerised workflows (Slurm, Singularity) to ensure repeatable, audited data processing in high-compute environments.</li>
+									<li>Validated complex models by comparing simulated datasets against empirical measurements.</li>
+									<li>Award-winning science communicator, recognised for translating highly technical astrophysical and mathematical concepts for diverse, non-specialist audiences.</li>
+								</ul>
+							</div>
 						</div>
 					</div>
 				</div>
 			</section>
 
-			<!-- Experience -->
-			<section class="section section-alt" id="experience">
+			<!--
+				02 — Education.
+
+				A record of degrees, not a second copy of the chapter above: what stays
+				here is what is genuinely educational — the scholarship, the publication
+				record it produced, and the UCD coursework.
+			-->
+			<section class="chapter" id="education">
 				<div class="wrap">
-					<div class="section-head">
-						<p class="kicker reveal">02 — Experience</p>
-						<h2 class="reveal">A few places my work lives.</h2>
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>02</b> / Education</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>Where it was built.</span></span></h2>
 					</div>
-					<div class="cv-list">
-						<div class="cv-entry reveal">
-							<div class="cv-entry-head">
-								<h3>Senior Data Scientist</h3>
-								<span class="yr">Mar 2026 — Present</span>
+
+					<div class="record reveal">
+						<div class="record-row">
+							<span class="record-yr">2020 to 2024</span>
+							<div>
+								<h3 class="record-name">Queen&rsquo;s University Belfast</h3>
+								<p class="record-sub">Doctorate of Philosophy &mdash; Astrophysics</p>
+								<p class="record-role">School of Mathematics and Physics.</p>
+								<ul class="record-points">
+									<li>2020 Eric Lindsay Scholarship, jointly hosted by <a href="https://www.dias.ie" target="_blank" rel="noopener">Dublin Institute for Advanced Studies</a> and <a href="https://www.armagh.space" target="_blank" rel="noopener">Armagh Observatory and Planetarium</a>.</li>
+									<li>Published peer-reviewed research in leading international journals, including Nature Astronomy and Astronomy &amp; Astrophysics.</li>
+								</ul>
 							</div>
-							<p class="org"><strong>Optum</strong></p>
 						</div>
-						<div class="cv-entry reveal">
-							<div class="cv-entry-head">
-								<h3>Data Scientist</h3>
-								<span class="yr">Jul 2025 — Mar 2026</span>
+						<div class="record-row">
+							<span class="record-yr">2016 to 2020</span>
+							<div>
+								<h3 class="record-name">University College Dublin</h3>
+								<p class="record-sub">BSc (Hons) &mdash; Physics with Astronomy &amp; Space Science</p>
+								<ul class="record-points">
+									<li>Relevant coursework: Probability and Statistics, Databases and Information Systems (SQL), Applied Mathematics, Linear Algebra, Calculus.</li>
+								</ul>
 							</div>
-							<p class="org"><strong>LexisNexis Risk Solutions</strong></p>
-						</div>
-						<div class="cv-entry reveal">
-							<div class="cv-entry-head">
-								<h3>PhD Researcher</h3>
-								<span class="yr">Sep 2020 — Dec 2024</span>
-							</div>
-							<p class="org"><strong>Queen's University Belfast</strong></p>
-							<ul>
-								<li>Designed and operated high-throughput data pipelines processing &gt;100TB of time-series data from multi-instrument sensor arrays.</li>
-								<li>Managed real-time data acquisition as Chief Observer, overseeing streams of up to 3 GB/s with a focus on data integrity, storage, and downstream signal processing.</li>
-								<li>Engineered feature extraction and anomaly detection systems to identify rare signals in high-noise environments.</li>
-								<li>Implemented parallelised, containerised workflows (Slurm, Singularity) to ensure repeatable, audited data processing in high-compute environments.</li>
-								<li>Validated complex models by comparing simulated datasets against empirical measurements.</li>
-								<li>Award-winning science communicator, recognised for translating highly technical astrophysical and mathematical concepts for diverse, non-specialist audiences.</li>
-							</ul>
 						</div>
 					</div>
 				</div>
 			</section>
 
-			<!-- Technical Skills -->
-			<section class="section" id="skills">
+			<!--
+				03 — Technical skills.
+
+				Six hanging rows on the margin spine, where six boxed cards used to be.
+				The content is unchanged; the boxes are the whole of what was removed.
+			-->
+			<section class="chapter" id="skills">
 				<div class="wrap">
-					<div class="section-head">
-						<p class="kicker reveal">03 — Technical Skills</p>
-						<h2 class="reveal">The toolkit.</h2>
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>03</b> / Technical skills</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>The toolkit.</span></span></h2>
 					</div>
-					<div class="skills-grid">
-						<div class="skill-card reveal">
-							<h3>AI &amp; Machine Learning</h3>
+
+					<ul class="hang-list reveal">
+						<li class="hang-row">
+							<span class="hang-label">AI &amp; Machine Learning</span>
 							<p>Large Language Models (LLMs), applied ML for anomaly detection and signal classification.</p>
-						</div>
-						<div class="skill-card reveal">
-							<h3>Programming</h3>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Programming</span>
 							<p>Python (8+ years), SQL (Advanced), Bash, R.</p>
-						</div>
-						<div class="skill-card reveal">
-							<h3>Data Engineering</h3>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Data Engineering</span>
 							<p>Azure, AWS, high-volume ETL, Parquet, batch &amp; stream processing.</p>
-						</div>
-						<div class="skill-card reveal">
-							<h3>Specialised Analysis</h3>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Specialised Analysis</span>
 							<p>Time-series signal processing, sensor fusion, multi-channel data analysis.</p>
-						</div>
-						<div class="skill-card reveal">
-							<h3>Data Privacy &amp; Security</h3>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Privacy &amp; Security</span>
 							<p>Data anonymisation / de-identification, GDPR-compliant data design.</p>
-						</div>
-						<div class="skill-card reveal">
-							<h3>Software Practices</h3>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Software Practices</span>
 							<p>Production-grade Python (PEP8, type hinting, docstrings), modular design, unit testing (PyTest), CI/CD, Docker, Git-flow.</p>
-						</div>
-					</div>
-				</div>
-			</section>
-
-			<!-- Awards -->
-			<section class="section section-alt" id="awards">
-				<div class="wrap">
-					<div class="section-head">
-						<p class="kicker reveal">04 — Awards</p>
-						<h2 class="reveal">Recognition.</h2>
-					</div>
-					<ul class="award-list">
-						<li class="reveal"><span class="award-yr">2024</span><span>Institute of Physics Three-Minute Wonder UK &amp; Ireland Audience Award (Royal Institution, London, United Kingdom).</span></li>
-						<li class="reveal"><span class="award-yr">2024</span><span>IOP Rosse Medal for Best Postgraduate Presentation (IOP Irish HQ, Dublin, Ireland).</span></li>
-						<li class="reveal"><span class="award-yr">2022</span><span>Peter Curran Award for Best Postgraduate Presentation (Irish National Astronomy Meeting, Dublin, Ireland).</span></li>
+						</li>
 					</ul>
 				</div>
 			</section>
 
-			<!-- Publications -->
-			<section class="section" id="publications">
+			<!-- 04 — Awards -->
+			<section class="chapter" id="awards">
 				<div class="wrap">
-					<div class="section-head">
-						<p class="kicker reveal">05 — Publications</p>
-						<h2 class="reveal">Peer-reviewed research.</h2>
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>04</b> / Awards</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>Recognition.</span></span></h2>
 					</div>
-					<ul class="pub-list">
-						<li class="reveal">
-							<span class="pub-title">Multiwavelength observations of flaring activity on the Sun and M dwarf stars</span>
-							<p class="pub-meta"><strong>Jeremy Rigney</strong> · <em>PhD Thesis, Queen's University Belfast, 2024</em></p>
+
+					<ul class="hang-list reveal">
+						<li class="hang-row">
+							<span class="hang-label">2024</span>
+							<p>Institute of Physics Three-Minute Wonder UK &amp; Ireland Audience Award &mdash; Royal Institution, London, United Kingdom.</p>
 						</li>
-						<li class="reveal">
-							<span class="pub-title">Radio signatures of star–planet interactions, exoplanets and space weather</span>
-							<p class="pub-meta">Callingham J. R., Pope B. J. S., Kavanagh R. D., Bellotti S., Daley-Yates S., Damasso M., Grießmeier J.-M., Güdel M., Günther M., Kao M. M., Klein B., Mahadevan S., Morin J., Nichols J. D., Osten R. A., Perez-Torres M., Pineda J. S., <strong>Rigney J.</strong>, Saur J., Stefánsson G., Turner J. D., Vedantham H., Vidotto A. A., Villadsen J. &amp; Zarka P. · <em>Nature Astronomy, 2024</em></p>
+						<li class="hang-row">
+							<span class="hang-label">2024</span>
+							<p>IOP Rosse Medal for Best Postgraduate Presentation &mdash; IOP Irish HQ, Dublin, Ireland.</p>
 						</li>
-						<li class="reveal">
-							<span class="pub-title">Tracking the motion of a shock along a channel in the low solar corona</span>
-							<p class="pub-meta"><strong>Jeremy Rigney</strong>, Peter T. Gallagher, Gavin Ramsay, J. Gerry Doyle, David M. Long, Oleg Stepanyuk, Kamen Kosarev · <em>Astronomy &amp; Astrophysics, 2024</em></p>
+						<li class="hang-row">
+							<span class="hang-label">2022</span>
+							<p>Peter Curran Award for Best Postgraduate Presentation &mdash; Irish National Astronomy Meeting, Dublin, Ireland.</p>
 						</li>
-						<li class="reveal">
-							<span class="pub-title">Searching for stellar flares from low-mass stars using ASKAP and TESS</span>
-							<p class="pub-meta"><strong>Jeremy Rigney</strong>, Gavin Ramsay, Eoin P. Carley, J. Gerry Doyle, Peter T. Gallagher, Yuanming Wang, Joshua Pritchard, Tara Murphy, Emil Lenc, David L. Kaplan · <em>Monthly Notices of the Royal Astronomical Society, 2022</em></p>
+					</ul>
+				</div>
+			</section>
+
+			<!--
+				05 — Publications.
+
+				Ruled rows on the same spine, the grid the arXiv rows on /dashboard use.
+				Every author string is set as one mono line with my own name lifted out of
+				it — the Nature Astronomy paper has twenty-six names, and at this size the
+				rest of them are texture rather than a list to be read.
+			-->
+			<section class="chapter" id="publications">
+				<div class="wrap">
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>05</b> / Publications</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>Peer-reviewed research.</span></span></h2>
+					</div>
+
+					<ul class="pub-list reveal">
+						<li class="pub-row">
+							<span class="pub-meta">
+								<span class="pub-num">01</span>
+								<span class="pub-src">PhD Thesis &middot; 2024</span>
+							</span>
+							<div>
+								<h3 class="pub-title">Multiwavelength observations of flaring activity on the Sun and M dwarf stars</h3>
+								<p class="pub-authors"><strong>Jeremy Rigney</strong> &middot; Queen&rsquo;s University Belfast</p>
+							</div>
 						</li>
-						<li class="reveal">
-							<span class="pub-title">First results from the REAL-time Transient Acquisition backend (REALTA) at the Irish LOFAR station</span>
-							<p class="pub-meta">P. C. Murphy, Paul Callanan, J. McCauley, D. J. McKenna, D. Ó Fionnagáin, C. K. Louis, M. P. Redman, L. A. Cañizares, E. P. Carley, S. A. Maloney, B. Coghlan, Mark Daly, J. Scully, J. Dooley, V. Gajjar, C. Giese, A. Brennan, E. F. Keane, C. A. Maguire, J. Quinn, S. Mooney, A. M. Ryan, J. Walsh, C. M. Jackman, A. Golden, T. P. Ray, J. G. Doyle, <strong>J. Rigney</strong>, M. Burton, P. T. Gallagher · <em>Astronomy &amp; Astrophysics, 2021</em></p>
+						<li class="pub-row">
+							<span class="pub-meta">
+								<span class="pub-num">02</span>
+								<span class="pub-src">Nature Astronomy &middot; 2024</span>
+							</span>
+							<div>
+								<h3 class="pub-title">Radio signatures of star&ndash;planet interactions, exoplanets and space weather</h3>
+								<p class="pub-authors">Callingham J. R., Pope B. J. S., Kavanagh R. D., Bellotti S., Daley-Yates S., Damasso M., Grie&szlig;meier J.-M., G&uuml;del M., G&uuml;nther M., Kao M. M., Klein B., Mahadevan S., Morin J., Nichols J. D., Osten R. A., Perez-Torres M., Pineda J. S., <strong>Rigney J.</strong>, Saur J., Stef&aacute;nsson G., Turner J. D., Vedantham H., Vidotto A. A., Villadsen J. &amp; Zarka P.</p>
+							</div>
 						</li>
-						<li class="reveal">
-							<span class="pub-title">Comparing Game Based Learning, using a student created game, to Traditional Classroom Methods</span>
-							<p class="pub-meta"><strong>Jeremy Rigney</strong>, Niall Murray · <em>Information Technology &amp; Telecommunications Conference Proceedings, 2014</em></p>
+						<li class="pub-row">
+							<span class="pub-meta">
+								<span class="pub-num">03</span>
+								<span class="pub-src">Astronomy &amp; Astrophysics &middot; 2024</span>
+							</span>
+							<div>
+								<h3 class="pub-title">Tracking the motion of a shock along a channel in the low solar corona</h3>
+								<p class="pub-authors"><strong>Jeremy Rigney</strong>, Peter T. Gallagher, Gavin Ramsay, J. Gerry Doyle, David M. Long, Oleg Stepanyuk, Kamen Kosarev</p>
+							</div>
+						</li>
+						<li class="pub-row">
+							<span class="pub-meta">
+								<span class="pub-num">04</span>
+								<span class="pub-src">MNRAS &middot; 2022</span>
+							</span>
+							<div>
+								<h3 class="pub-title">Searching for stellar flares from low-mass stars using ASKAP and TESS</h3>
+								<p class="pub-authors"><strong>Jeremy Rigney</strong>, Gavin Ramsay, Eoin P. Carley, J. Gerry Doyle, Peter T. Gallagher, Yuanming Wang, Joshua Pritchard, Tara Murphy, Emil Lenc, David L. Kaplan</p>
+							</div>
+						</li>
+						<li class="pub-row">
+							<span class="pub-meta">
+								<span class="pub-num">05</span>
+								<span class="pub-src">Astronomy &amp; Astrophysics &middot; 2021</span>
+							</span>
+							<div>
+								<h3 class="pub-title">First results from the REAL-time Transient Acquisition backend (REALTA) at the Irish LOFAR station</h3>
+								<p class="pub-authors">P. C. Murphy, Paul Callanan, J. McCauley, D. J. McKenna, D. &Oacute; Fionnag&aacute;in, C. K. Louis, M. P. Redman, L. A. Ca&ntilde;izares, E. P. Carley, S. A. Maloney, B. Coghlan, Mark Daly, J. Scully, J. Dooley, V. Gajjar, C. Giese, A. Brennan, E. F. Keane, C. A. Maguire, J. Quinn, S. Mooney, A. M. Ryan, J. Walsh, C. M. Jackman, A. Golden, T. P. Ray, J. G. Doyle, <strong>J. Rigney</strong>, M. Burton, P. T. Gallagher</p>
+							</div>
+						</li>
+						<li class="pub-row">
+							<span class="pub-meta">
+								<span class="pub-num">06</span>
+								<span class="pub-src">IT&amp;T Proceedings &middot; 2014</span>
+							</span>
+							<div>
+								<h3 class="pub-title">Comparing Game Based Learning, using a student created game, to Traditional Classroom Methods</h3>
+								<p class="pub-authors"><strong>Jeremy Rigney</strong>, Niall Murray</p>
+							</div>
+						</li>
+					</ul>
+				</div>
+			</section>
+
+			<!-- 06 — Get in touch -->
+			<section class="chapter" id="contact">
+				<div class="wrap">
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>06</b> / Get in touch</p>
+						<h2 class="chapter-title"><span class="line-mask"><span>Let&rsquo;s talk data, research, or a talk.</span></span></h2>
+						<p class="chapter-lead">I welcome opportunities to engage in public speaking &mdash; particularly at science festivals, open days and similar events &mdash; as well as data and research collaborations. Feel free to reach out.</p>
+					</div>
+
+					<ul class="hang-list reveal">
+						<li class="hang-row">
+							<span class="hang-label">Location</span>
+							<p>Dublin &bull; Ireland</p>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Email</span>
+							<p><a href="mailto:jeremy.rigney@gmail.com">jeremy.rigney [at] gmail [dot] com</a></p>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Elsewhere</span>
+							<!--
+								Wordmarks, not icons. Four glyphs from a 59 KB icon font was the
+								whole reason the old CV loaded Font Awesome; set as type they
+								cost nothing and match everything else on the page.
+							-->
+							<ul class="wordmarks">
+								<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" rel="noopener">LinkedIn</a></li>
+								<li><a href="https://github.com/jeremyrigney" target="_blank" rel="noopener">GitHub</a></li>
+								<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target="_blank" rel="noopener">Scholar</a></li>
+								<li><a href="https://www.instagram.com/jeremy.rigney/" target="_blank" rel="noopener">Instagram</a></li>
+							</ul>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Speaking</span>
+							<p><a href="speaking.html">Talks, tours and conference presentations</a></p>
+						</li>
+						<li class="hang-row">
+							<span class="hang-label">Full CV</span>
+							<p><a href="JeremyRigneyCV.pdf" download="JeremyRigney_CV">Download as PDF</a></p>
 						</li>
 					</ul>
 				</div>
 			</section>
 		</main>
 
-		<!-- Footer / Contact -->
-		<footer class="site-footer" id="contact">
+		<footer class="site-footer">
 			<div class="wrap">
-				<div class="footer-grid">
-					<div>
-						<p class="kicker reveal">06 — Get in touch</p>
-						<h2 class="reveal">Let's talk data, research, or a talk.</h2>
-						<p class="footer-lead reveal">I welcome opportunities to engage in public speaking — particularly at science festivals, open days and similar events — as well as data and research collaborations. Feel free to reach out.</p>
-						<a href="speaking.html" class="btn btn-dark">See previous talks</a>
-					</div>
-					<dl class="footer-contact reveal">
-						<dt>Location</dt>
-						<dd>Dublin &bull; Ireland</dd>
-						<dt>Email</dt>
-						<dd><a href="mailto:jeremy.rigney@gmail.com">jeremy.rigney [at] gmail [dot] com</a></dd>
-						<dt>Elsewhere</dt>
-						<dd>
-							<ul class="socials" style="margin-top:0.6rem;">
-								<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a></li>
-								<li><a href="https://github.com/jeremyrigney" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a></li>
-								<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target="_blank" rel="noopener" aria-label="Google Scholar"><i class="fa-brands fa-google-scholar"></i></a></li>
-								<li><a href="https://www.instagram.com/jeremy.rigney/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a></li>
-							</ul>
-						</dd>
-					</dl>
-				</div>
-				<div class="footer-bottom">
-					<p>&copy; <span id="year">2026</span> Jeremy Rigney</p>
-					<p><a href="https://jeremy.ie">Home</a> &nbsp;·&nbsp; <a href="https://jeremy.ie/dashboard">Dashboard</a> &nbsp;·&nbsp; <a href="speaking.html">Speaking</a></p>
-				</div>
+				<p>&copy; <span id="year">2026</span> Jeremy Rigney</p>
+				<p><a href="index.html">Home</a> &nbsp;&middot;&nbsp; <a href="speaking.html">Speaking</a> &nbsp;&middot;&nbsp; <a href="https://jeremy.ie/dashboard">Dashboard</a> &nbsp;&middot;&nbsp; <a href="eclipse.html">Eclipse</a> &nbsp;&middot;&nbsp; <a href="f1.html">F1</a></p>
 			</div>
 		</footer>
 
-		<script>
-			// Sticky header background
-			const header = document.getElementById('site-header');
-			const onScroll = () => header.classList.toggle('is-stuck', window.scrollY > 40);
-			onScroll();
-			window.addEventListener('scroll', onScroll, { passive: true });
-
-			// Mobile nav
-			const toggle = document.getElementById('nav-toggle');
-			const links = document.getElementById('nav-links');
-			toggle.addEventListener('click', () => {
-				const open = links.classList.toggle('is-open');
-				toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-			});
-			links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
-				links.classList.remove('is-open');
-				toggle.setAttribute('aria-expanded', 'false');
-			}));
-
-			// Scroll reveals
-			const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-			const items = document.querySelectorAll('.reveal');
-			if (reduce || !('IntersectionObserver' in window)) {
-				items.forEach(el => el.classList.add('is-in'));
-			} else {
-				const io = new IntersectionObserver((entries, obs) => {
-					entries.forEach(e => {
-						if (e.isIntersecting) { e.target.classList.add('is-in'); obs.unobserve(e.target); }
-					});
-				}, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
-				items.forEach(el => io.observe(el));
-			}
-
-			// Current year
-			document.getElementById('year').textContent = new Date().getFullYear();
-		</script>
-
+		<script src="assets/js/cv.js?v=20260902"></script>
+		<script src="assets/js/cv-timeline.js?v=20260902"></script>
 	</body>
 </html>

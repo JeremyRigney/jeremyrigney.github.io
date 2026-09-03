@@ -1,0 +1,362 @@
+/*
+ * jeremy.ie/cv — curriculum vitae.
+ *
+ * Loads on top of assets/css/coal.css, which carries the design system: the tokens,
+ * the motion primitives, the header, the opening type, and the row grids that hang off
+ * the margin spine. Everything in this file is something only this page has — the
+ * opening frame and its timeline, the bullet list under a record row, and the
+ * publication rows. It cannot be loaded on its own; every var() below is defined there.
+ *
+ * The constraints coal.css states hold here too: no card, no rounded corner (bar the
+ * nav toggle), no box-shadow, no alternating light/dark band. The page this replaced
+ * had all four.
+ */
+
+/* ---------- The opening frame ---------- */
+
+/*
+ * The same 82svh as /speaking and /dashboard, and for the same reason: this page is
+ * entered from a link — from the homepage's "View CV", or from the CV entry in every
+ * header — and a second full-height title page one click in is a toll rather than an
+ * arrival. The first chapter rule sits just below the fold.
+ */
+.opening {
+  position: relative;
+  min-height: 82svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 3.5rem;
+  padding: 8.5rem 0 3rem;
+  /* The timeline runs to the edges; nothing about it should be centred on .wrap. */
+  overflow: hidden;
+}
+
+/*
+ * The timeline layer. Sized in CSS and painted in device pixels by cv-timeline.js.
+ *
+ * It is the page's own record — the four institutions in chapters 01 and 02, and a
+ * tick for every publication in chapter 05 — for the same reason the trace behind the
+ * dashboard's opening is the real GOES flux: a decorative squiggle behind the headline
+ * of a CV would be the one thing on the page that is not evidence of anything.
+ *
+ * Weighted to the right and faded out under the type, the same trick /speaking's map
+ * mask uses. The headline is on the left, so that is where the chart gives way — which
+ * also happens to be where the axis carries the years nobody needs to read closely.
+ */
+.cv-timeline {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+
+  /* Fades up once the first paint lands, so the canvas never appears part-built. */
+  opacity: 0;
+  transition: opacity 900ms var(--ease);
+
+  /*
+   * Centred on the axis rather than on the frame: the chart lives in the band below
+   * the opening copy, so a mask centred at the middle of the frame spends its strength
+   * on empty ground behind the headline and fades the one thing worth seeing. Wide
+   * enough that the 2016 end of the axis still reads — the record starts there.
+   */
+  --timeline-mask: radial-gradient(
+    145% 128% at 62% 76%,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.92) 44%,
+    rgba(0, 0, 0, 0.5) 74%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-mask-image: var(--timeline-mask);
+  mask-image: var(--timeline-mask);
+}
+
+.cv-timeline.is-ready {
+  opacity: 1;
+}
+
+.cv-timeline canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-timeline {
+    transition: none;
+  }
+}
+
+/* The type sits above the timeline. */
+.opening > .wrap {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+ * A scrim behind the headline column only. The timeline's institution labels sit above
+ * its axis and on a wide screen land close enough to the lead paragraph to compete
+ * with it; this is one stop of separation and is invisible against the ground
+ * everywhere else.
+ */
+.opening-copy {
+  position: relative;
+  max-width: 44rem;
+}
+
+.opening-copy::before {
+  content: "";
+  position: absolute;
+  inset: -2rem -3rem;
+  z-index: -1;
+  background: radial-gradient(
+    62% 56% at 26% 50%,
+    rgba(17, 18, 20, 0.72),
+    rgba(17, 18, 20, 0) 100%
+  );
+}
+
+/* The rail at the foot, with the timeline key beside it. */
+.opening-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.6rem 2rem;
+  flex-wrap: wrap;
+}
+
+/*
+ * The timeline's legend. One line of mono, not a boxed key with swatches — the chart
+ * has exactly two marks on it, and only one of them needs saying.
+ */
+.timeline-key {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.timeline-key-dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  flex: none;
+}
+
+.timeline-key-rule {
+  width: 1.1rem;
+  height: 1px;
+  background: var(--line-strong);
+  flex: none;
+}
+
+@media (max-width: 860px) {
+  /*
+   * On a phone the timeline is a texture rather than a chart — twelve years across a
+   * 375px viewport puts the institution labels on top of each other, and cv-timeline.js
+   * drops them at this width. Nothing legible is left to key.
+   */
+  .cv-timeline.is-ready {
+    opacity: 0.55;
+  }
+
+  .timeline-key {
+    display: none;
+  }
+
+  .opening-copy::before {
+    inset: -1.5rem -1.5rem;
+    background: radial-gradient(
+      90% 65% at 40% 50%,
+      rgba(17, 18, 20, 0.92),
+      rgba(17, 18, 20, 0) 100%
+    );
+  }
+}
+
+@media (max-width: 700px) {
+  .opening {
+    min-height: auto;
+    padding: 6.6rem 0 2.6rem;
+    gap: 2.6rem;
+  }
+}
+
+/* ---------- Record detail ---------- */
+
+/*
+ * The one thing a CV needs that the homepage's record board does not: what the role
+ * actually involved. .record and .record-row come from coal.css unchanged — this is
+ * the list that hangs under them in the same column, so the bullets stay off the
+ * margin spine and the spine keeps reading as a spine.
+ *
+ * The marker is an accent en dash rather than a disc. A bulleted list is the single
+ * most CV-shaped thing on the page and the one place this design is most likely to
+ * slide back into a document; a rule-coloured dash keeps it in the same grammar as
+ * every other mark on the site.
+ */
+.record-points {
+  margin: 0.9rem 0 0;
+  padding: 0;
+  list-style: none;
+  max-width: min(62ch, 100%);
+}
+
+.record-points li {
+  position: relative;
+  margin: 0 0 0.55rem;
+  padding-left: 1.35rem;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.record-points li:last-child {
+  margin-bottom: 0;
+}
+
+.record-points li::before {
+  content: "\2013";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--font-mono);
+  color: var(--accent-soft);
+}
+
+/*
+ * Links inside a record row — the two scholarship hosts in the education chapter. The
+ * same underline-as-hairline treatment .hang-row a gets in coal.css.
+ */
+.record-points a,
+.record-role a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+  transition: color 220ms ease, border-color 220ms ease;
+}
+
+.record-points a:hover,
+.record-role a:hover,
+.record-points a:focus-visible,
+.record-role a:focus-visible {
+  color: var(--chalk);
+  border-bottom-color: var(--accent);
+}
+
+/*
+ * The role line above the bullets, set in mono rather than as prose. On the homepage
+ * .record-role is a sentence; here the row already carries the institution as its
+ * name, so this is a job title and a label, and it reads as one.
+ */
+.record-sub {
+  margin: 0.7rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.63rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+/* ---------- Publications ---------- */
+
+/*
+ * Six papers as ruled rows, the same grid the arXiv rows on /dashboard use: the index
+ * number and the venue hang in the margin column, the title is set in Fraunces, and
+ * the author string is mono micro. An author list is a paragraph, and a paragraph in a
+ * card is the thing this redesign exists to stop.
+ */
+.pub-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line-strong);
+}
+
+.pub-row {
+  display: grid;
+  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr);
+  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+  padding: 1.8rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.pub-meta {
+  padding-top: 0.35em;
+}
+
+.pub-num {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: var(--accent-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.pub-src {
+  display: block;
+  margin-top: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.pub-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.25rem, 2.4vw, 1.7rem);
+  line-height: 1.14;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+
+/*
+ * Twenty-six names on the Nature Astronomy paper. Set at micro size in mono they are a
+ * texture rather than a list, which is correct — the one name a reader is looking for
+ * is lifted out of it below, and that is the only reason the string is here at all.
+ */
+.pub-authors {
+  margin: 0.7rem 0 0;
+  max-width: min(78ch, 100%);
+  font-family: var(--font-mono);
+  font-size: 0.63rem;
+  letter-spacing: 0.12em;
+  line-height: 1.75;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.pub-authors strong {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+@media (max-width: 860px) {
+  .pub-row {
+    grid-template-columns: 1fr;
+  }
+
+  .pub-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 1.1rem;
+    padding-top: 0;
+    margin-bottom: 0.9rem;
+  }
+
+  .pub-src {
+    margin-top: 0;
+  }
+}

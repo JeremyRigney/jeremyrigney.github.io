@@ -3,9 +3,10 @@
  *
  * Loads on top of assets/css/coal.css, which carries the design system: the tokens,
  * the motion primitives, the header, the opening type, and the row grids that hang off
- * the margin spine. Everything in this file is something only the homepage has — the
- * opening frame and its shimmer, the readout foot, the record board, and the intro
- * overlay. It cannot be loaded on its own; every var() below is defined there.
+ * the margin spine — the record board among them, which moved there when /cv became
+ * the second page to set one. Everything in this file is something only the homepage
+ * has: the opening frame and its shimmer, the readout foot, and the intro overlay. It
+ * cannot be loaded on its own; every var() below is defined there.
  *
  * The constraints coal.css states hold here too: no card, no rounded corner (bar the
  * nav toggle), no box-shadow, no alternating light/dark band.
@@ -207,78 +208,6 @@
   /* Nothing to point at on a phone: the rail is already the last thing on screen. */
   .scroll-hint {
     display: none;
-  }
-}
-
-/* ---------- The record (experience & education) ---------- */
-
-/*
- * A departure board: year, place, role, on the same margin spine. The current role is
- * marked by an accent rule above it and a step up in size — not by a fill. A fill
- * would make it a highlighted table cell; this makes it the top line of the board.
- */
-.record {
-  border-top: 1px solid var(--line-strong);
-}
-
-.record-row {
-  display: grid;
-  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr);
-  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
-  padding: 1.9rem 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.record-yr {
-  padding-top: 0.5em;
-  font-family: var(--font-mono);
-  font-size: var(--fs-micro);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  font-variant-numeric: tabular-nums;
-}
-
-.record-name {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(1.5rem, 3.2vw, 2.2rem);
-  line-height: 1.06;
-  letter-spacing: -0.03em;
-  color: var(--ink);
-}
-
-.record-role {
-  margin: 0.8rem 0 0;
-  max-width: min(52ch, 100%);
-  font-size: 0.94rem;
-  line-height: 1.55;
-  color: var(--ink-soft);
-}
-
-.record-row.is-current {
-  border-top: 1px solid var(--accent);
-  padding-top: 2.3rem;
-}
-
-.record-row.is-current .record-yr {
-  color: var(--accent-soft);
-}
-
-.record-row.is-current .record-name {
-  font-size: clamp(1.9rem, 4.4vw, 3.2rem);
-  color: var(--chalk);
-}
-
-@media (max-width: 860px) {
-  .record-row {
-    grid-template-columns: 1fr;
-  }
-
-  .record-yr {
-    padding-top: 0;
-    margin-bottom: 0.8rem;
   }
 }
 

@@ -1,5 +1,6 @@
 /*
- * The coal design system — shared by index.html and speaking.html.
+ * The coal design system — shared by index.html, speaking.html, dashboard.html and
+ * cv.html.
  *
  * Set in the same language as assets/css/f1.css: one continuous coal ground, hairline
  * rules instead of panels, and a wide gap in size between a figure and its label. The
@@ -18,15 +19,16 @@
  * there is only ever one circuit — see the three tones under :root.
  *
  * This file holds only what more than one page uses: the tokens, the motion
- * primitives, the header, the opening type, and the four row grids that hang off the
+ * primitives, the header, the opening type, and the row grids that hang off the
  * margin spine. Anything a single page owns lives beside it — home-coal.css has the
  * homepage's opening frame, shimmer and intro overlay; speaking.css has the talk map
  * and the filter rail; dashboard-coal.css has the X-ray trace behind the opening, the
- * panel rows the widgets sit in and the Leaflet overrides. Load this file first; all
- * three depend on its tokens.
+ * panel rows the widgets sit in and the Leaflet overrides; cv.css has the career
+ * timeline, the bullets under a record row and the publication rows. Load this file
+ * first; all four depend on its tokens.
  *
- * Not loaded on the rest of the site. cv.html still runs on home.css and is still
- * gold; eclipse and f1 are off-palette by their own design.
+ * Not loaded on the rest of the site. eclipse and f1 are off-palette by their own
+ * design; blog, 404 and the older articles still run main.css.
  */
 
 :root {
@@ -750,6 +752,83 @@ a {
   .hang-label {
     margin-bottom: 0.5rem;
     padding-top: 0;
+  }
+}
+
+/* ---------- The record ---------- */
+
+/*
+ * A departure board: year, place, role, on the same margin spine. The current role is
+ * marked by an accent rule above it and a step up in size — not by a fill. A fill
+ * would make it a highlighted table cell; this makes it the top line of the board.
+ *
+ * Written for the homepage and lived in home-coal.css until /cv set both an experience
+ * and an education board on it. cv.css adds the two things a CV needs and a summary
+ * board does not: a mono line under the name for the job title or degree, and a bullet
+ * list under that.
+ */
+.record {
+  border-top: 1px solid var(--line-strong);
+}
+
+.record-row {
+  display: grid;
+  grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr);
+  gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+  padding: 1.9rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.record-yr {
+  padding-top: 0.5em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.record-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.5rem, 3.2vw, 2.2rem);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.record-role {
+  margin: 0.8rem 0 0;
+  max-width: min(52ch, 100%);
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.record-row.is-current {
+  border-top: 1px solid var(--accent);
+  padding-top: 2.3rem;
+}
+
+.record-row.is-current .record-yr {
+  color: var(--accent-soft);
+}
+
+.record-row.is-current .record-name {
+  font-size: clamp(1.9rem, 4.4vw, 3.2rem);
+  color: var(--chalk);
+}
+
+@media (max-width: 860px) {
+  .record-row {
+    grid-template-columns: 1fr;
+  }
+
+  .record-yr {
+    padding-top: 0;
+    margin-bottom: 0.8rem;
   }
 }
 
