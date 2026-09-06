@@ -130,18 +130,32 @@
      * short one. The band is the only thing that actually defines where the chart can
      * go, so it is what gets asked.
      *
-     * offsetTop/offsetHeight rather than getBoundingClientRect: .opening-copy carries
-     * .reveal, so before it has arrived it is translated 40px down and a rect would
-     * measure the animation instead of the layout. Both elements offset from .opening,
-     * which the canvas covers exactly, so these are already in canvas coordinates.
+     * offsetTop rather than getBoundingClientRect: .opening-copy carries .reveal, so
+     * before it has arrived it is translated 40px down and a rect would measure the
+     * animation instead of the layout.
+     *
+     * The offsets have to be accumulated up the chain rather than read once. cv.css
+     * sets `position: relative` on .opening > .wrap to lift the type above the canvas,
+     * which makes each .wrap the offsetParent of the block inside it — so a single
+     * offsetTop reads 0 for both of these, the band collapses, and the whole chart is
+     * placed off the top of the canvas. That was the first version of this.
      */
+    function offsetWithin(node, ancestor) {
+      var y = 0;
+      while (node && node !== ancestor) {
+        y += node.offsetTop;
+        node = node.offsetParent;
+      }
+      return y;
+    }
+
     function band() {
       var frame = canvas.parentNode.parentNode;
       var copy = frame.querySelector('.opening-copy');
       var foot = frame.querySelector('.opening-foot');
       return {
-        top: copy ? copy.offsetTop + copy.offsetHeight : h * 0.62,
-        bottom: foot ? foot.offsetTop : h
+        top: copy ? offsetWithin(copy, frame) + copy.offsetHeight : h * 0.62,
+        bottom: foot ? offsetWithin(foot, frame) : h
       };
     }
 
@@ -369,9 +383,16 @@
     window.addEventListener('resize', function () {
       window.clearTimeout(resizeTimer);
       resizeTimer = window.setTimeout(function () {
+        /*
+         * size() returns false while cv.css has the layer display:none below 860px, so
+         * widening the window past that breakpoint is the one path where the canvas has
+         * never been painted and never been marked ready. Both happen here, which is
+         * why is-ready is set on this path as well as in play().
+         */
         if (!size()) {
           return;
         }
+        canvas.parentNode.classList.add('is-ready');
         if (!running) {
           frame(TOTAL);
         }

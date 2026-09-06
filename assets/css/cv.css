@@ -159,12 +159,21 @@
 
 @media (max-width: 860px) {
   /*
-   * On a phone the timeline is a texture rather than a chart — twelve years across a
-   * 375px viewport puts the institution labels on top of each other, and cv-timeline.js
-   * drops them at this width. Nothing legible is left to key.
+   * The chart comes off entirely on a narrow screen, rather than being faded down to a
+   * texture the way /speaking's map is.
+   *
+   * The map can do that because it is a shape and stays a shape at any size. This is a
+   * chart that has to sit in the band between the opening copy and the readout rail,
+   * and below this width that band closes up: the axis lands across "Download full CV"
+   * and the publication ticks land among the figures in the rail. A chart drawn on top
+   * of the type is worse than no chart, and it carries nothing the chapters below do
+   * not state in words.
+   *
+   * display:none rather than opacity:0 so the canvas measures zero and cv-timeline.js
+   * skips the paint altogether instead of drawing something nobody will see.
    */
-  .cv-timeline.is-ready {
-    opacity: 0.55;
+  .cv-timeline {
+    display: none;
   }
 
   .timeline-key {
