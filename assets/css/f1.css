@@ -1235,6 +1235,298 @@ a {
   }
 }
 
+/* ---------- Live track map ---------- */
+
+/*
+ * Flat, wide and short: the map is a strip above the order, not a panel beside it. Sized in
+ * viewport height so it stays glanceable on a second screen without pushing the timing table
+ * off the bottom.
+ */
+.live-map {
+  display: block;
+  width: 100%;
+  height: clamp(180px, 32vh, 360px);
+  margin: 1.4rem 0 0;
+}
+
+/* ---------- Race control feed ---------- */
+
+.live-feed {
+  margin: 2rem 0 0;
+  border-top: 1px solid var(--line-strong);
+}
+
+.live-feed-head {
+  margin: 0;
+  padding: 1.1rem 0 0.5rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.feed-rows {
+  margin: 0;
+  padding: 0;
+  max-height: 17rem;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.feed-row {
+  display: grid;
+  grid-template-columns: 3.6rem minmax(0, 1fr);
+  gap: 0 1rem;
+  align-items: baseline;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.feed-time {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.feed-text {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+/* Only the two that change a race get lifted out of the grey. */
+.feed-row.feed-high .feed-text {
+  color: var(--ink);
+}
+
+.feed-row.feed-high .feed-time {
+  color: var(--accent-soft);
+}
+
+/* ---------- Driver badges ---------- */
+
+.t-badges {
+  display: inline-flex;
+  gap: 0.25rem;
+  margin-left: 0.15rem;
+}
+
+/*
+ * A single letter rather than a word or an icon: the driver column has to stay narrow, and
+ * these need to be legible at a glance without competing with the driver code beside them.
+ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05em;
+  height: 1.05em;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-style: normal;
+  font-weight: 700;
+  color: var(--coal);
+  background: var(--ink-faint);
+}
+
+.badge-investigation { background: #f5c518; }
+.badge-penalty { background: #e8112d; color: var(--chalk); }
+.badge-deletion { background: var(--ink-faint); }
+
+/* ---------- Development lab ---------- */
+
+/*
+ * /f1-lab only. None of this ships on the live page — the panel below the bar is the real
+ * one, and this is the harness around it.
+ */
+.lab-bar {
+  position: sticky;
+  top: 62px;
+  z-index: 40;
+  padding: 1rem 0 1.2rem;
+  background: var(--coal);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.lab-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.9rem 1.2rem;
+}
+
+.lab-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.lab-field-wide {
+  flex: 1 1 22rem;
+}
+
+.lab-field > span {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.lab-field select {
+  max-width: 100%;
+  padding: 0.4rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+}
+
+.lab-field select option {
+  color: #111214;
+  background: #eceef0;
+}
+
+.lab-button {
+  padding: 0.45rem 1.1rem;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--coal);
+  background: var(--accent);
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.lab-button:disabled {
+  color: var(--ink-faint);
+  background: transparent;
+  border: 1px solid var(--line);
+  cursor: default;
+}
+
+.lab-clock {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  color: var(--chalk);
+  font-variant-numeric: tabular-nums;
+}
+
+.lab-scrub {
+  position: relative;
+  margin: 1.1rem 0 0;
+}
+
+/*
+ * The flag periods, painted behind the range input. This is the reason the lab exists: the
+ * shape of the race is visible, so the safety car can be found by eye.
+ */
+.lab-track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 12px;
+  transform: translateY(-50%);
+  background: var(--line);
+  pointer-events: none;
+}
+
+.lab-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.lab-notch {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: var(--chalk);
+}
+
+.lab-notch-high { background: #e8112d; }
+
+.lab-range {
+  position: relative;
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.lab-range::-webkit-slider-runnable-track { height: 22px; background: transparent; }
+.lab-range::-moz-range-track { height: 22px; background: transparent; }
+
+.lab-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 4px;
+  height: 22px;
+  background: var(--chalk);
+  border: 0;
+  cursor: ew-resize;
+}
+
+.lab-range::-moz-range-thumb {
+  width: 4px;
+  height: 22px;
+  background: var(--chalk);
+  border: 0;
+  border-radius: 0;
+  cursor: ew-resize;
+}
+
+.lab-jumps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0.9rem 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.lab-jump {
+  padding: 0.25rem 0.5rem;
+  font: inherit;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.lab-jump:hover {
+  border-color: var(--accent);
+  color: var(--chalk);
+}
+
+.lab-jump-safety-car,
+.lab-jump-vsc,
+.lab-jump-yellow { border-color: rgba(245, 197, 24, 0.5); }
+.lab-jump-red { border-color: rgba(232, 17, 45, 0.7); }
+
+@media (max-width: 720px) {
+  .lab-clock {
+    margin-left: 0;
+  }
+}
+
 /* ---------- Silhouette wall ---------- */
 
 /*

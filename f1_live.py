@@ -26,10 +26,12 @@ data as of a given instant, unauthenticated. The whole front end and the flag st
 can be built and tested against a past race on the free tier.
 """
 
+import bisect
 import os
+import re
 import threading
 import time
-from collections import deque
+from collections import OrderedDict, deque
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 
@@ -60,16 +62,21 @@ COMPOSE_TTL = 2.0
 # `intervals` is the one that has to stay fast: it is what the gap column is made of, and
 # upstream only republishes it every 4s anyway. `position` can lag it by a second without
 # anything being visible, since both land in the same table on the same 3s client poll.
+# Rebalanced when `location` was added for the track map. `location` is 3.6 Hz per car and
+# cannot be polled fast enough for smooth motion inside this budget, so the client fetches a
+# window and plays it back against the wall clock instead — see the buffer in f1-map.js. The
+# streams that gave up time here are the ones whose extra latency is invisible on screen.
 TTL = {
     "sessions": 60.0,
     "drivers": 300.0,
-    "position": 5.0,
+    "position": 6.0,
     "intervals": 4.0,
-    "race_control": 6.0,
-    "laps": 10.0,
+    "location": 6.0,
+    "race_control": 8.0,
+    "laps": 15.0,
     "stints": 45.0,
     "pit": 30.0,
-    "session_result": 60.0,
+    "session_result": 120.0,
 }
 
 # The timestamp column each stream can be filtered on. Endpoints missing from this map have
@@ -78,6 +85,7 @@ TTL = {
 DATE_FIELD = {
     "position": "date",
     "intervals": "date",
+    "location": "date",
     "race_control": "date",
     "laps": "date_start",
     "pit": "date",
@@ -89,6 +97,7 @@ DATE_FIELD = {
 WINDOW = {
     "position": 90,
     "intervals": 30,
+    "location": 8,
     "laps": 180,
     "pit": 300,
 }
@@ -104,12 +113,15 @@ WINDOW = {
 FIRST_WINDOW = {
     "intervals": 120,
     "laps": 300,
+    # Positions on track are only ever wanted as "where is everyone now"; there is no history
+    # to rebuild, and the whole session would be half a million rows.
+    "location": 8,
 }
 
 # Streams that may be skipped when the minute's call budget is nearly spent. Order matters:
 # the running order and the flags are what the page is for, so position, intervals and
 # race_control are never dropped.
-OPTIONAL = ("session_result", "stints", "pit", "laps")
+OPTIONAL = ("session_result", "stints", "pit", "laps", "location")
 
 # Outbound rate limiting. OpenF1 publishes 6 req/s and 60 req/min for an authenticated
 # account and 3 req/s and 30 req/min without one, and answers a breach with a 429. Replay
@@ -371,13 +383,20 @@ def _fold_flag(messages, until=None):
                 finished = True
 
         # Resolve after each record so `since` tracks the true moment of the transition.
-        if track == "RED":
+        #
+        # Once the session is over the chequered flag latches. Marshals go on recovering cars
+        # through the cool-down lap and race control keeps issuing sector yellows for it, and
+        # without this the panel announces a yellow flag several minutes after the race has
+        # finished — which is what the 2025 Dutch GP timeline showed.
+        if finished:
+            state = "RED" if track == "RED" else "CHEQUERED"
+        elif track == "RED":
             state = "RED"
         elif safety:
             state = safety
         elif sectors:
             state = "YELLOW"
-        elif track == "CHEQUERED" or finished:
+        elif track == "CHEQUERED":
             state = "CHEQUERED"
         else:
             state = "GREEN"
@@ -390,6 +409,100 @@ def _fold_flag(messages, until=None):
         sorted(s for s in sectors if s is not None),
         ending and safety is not None,
     )
+
+
+# ---------------------------------------------------------------------------
+# Race events
+# ---------------------------------------------------------------------------
+
+# Race control's prose, turned into something the page can render and group by driver.
+#
+# Every message that concerns a car names it as `CAR 16 (LEC)`, including the multi-car form
+# `CARS 16 (LEC) AND 44 (HAM)`, so one expression finds the drivers for all of them.
+#
+# The classifier is deliberately a table rather than a chain of ifs: "more information as I
+# go" means new message types arrive regularly, and adding one should be adding a row here.
+# Order matters — the first match wins, so the specific patterns sit above the general ones.
+_CAR_RE = re.compile(r"CAR[S]?\s+(\d+)\s*\(([A-Z]{3})\)(?:\s+AND\s+(\d+)\s*\(([A-Z]{3})\))?")
+
+EVENT_TYPES = (
+    # (type,            severity, test applied to the upper-cased message)
+    ("penalty",         "high",   lambda m: "PENALTY" in m),
+    ("deletion",        "low",    lambda m: "DELETED" in m),
+    # "NO FURTHER ACTION" and "REVIEWED" close an investigation; they must be caught before
+    # the investigation test below, or a car is left showing as under scrutiny all race.
+    ("cleared",         "low",    lambda m: "NO FURTHER ACTION" in m or "NO FURTHER INVESTIGATION" in m),
+    ("investigation",   "high",   lambda m: "INVESTIGAT" in m or " NOTED" in m),
+    ("pit-lane",        "info",   lambda m: m.startswith("PIT ") or "PIT LANE" in m or "PIT EXIT" in m),
+    ("override",        "info",   lambda m: m.startswith("OVERTAKE ")),
+    ("weather",         "info",   lambda m: "RISK OF RAIN" in m),
+    ("start",           "info",   lambda m: m in ("RACE START", "SESSION STARTED")),
+)
+
+
+def parse_event(row):
+    """
+    One race-control row as a renderable event, or None if it is not worth showing.
+
+    Flag and safety-car rows are excluded: those already drive the flag state at the top of
+    the panel, and repeating them in the feed would just be noise next to it.
+    """
+    message = (row.get("message") or "").strip()
+    if not message:
+        return None
+
+    category = row.get("category")
+    if category in ("Flag", "SafetyCar"):
+        return None
+
+    upper = message.upper()
+    kind, severity = "note", "info"
+    for name, level, test in EVENT_TYPES:
+        if test(upper):
+            kind, severity = name, level
+            break
+
+    drivers = []
+    match = _CAR_RE.search(upper)
+    if match:
+        drivers.append(int(match.group(1)))
+        if match.group(3):
+            drivers.append(int(match.group(3)))
+
+    return {
+        "t": _iso(_parse_dt(row.get("date"))),
+        "type": kind,
+        "severity": severity,
+        "drivers": drivers,
+        "lap": row.get("lap_number"),
+        "text": message,
+    }
+
+
+def build_events(messages, until=None):
+    """The event feed, newest first, plus the per-driver badges folded out of it."""
+    events = []
+    for row in sorted(messages, key=lambda r: str(r.get("date") or "")):
+        when = _parse_dt(row.get("date"))
+        if until is not None and when is not None and when > until:
+            break
+        event = parse_event(row)
+        if event:
+            events.append(event)
+
+    # Badges are the standing state per car, so a later "no further action" clears the
+    # investigation that an earlier message raised rather than sitting alongside it.
+    badges = {}
+    for event in events:
+        for num in event["drivers"]:
+            held = badges.setdefault(num, set())
+            if event["type"] == "cleared":
+                held.discard("investigation")
+            elif event["type"] in ("investigation", "penalty", "deletion"):
+                held.add(event["type"])
+
+    events.reverse()
+    return events, {num: sorted(held) for num, held in badges.items() if held}
 
 
 # ---------------------------------------------------------------------------
@@ -416,6 +529,7 @@ class _Session:
         self.pit = {}            # num -> {"stops", "last"}
         self.race_control = []
         self.result = {}         # num -> session_result record
+        self.location = {}       # num -> latest {"x", "y", "date"}
 
     def stale(self, stream):
         last = self.fetched.get(stream)
@@ -502,6 +616,7 @@ def _refresh(state, session, until=None, authed=True):
             ("intervals", lambda: _merge_latest(state.intervals, _get("intervals", filters("intervals"), authed)))
         )
     plan.extend([
+        ("location", lambda: _merge_latest(state.location, _get("location", filters("location"), authed))),
         ("laps", lambda: _merge_laps(state, _get("laps", filters("laps"), authed))),
         ("pit", lambda: _merge_pit(state, _get("pit", filters("pit"), authed))),
         ("stints", lambda: _merge_stints(state, _get("stints", filters("stints"), authed))),
@@ -585,6 +700,7 @@ def _compose(state, session, flag_until=None):
     start = _parse_dt(session.get("date_start"))
     flag_state, flag_since, flag_message, flag_sectors, flag_ending = _fold_flag(
         state.race_control, flag_until)
+    events, badges = build_events(state.race_control, flag_until)
 
     numbers = set(state.drivers) | set(state.position)
     rows = []
@@ -613,6 +729,8 @@ def _compose(state, session, flag_until=None):
             and last_pit.get("lap_number") == lap.get("lap_number")
         )
 
+        where = state.location.get(num) or {}
+
         rows.append({
             "pos": position,
             "num": num,
@@ -630,6 +748,17 @@ def _compose(state, session, flag_until=None):
             "inPit": in_pit,
             "pitStops": len([n for n in pit_laps if n is not None]),
             "dnf": bool(result.get("dnf") or result.get("dns") or result.get("dsq")),
+            # Standing race-control state for this car: investigation, penalty, deletion.
+            "badges": badges.get(num, []),
+            # The whole stint history, not just the tyre currently on the car.
+            "stints": [
+                {"compound": s.get("compound"), "lapStart": s.get("lap_start"),
+                 "lapEnd": s.get("lap_end"), "age": s.get("tyre_age_at_start")}
+                for s in stints
+            ],
+            # F1-frame decimetres. The browser maps these onto the circuit path with the
+            # affine in the circuit's locationTransform.
+            "xy": [where.get("x"), where.get("y")] if where.get("x") is not None else None,
         })
 
     # Cars without a position yet sort to the back, in driver-number order.
@@ -661,6 +790,7 @@ def _compose(state, session, flag_until=None):
         },
         "lap": {"current": current_lap},
         "drivers": rows,
+        "events": events[:40],
     }
 
 
@@ -698,11 +828,91 @@ def _idle(session=None, reason="no session"):
     return payload
 
 
+@bp.route("/f1/replay/sessions")
+def f1_replay_sessions():
+    """Sessions the lab can load, newest first. Free tier, so 2023 onwards."""
+    year = request.args.get("year") or _now().year
+    try:
+        rows = _get("sessions", [("year", int(year))], authed=False)
+    except Exception as error:
+        return jsonify({"error": str(error)}), 502
+
+    out = [{
+        "key": s.get("session_key"),
+        "name": s.get("session_name"),
+        "type": s.get("session_type"),
+        "circuit": s.get("circuit_short_name"),
+        "country": s.get("country_name"),
+        "start": _iso(_parse_dt(s.get("date_start"))),
+        "end": _iso(_parse_dt(s.get("date_end"))),
+    } for s in rows if not s.get("is_cancelled")]
+    out.sort(key=lambda s: str(s["start"] or ""), reverse=True)
+    return jsonify({"year": int(year), "sessions": out})
+
+
+@bp.route("/f1/replay/timeline")
+def f1_replay_timeline():
+    """
+    What the scrubber draws its marks from: every flag period and every event in one pass.
+
+    This is the whole reason the lab exists — being able to see that a safety car came out at
+    14:12 and jump straight to it, rather than hunting for the moment a feature has to handle.
+    """
+    try:
+        key = int(request.args.get("session_key") or 0)
+    except (TypeError, ValueError):
+        return jsonify({"error": "session_key must be numeric"}), 400
+
+    replay = _replay_session(key)
+    if replay is None:
+        return jsonify({"error": "unknown session_key %s" % key}), 404
+
+    session = replay.session
+    start = _parse_dt(session.get("date_start"))
+    end = _parse_dt(session.get("date_end"))
+
+    # Re-fold the flag machine at each race-control timestamp and record where the answer
+    # changes. Using the real state machine means the marks cannot disagree with the panel.
+    periods = []
+    for row in replay.race_control:
+        when = _parse_dt(row.get("date"))
+        if when is None:
+            continue
+        state = _fold_flag(replay.race_control, when)[0]
+        if periods and periods[-1]["state"] == state:
+            continue
+        if periods:
+            periods[-1]["to"] = _iso(when)
+        periods.append({"state": state, "from": _iso(when), "to": None})
+    if periods:
+        periods[-1]["to"] = _iso(end) if end else None
+
+    events, _ = build_events(replay.race_control)
+    events.reverse()  # chronological, for laying marks along a timeline
+
+    return jsonify({
+        "session": {
+            "key": key,
+            "name": session.get("session_name"),
+            "circuit": session.get("circuit_short_name"),
+            "country": session.get("country_name"),
+        },
+        "start": _iso(start),
+        "end": _iso(end),
+        "periods": periods,
+        "events": events,
+    })
+
+
 @bp.route("/f1/live")
 def f1_live():
     replay = request.args.get("replay")
     if replay:
-        return jsonify(_replay(replay, request.args.get("t")))
+        return jsonify(_replay(
+            replay,
+            request.args.get("t"),
+            with_location=request.args.get("nolocation") != "1",
+        ))
 
     now = time.time()
     cached = _composed["payload"]
@@ -778,33 +988,210 @@ def _build():
     return _compose(_session, session)
 
 
-def _replay(session_key, at):
+# ---------------------------------------------------------------------------
+# Replay
+# ---------------------------------------------------------------------------
+
+# Streams loaded whole for a replay. `location` is excluded on purpose: at 3.6 Hz for
+# twenty-odd cars a race is roughly half a million rows, so the lab fetches it per scrub in a
+# short window instead — see _replay_location.
+REPLAY_STREAMS = ("race_control", "position", "intervals", "laps", "pit",
+                  "stints", "drivers", "session_result")
+
+# How many sessions to keep loaded. Each is a few megabytes; two or three is enough to flip
+# between the race being worked on and one being compared against.
+REPLAY_CACHE_MAX = 3
+_replay_cache = OrderedDict()
+_replay_lock = threading.Lock()
+
+
+class _ReplaySession:
+    """
+    A whole past session, held raw so it can be replayed at any instant.
+
+    The live `_Session` keeps merged snapshots — latest-per-driver — which cannot be rewound,
+    so scrubbing backwards needs the underlying series. Each stream is therefore kept as
+    raw rows grouped by driver and sorted by date, and `snapshot(t)` bisects each driver's
+    list to find what was true at `t`.
+
+    What it produces is an ordinary `_Session`, so `_compose` and `_fold_flag` run over a
+    replay exactly as they run over a live race. That identity is the entire point of the
+    lab: a feature developed against a replay is developed against the real code path.
+    """
+
+    def __init__(self, key, session):
+        self.key = key
+        self.session = session
+        self.loaded = time.time()
+        self.streams = {}        # stream -> {driver_number: ([sort keys], [rows])}
+        self.race_control = []
+
+        for name in REPLAY_STREAMS:
+            rows = _get(name, [("session_key", key)], authed=False)
+            if name == "race_control":
+                self.race_control = sorted(rows, key=lambda r: str(r.get("date") or ""))
+                continue
+            self.streams[name] = self._index(name, rows)
+
+    @staticmethod
+    def _index(name, rows):
+        """Group by driver and sort by the stream's own time column."""
+        field = DATE_FIELD.get(name)
+        grouped = {}
+        for row in rows:
+            num = row.get("driver_number")
+            if num is None:
+                continue
+            grouped.setdefault(num, []).append(row)
+
+        indexed = {}
+        for num, items in grouped.items():
+            if field:
+                items.sort(key=lambda r: str(r.get(field) or ""))
+                keys = [str(r.get(field) or "") for r in items]
+            else:
+                # drivers, stints, session_result carry no timestamp at all. They are
+                # session-constant, so every snapshot sees the whole list.
+                keys = None
+            indexed[num] = (keys, items)
+        return indexed
+
+    def _upto(self, name, num, moment):
+        """Every row for this driver at or before `moment`."""
+        entry = self.streams.get(name, {}).get(num)
+        if not entry:
+            return []
+        keys, items = entry
+        if keys is None:
+            return items
+        return items[:bisect.bisect_right(keys, _api_time(moment) + "￿")]
+
+    def drivers_seen(self):
+        seen = set()
+        for name in ("drivers", "position"):
+            seen |= set(self.streams.get(name, {}))
+        return seen
+
+    def snapshot(self, moment):
+        """A `_Session` as it stood at `moment`."""
+        state = _Session(self.key)
+        state.race_control = [
+            r for r in self.race_control
+            if (_parse_dt(r.get("date")) or moment) <= moment
+        ]
+
+        for num in self.drivers_seen():
+            for name, target in (("position", state.position), ("intervals", state.intervals)):
+                rows = self._upto(name, num, moment)
+                if rows:
+                    target[num] = rows[-1]
+
+            laps = self._upto("laps", num, moment)
+            if laps:
+                state.laps[num] = laps[-1]
+                timed = [r.get("lap_duration") for r in laps if r.get("lap_duration")]
+                if timed:
+                    state.best[num] = min(timed)
+
+            stops = self._upto("pit", num, moment)
+            if stops:
+                state.pit[num] = {
+                    "laps": set(r.get("lap_number") for r in stops),
+                    "last": stops[-1],
+                }
+
+            for name, target in (("drivers", state.drivers), ("session_result", state.result)):
+                rows = self._upto(name, num, moment)
+                if rows:
+                    target[num] = rows[-1]
+
+            # Stints have no timestamp, so they are bounded by the lap the car is on.
+            lap_now = (state.laps.get(num) or {}).get("lap_number")
+            stints = self._upto("stints", num, moment)
+            if lap_now is not None:
+                stints = [s for s in stints
+                          if s.get("lap_start") is None or s["lap_start"] <= lap_now]
+            if stints:
+                state.stints[num] = sorted(stints, key=lambda r: r.get("stint_number") or 0)
+
+        return state
+
+
+def _replay_session(key):
+    """The cached replay for one session key, loading it on first use."""
+    with _replay_lock:
+        cached = _replay_cache.get(key)
+        if cached is not None:
+            _replay_cache.move_to_end(key)
+            return cached
+
+    sessions = _get("sessions", [("session_key", key)], authed=False)
+    if not sessions:
+        return None
+    loaded = _ReplaySession(key, sessions[0])
+
+    with _replay_lock:
+        _replay_cache[key] = loaded
+        _replay_cache.move_to_end(key)
+        while len(_replay_cache) > REPLAY_CACHE_MAX:
+            _replay_cache.popitem(last=False)
+    return loaded
+
+
+def _replay_location(key, moment):
+    """
+    Car positions for one replay instant.
+
+    Fetched per scrub rather than held: a session's worth of location data is far too large
+    to cache, and a two-second window is all a still frame needs.
+    """
+    rows = _get("location", [
+        ("session_key", key),
+        ("date>=", _api_time(moment - timedelta(seconds=2))),
+        ("date<=", _api_time(moment)),
+    ], authed=False)
+    latest = {}
+    _merge_latest(latest, rows)
+    return latest
+
+
+def _replay(session_key, at, with_location=True):
     """
     The same composed shape, from historical data, as of `t`.
 
-    Unauthenticated and uncached: this runs on the free tier so the flag state machine and
-    the front end can be developed against a past race. Not for production traffic.
+    Unauthenticated: this runs on the free tier, so the whole lab costs nothing and works
+    without the sponsor credentials.
     """
     try:
         key = int(session_key)
     except (TypeError, ValueError):
         return {"live": False, "error": "replay must be a numeric session_key"}
 
-    sessions = _get("sessions", [("session_key", key)], authed=False)
-    if not sessions:
+    replay = _replay_session(key)
+    if replay is None:
         return {"live": False, "error": "unknown session_key %s" % key}
-    session = sessions[0]
 
+    session = replay.session
     start = _parse_dt(session.get("date_start"))
     end = _parse_dt(session.get("date_end"))
     moment = _parse_dt(at) or end or start
     if moment is None:
         return {"live": False, "error": "could not resolve a replay time"}
 
-    state = _Session(key)
-    _refresh(state, session, until=moment, authed=False)
+    state = replay.snapshot(moment)
+    if with_location:
+        try:
+            state.location = _replay_location(key, moment)
+        except Exception:
+            # The map simply has no cars for this frame; the rest of the panel is unaffected.
+            pass
 
     payload = _compose(state, session, flag_until=moment)
-    payload["replay"] = {"session_key": key, "at": _iso(moment)}
+    payload["replay"] = {
+        "session_key": key,
+        "at": _iso(moment),
+        "start": _iso(start),
+        "end": _iso(end),
+    }
     payload["generated"] = _iso(moment)
     return payload

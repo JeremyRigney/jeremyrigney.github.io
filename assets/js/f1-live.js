@@ -92,6 +92,40 @@
     return url;
   }
 
+  /*
+   * The section's own markup, injected rather than written into the page.
+   *
+   * It lives here because two pages render it — /f1 and the development lab — and 36 lines
+   * of duplicated scaffolding across two files would drift apart, which would defeat the
+   * point of a lab that is supposed to be showing you the real thing. Both pages carry only
+   * `<section class="chapter" id="live" hidden></section>`.
+   */
+  var TEMPLATE =
+    '<div class="wrap">' +
+      '<div class="chapter-head reveal">' +
+        '<p class="chapter-index"><b>00</b> / Live</p>' +
+        '<h2 class="chapter-title"><span class="line-mask"><span>On track now</span></span></h2>' +
+        '<p class="chapter-lead" id="live-session">Session in progress.</p>' +
+      '</div>' +
+      '<div class="live-status" aria-live="polite">' +
+        '<p class="live-state" id="live-state">—</p>' +
+        '<p class="live-state-note" id="live-state-note"></p>' +
+        '<p class="live-lap" id="live-lap"></p>' +
+      '</div>' +
+      '<canvas class="live-map" id="live-map" role="img" ' +
+        'aria-label="Track map showing the current position of every car"></canvas>' +
+      '<div class="timing-head" aria-hidden="true">' +
+        '<span>Pos</span><span>Driver</span><span>Leader</span>' +
+        '<span>Ahead</span><span>Last lap</span><span>Tyre</span>' +
+      '</div>' +
+      '<ol class="timing-rows" id="timing-rows"></ol>' +
+      '<div class="live-feed" id="live-feed" hidden>' +
+        '<p class="live-feed-head">Race control</p>' +
+        '<ol class="feed-rows" id="feed-rows"></ol>' +
+      '</div>' +
+      '<p class="live-foot" id="live-foot"></p>' +
+    '</div>';
+
   function el(id) {
     return document.getElementById(id);
   }
@@ -191,8 +225,21 @@
 
   /* ---------- The running order ---------- */
 
+  // Built before anything looks an id up, since every id below lives in the template.
+  host.innerHTML = TEMPLATE;
+
   var rows = {};       // driver number -> <li>
   var listNode = el('timing-rows');
+
+  /*
+   * Race-control state that attaches to a car. The mark is a single letter so the column
+   * stays narrow — the full wording is in the title attribute and in the feed below.
+   */
+  var BADGE = {
+    investigation: { mark: '!', label: 'Under investigation' },
+    penalty: { mark: 'P', label: 'Penalty' },
+    deletion: { mark: 'D', label: 'Lap time deleted' }
+  };
 
   function buildRow(driver) {
     var node = document.createElement('li');
@@ -200,7 +247,7 @@
     node.innerHTML =
       '<span class="t-pos"></span>' +
       '<span class="t-driver"><i class="t-bar"></i><b class="t-code"></b>' +
-      '<span class="t-name"></span></span>' +
+      '<span class="t-name"></span><span class="t-badges"></span></span>' +
       '<span class="t-gap"></span>' +
       '<span class="t-int"></span>' +
       '<span class="t-last"></span>' +
@@ -215,14 +262,46 @@
     node.querySelector('.t-gap').textContent = gap(driver.gapToLeader);
     node.querySelector('.t-int').textContent = gap(driver.interval);
     node.querySelector('.t-last').textContent = lapTime(driver.lastLap);
-    node.querySelector('.t-tyre').textContent = tyre(driver.compound, driver.tyreAge);
+
+    var tyreNode = node.querySelector('.t-tyre');
+    tyreNode.textContent = tyre(driver.compound, driver.tyreAge);
+    // The stint history is not shown as a column of its own — it would not earn the width —
+    // but it is the natural thing to want when you look at a tyre, so it hangs off it.
+    tyreNode.title = stintSummary(driver.stints);
 
     var colour = teamColour(driver.colour);
     node.querySelector('.t-bar').style.background = colour || 'transparent';
 
+    var badges = node.querySelector('.t-badges');
+    badges.textContent = '';
+    (driver.badges || []).forEach(function (name) {
+      var spec = BADGE[name];
+      if (!spec) {
+        return;
+      }
+      var mark = document.createElement('i');
+      mark.className = 'badge badge-' + name;
+      mark.textContent = spec.mark;
+      mark.title = spec.label;
+      badges.appendChild(mark);
+    });
+
     node.classList.toggle('is-pit', !!driver.inPit);
     node.classList.toggle('is-out', !!driver.dnf);
-    node.querySelector('.t-tyre').classList.toggle('is-pit', !!driver.inPit);
+    tyreNode.classList.toggle('is-pit', !!driver.inPit);
+  }
+
+  /* "S 1-14 · M 15-32 · H 33-" — the whole race on one line. */
+  function stintSummary(stints) {
+    if (!stints || !stints.length) {
+      return '';
+    }
+    return stints.map(function (s) {
+      var letter = (s.compound || '?').charAt(0).toUpperCase();
+      var span = s.lapStart === null || s.lapStart === undefined ? '' :
+        (' ' + s.lapStart + '-' + (s.lapEnd === null || s.lapEnd === undefined ? '' : s.lapEnd));
+      return letter + span;
+    }).join(' · ');
   }
 
   /*
@@ -273,6 +352,50 @@
           node.style.transform = '';
         });
       });
+    });
+  }
+
+  /* ---------- Race control feed ---------- */
+
+  var feedShown = '';
+
+  function renderFeed(events) {
+    var host = el('live-feed');
+    var list = el('feed-rows');
+    if (!host || !list) {
+      return;
+    }
+    if (!events || !events.length) {
+      host.hidden = true;
+      return;
+    }
+
+    // Rebuilt only when the newest entry changes — this list is static between events, and
+    // re-rendering it every three seconds would fight text selection.
+    var newest = events[0].t + '|' + events.length;
+    if (newest === feedShown) {
+      return;
+    }
+    feedShown = newest;
+    host.hidden = false;
+    list.textContent = '';
+
+    events.forEach(function (event) {
+      var row = document.createElement('li');
+      row.className = 'feed-row feed-' + event.severity;
+
+      var when = document.createElement('span');
+      when.className = 'feed-time';
+      when.textContent = event.t ? event.t.slice(11, 16) : '';
+
+      var what = document.createElement('span');
+      what.className = 'feed-text';
+      // textContent, not innerHTML: this is race control's prose arriving over the wire.
+      what.textContent = event.text;
+
+      row.appendChild(when);
+      row.appendChild(what);
+      list.appendChild(row);
     });
   }
 
@@ -336,6 +459,16 @@
 
     renderFlag(data.flag);
     renderRows(data.drivers || []);
+    renderFeed(data.events || []);
+
+    if (window.f1Map) {
+      // On /f1 the round on screen is the session being timed, so its geometry is already
+      // the right one. The lab points the map itself, because it can be replaying anywhere.
+      if (round && round.geoId) {
+        window.f1Map.use(round.geoId);
+      }
+      window.f1Map.render(data);
+    }
 
     var stamp = data.generated ? new Date(data.generated) : new Date();
     setText('live-foot', (data.stale ? 'Last good update ' : 'Updated ')
@@ -386,6 +519,24 @@
         // Keep whatever is on screen; a dropped poll is not worth blanking the order for.
         schedule(POLL_ERROR);
       });
+  }
+
+  /*
+   * The lab drives the panel itself: it holds the scrubber, so it decides which instant is
+   * on screen and there is nothing to poll for. Exposing render rather than duplicating it
+   * is what keeps the lab showing the real page instead of a copy of it.
+   */
+  window.f1Live = {
+    render: render,
+    reveal: reveal,
+    lapTime: lapTime,
+    gap: gap,
+    teamColour: teamColour
+  };
+
+  if (document.body.hasAttribute('data-f1-lab')) {
+    reveal();
+    return;
   }
 
   // Coming back to the tab should feel immediate rather than waiting out a background poll.

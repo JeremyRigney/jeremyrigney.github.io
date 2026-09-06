@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>F1 live — development lab</title>
+  <meta name="description" content="Development harness for the live timing panel on /f1: replays a past session with a scrubber." />
+  <!--
+    Not for visitors. This page exists so the live panel can be built and inspected outside
+    the two hours a fortnight a session is actually running. It is not linked from the site
+    nav and not in sitemap.xml, and it asks not to be indexed.
+  -->
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" id="favicon" href="assets/favicon-f1.svg" type="image/svg+xml" />
+  <meta name="theme-color" content="#111214" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/f1.css?v=20260906b" />
+</head>
+<!--
+  data-f1-lab tells f1-live.js not to start its own poll loop: the scrubber decides which
+  instant is on screen here, so there is nothing to poll for.
+-->
+<body data-f1-lab>
+  <div class="flag-rule" id="flag-rule" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="brand">
+      <a class="masthead" href="/f1">Lab<span class="masthead-dot">.</span></a>
+      <span class="byline">replay harness for <a href="/f1">/f1</a></span>
+    </div>
+    <p class="round-meta" id="lab-status">Pick a session</p>
+  </header>
+
+  <main>
+    <!--
+      The dev toolbar. Everything below it is the real live panel, rendered by the same
+      f1-live.js the site uses — that identity is the whole point of the page.
+    -->
+    <section class="lab-bar">
+      <div class="wrap">
+        <div class="lab-controls">
+          <label class="lab-field">
+            <span>Season</span>
+            <select id="lab-year"></select>
+          </label>
+          <label class="lab-field lab-field-wide">
+            <span>Session</span>
+            <select id="lab-session"><option value="">Loading…</option></select>
+          </label>
+          <button class="lab-button" id="lab-play" type="button" disabled>Play</button>
+          <label class="lab-field">
+            <span>Speed</span>
+            <select id="lab-speed">
+              <option value="1">1×</option>
+              <option value="10" selected>10×</option>
+              <option value="60">60×</option>
+              <option value="300">300×</option>
+            </select>
+          </label>
+          <span class="lab-clock" id="lab-clock">—</span>
+        </div>
+
+        <!--
+          The scrubber. The track behind it is painted with the session's flag periods and
+          notched with race-control events, so the moments worth developing against can be
+          found by eye rather than hunted for.
+        -->
+        <div class="lab-scrub">
+          <div class="lab-track" id="lab-track" aria-hidden="true"></div>
+          <input class="lab-range" id="lab-range" type="range" min="0" max="1000" value="0"
+                 aria-label="Race time" />
+        </div>
+        <p class="lab-jumps" id="lab-jumps"></p>
+      </div>
+    </section>
+
+    <section class="chapter" id="live" hidden></section>
+  </main>
+
+  <script src="assets/js/f1-map.js?v=20260906b"></script>
+  <script src="assets/js/f1-live.js?v=20260906b"></script>
+  <script src="assets/js/f1-lab.js?v=20260906b"></script>
+</body>
+</html>

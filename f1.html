@@ -112,42 +112,12 @@
       session actually running, so outside a race weekend the page is exactly what it was.
       Numbered 00 because it is only ever present before chapter 01.
     -->
-    <section class="chapter" id="live" hidden>
-      <div class="wrap">
-        <!--
-          .reveal here is driven by f1-live.js rather than the page's IntersectionObserver:
-          the section is hidden when that observer starts, so it has to be told to reveal at
-          the moment it is unhidden.
-        -->
-        <div class="chapter-head reveal">
-          <p class="chapter-index"><b>00</b> / Live</p>
-          <h2 class="chapter-title"><span class="line-mask"><span>On track now</span></span></h2>
-          <p class="chapter-lead" id="live-session">Session in progress.</p>
-        </div>
-
-        <!--
-          aria-live so a change of flag is announced rather than silently repainted. It is
-          polite, not assertive: a safety car should not interrupt whatever is being read.
-        -->
-        <div class="live-status" aria-live="polite">
-          <p class="live-state" id="live-state">—</p>
-          <p class="live-state-note" id="live-state-note"></p>
-          <p class="live-lap" id="live-lap"></p>
-        </div>
-
-        <div class="timing-head" aria-hidden="true">
-          <span>Pos</span>
-          <span>Driver</span>
-          <span>Leader</span>
-          <span>Ahead</span>
-          <span>Last lap</span>
-          <span>Tyre</span>
-        </div>
-        <ol class="timing-rows" id="timing-rows"></ol>
-
-        <p class="live-foot" id="live-foot"></p>
-      </div>
-    </section>
+    <!--
+      The section's contents are built by assets/js/f1-live.js, not written here: the
+      development lab at /f1-lab renders the same panel, and two copies of this markup would
+      drift apart. This is the shell; the template is TEMPLATE in that file.
+    -->
+    <section class="chapter" id="live" hidden></section>
 
     <section class="chapter" id="vitals">
       <div class="wrap">
@@ -433,7 +403,10 @@
     Live timing. Loaded after f1-circuit.js because it reuses two things that file exposes:
     the round currently on screen (for the lap count) and its favicon builder (to repaint
     the tab in the flag's colour). It no-ops entirely when #live is absent.
+
+    f1-map.js comes first because f1-live.js hands it data as soon as a session is running.
   -->
-  <script src="assets/js/f1-live.js?v=20260906"></script>
+  <script src="assets/js/f1-map.js?v=20260906b"></script>
+  <script src="assets/js/f1-live.js?v=20260906b"></script>
 </body>
 </html>
