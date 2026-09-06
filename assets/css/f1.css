@@ -964,6 +964,277 @@ a {
   }
 }
 
+/* ---------- Live timing ---------- */
+
+/*
+ * Only ever visible while a session is actually running; assets/js/f1-live.js unhides the
+ * section and sets data-flag on <html>.
+ *
+ * The flag has its own token rather than borrowing --accent. That accent is the circuit's
+ * own colour, repointed per round by f1-circuit.js and read by the canvas on every frame —
+ * turning it yellow for a safety car would repaint the whole scene with it.
+ *
+ * The three yellow-family states share one colour and are told apart by their label and the
+ * speed of the pulse, which is how they read trackside too. Nothing here flashes the whole
+ * page: a sustained full-screen strobe across forty laps of a yellow would be unbearable,
+ * so the signal is a hairline across the top and one large word.
+ */
+
+:root {
+  --flag: transparent;
+  --flag-rgb: 0, 0, 0;
+  --flag-pulse: 1.1s;
+}
+
+[data-flag="green"] {
+  --flag: #3ecf78;
+  --flag-rgb: 62, 207, 120;
+}
+[data-flag="yellow"] {
+  --flag: #f5c518;
+  --flag-rgb: 245, 197, 24;
+  --flag-pulse: 1.1s;
+}
+[data-flag="vsc"],
+[data-flag="safety-car"] {
+  --flag: #f5c518;
+  --flag-rgb: 245, 197, 24;
+  --flag-pulse: 1.6s;
+}
+[data-flag="red"] {
+  --flag: #e8112d;
+  --flag-rgb: 232, 17, 45;
+  --flag-pulse: 0.6s;
+}
+[data-flag="chequered"] {
+  --flag: #f6f7f8;
+  --flag-rgb: 246, 247, 248;
+}
+
+/*
+ * The rule sits directly under the fixed header — 62px, matching HEADER_H in f1-circuit.js.
+ * It is painted only once a flag state exists, so it never shows on a page with no session.
+ */
+.flag-rule {
+  position: fixed;
+  top: 62px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 60;
+  background: var(--flag);
+  opacity: 0;
+  pointer-events: none;
+}
+
+[data-flag] .flag-rule {
+  opacity: 1;
+}
+
+[data-flag="yellow"] .flag-rule,
+[data-flag="vsc"] .flag-rule,
+[data-flag="safety-car"] .flag-rule,
+[data-flag="red"] .flag-rule {
+  animation: flag-pulse var(--flag-pulse) ease-in-out infinite;
+}
+
+@keyframes flag-pulse {
+  0%, 100% { opacity: 0.22; }
+  50% { opacity: 1; }
+}
+
+.live-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 clamp(1rem, 4vw, 3rem);
+  padding: 0 0 1.6rem;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.live-state {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: clamp(1.6rem, 4.5vw, 2.9rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--flag, var(--ink));
+}
+
+[data-flag="yellow"] .live-state,
+[data-flag="vsc"] .live-state,
+[data-flag="safety-car"] .live-state,
+[data-flag="red"] .live-state {
+  animation: flag-pulse var(--flag-pulse) ease-in-out infinite;
+}
+
+.live-state-note,
+.live-lap,
+.live-session {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.live-lap {
+  margin-left: auto;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The order itself, set as ruled rows in the same idiom as .schedule above: hairlines only,
+ * no fills, no cards, and tabular figures so the gap column stays in one place as it counts.
+ */
+.timing-head,
+.timing-row {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr) 6.2rem 6.2rem 7rem 3.4rem;
+  align-items: baseline;
+  gap: 0 clamp(0.5rem, 2vw, 1.4rem);
+}
+
+.timing-head {
+  padding: 1.1rem 0 0.5rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.timing-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line-strong);
+}
+
+.timing-row {
+  padding: 0.72rem 0;
+  border-bottom: 1px solid var(--line);
+  /* The FLIP transition f1-live.js drives when a car changes place. */
+  transition: transform 520ms var(--ease);
+  will-change: transform;
+}
+
+.t-pos {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.t-driver {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+/* The team's colour, as a short rule rather than a dot or a chip. */
+.t-bar {
+  flex: none;
+  width: 3px;
+  height: 0.95em;
+  align-self: center;
+  background: transparent;
+}
+
+.t-code {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.98rem;
+  letter-spacing: 0.06em;
+  color: var(--chalk);
+}
+
+.t-name {
+  overflow: hidden;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ink-faint);
+}
+
+.t-gap,
+.t-int,
+.t-last {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  text-align: right;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.t-last {
+  color: var(--ink);
+}
+
+.t-tyre {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.1em;
+  text-align: right;
+  color: var(--ink-faint);
+}
+
+.timing-row.is-pit .t-tyre,
+.t-tyre.is-pit {
+  color: var(--accent-soft);
+}
+
+.timing-row.is-out {
+  opacity: 0.42;
+}
+
+.live-foot {
+  margin: 1.1rem 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+@media (max-width: 720px) {
+  /* The interval to the car ahead is the first thing to go; the gap to the leader stays. */
+  .timing-head,
+  .timing-row {
+    grid-template-columns: 2rem minmax(0, 1fr) 5.4rem 6rem 3rem;
+  }
+
+  .t-int {
+    display: none;
+  }
+
+  .t-name {
+    display: none;
+  }
+}
+
+/*
+ * Under reduced motion the colour and the word still carry the state; only the pulse and
+ * the row movement go. Same escape every other animation in this file has.
+ */
+@media (prefers-reduced-motion: reduce) {
+  [data-flag] .flag-rule,
+  .live-state {
+    animation: none !important;
+    opacity: 1;
+  }
+
+  .timing-row {
+    transition: none;
+  }
+}
+
 /* ---------- Silhouette wall ---------- */
 
 /*

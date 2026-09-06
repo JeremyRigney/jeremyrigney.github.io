@@ -2091,6 +2091,17 @@
     // Before anything paints, so the first frame is already in the circuit's colour.
     applyAccent(round.circuitId);
 
+    /*
+     * Two handles for f1-live.js, which loads after this file.
+     *
+     * The round, because the live timing feed carries a lap number but no total, and the
+     * season data loaded above already knows how long the race is. The favicon builder,
+     * so that repainting the tab in a flag's colour reuses the icon defined here rather
+     * than keeping a second copy of the same path data.
+     */
+    window.f1Round = round;
+    window.f1Favicon = faviconDataUri;
+
     fillPage(season, round, circuit, isNext);
     drawProfile(circuit);
     startCountdown(round);

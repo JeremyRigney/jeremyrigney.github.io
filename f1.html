@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/f1.css?v=20260829" />
+  <link rel="stylesheet" href="assets/css/f1.css?v=20260906" />
 </head>
 <body>
   <!--
@@ -30,6 +30,9 @@
     </p>
   </div>
 
+  <!-- The flag signal: a hairline under the header, painted and pulsed by f1-live.js. -->
+  <div class="flag-rule" id="flag-rule" aria-hidden="true"></div>
+
   <header class="site-header" id="site-header">
     <div class="brand">
       <a class="masthead" href="#scene">Next&nbsp;Circuit<span class="masthead-dot">.</span></a>
@@ -41,6 +44,7 @@
       <span></span>
     </button>
     <nav class="site-nav" id="site-nav" aria-label="Page navigation">
+      <a href="#live" id="nav-live" hidden>Live</a>
       <a href="#vitals">Circuit</a>
       <a href="#profile">Elevation</a>
       <a href="#history">History</a>
@@ -100,6 +104,48 @@
           <p class="circuit-sub" id="scene-error-body">The circuit data could not be loaded.</p>
           <p class="byline" id="scene-error-detail"></p>
         </div>
+      </div>
+    </section>
+
+    <!--
+      Live timing. Ships hidden and stays that way unless assets/js/f1-live.js finds a
+      session actually running, so outside a race weekend the page is exactly what it was.
+      Numbered 00 because it is only ever present before chapter 01.
+    -->
+    <section class="chapter" id="live" hidden>
+      <div class="wrap">
+        <!--
+          .reveal here is driven by f1-live.js rather than the page's IntersectionObserver:
+          the section is hidden when that observer starts, so it has to be told to reveal at
+          the moment it is unhidden.
+        -->
+        <div class="chapter-head reveal">
+          <p class="chapter-index"><b>00</b> / Live</p>
+          <h2 class="chapter-title"><span class="line-mask"><span>On track now</span></span></h2>
+          <p class="chapter-lead" id="live-session">Session in progress.</p>
+        </div>
+
+        <!--
+          aria-live so a change of flag is announced rather than silently repainted. It is
+          polite, not assertive: a safety car should not interrupt whatever is being read.
+        -->
+        <div class="live-status" aria-live="polite">
+          <p class="live-state" id="live-state">—</p>
+          <p class="live-state-note" id="live-state-note"></p>
+          <p class="live-lap" id="live-lap"></p>
+        </div>
+
+        <div class="timing-head" aria-hidden="true">
+          <span>Pos</span>
+          <span>Driver</span>
+          <span>Leader</span>
+          <span>Ahead</span>
+          <span>Last lap</span>
+          <span>Tyre</span>
+        </div>
+        <ol class="timing-rows" id="timing-rows"></ol>
+
+        <p class="live-foot" id="live-foot"></p>
       </div>
     </section>
 
@@ -303,6 +349,14 @@
             </span>
           </li>
           <li>
+            <span class="hang-label">Live timing</span>
+            <span>
+              <a href="https://openf1.org/">OpenF1</a>, when a session is running —
+              running order, gaps, tyres and race control messages, about three seconds
+              behind the track. Shown only while a session is live.
+            </span>
+          </li>
+          <li>
             <span class="hang-label">Basemap</span>
             <span>
               <a href="https://carto.com/attributions">CARTO</a>, over
@@ -373,6 +427,13 @@
           integrity="sha384-jqpi9VmOdhyLoLURgjCn7EpnG9BbnHW57ibIZoeaIU+erWDH3k8fQQg0xH2ySjnw"
           crossorigin="anonymous"></script>
   <script src="assets/js/carto-basemap.js?v=20260829"></script>
-  <script src="assets/js/f1-circuit.js?v=20260829"></script>
+  <script src="assets/js/f1-circuit.js?v=20260906"></script>
+
+  <!--
+    Live timing. Loaded after f1-circuit.js because it reuses two things that file exposes:
+    the round currently on screen (for the lap count) and its favicon builder (to repaint
+    the tab in the flag's colour). It no-ops entirely when #live is absent.
+  -->
+  <script src="assets/js/f1-live.js?v=20260906"></script>
 </body>
 </html>
