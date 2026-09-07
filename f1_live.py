@@ -709,6 +709,56 @@ def _merge_stints(state, rows):
 # Compose
 # ---------------------------------------------------------------------------
 
+# How far behind the rest of the field a car's timing can fall before it is treated as out.
+DNF_SILENCE_S = 150
+
+# How long after lights out to start believing any of it. In the opening minutes the field
+# is still completing its first laps and cars have not all reported an interval yet, so
+# staleness means nothing — without this the leader was briefly shown as retired thirty
+# seconds into the race.
+DNF_WARMUP_S = 360
+
+
+def _infer_retired(state, start=None):
+    """
+    Cars that have gone quiet while the rest of the field is still reporting.
+
+    `session_result` is the only thing that actually says who retired, and it carries no
+    timestamp at all — it is the final classification, nothing more. Using it directly meant
+    every car that would eventually retire was greyed out from lap one, which is worse than
+    useless in a replay.
+
+    Every running car gets an `intervals` record every few seconds, so silence is the
+    signal. The subtlety is what to measure silence against: not the clock, because a red
+    flag stops the timing for the whole field at once — Zandvoort 2026 went 26 minutes
+    without a single record — and a clock-based rule would retire all twenty-two cars. So
+    staleness is measured against the newest record anywhere in the field, which moves with
+    the field, sits still through a stoppage, and jumps forward on the restart, leaving only
+    the genuinely stopped cars behind it.
+    """
+    stamps = {}
+    for num, row in state.intervals.items():
+        when = _parse_dt((row or {}).get("date"))
+        if when is not None:
+            stamps[num] = when
+    # Too early to tell: before the field has settled there is nothing to compare against.
+    if len(stamps) < 6:
+        return set()
+
+    # The median, not the newest. A single stray record moves the newest and takes the whole
+    # field with it — one car reporting at 13:16 during Zandvoort's stoppage, when everyone
+    # else had been silent since 13:07, retired twenty-one cars at once. The median sits
+    # among the runners whatever one car does, and only a genuine minority falls behind it.
+    reference = sorted(stamps.values())[len(stamps) // 2]
+
+    # Nothing is stale before the race has run long enough for staleness to mean anything.
+    if start is not None and (reference - start).total_seconds() < DNF_WARMUP_S:
+        return set()
+
+    cutoff = reference - timedelta(seconds=DNF_SILENCE_S)
+    return set(num for num, when in stamps.items() if when < cutoff)
+
+
 def _gap(value):
     """gap_to_leader and interval are floats, except when they are '+1 LAP' strings."""
     if value is None or value == "":
@@ -723,6 +773,11 @@ def _compose(state, session, flag_until=None):
     flag_state, flag_since, flag_message, flag_sectors, flag_ending = _fold_flag(
         state.race_control, flag_until)
     events, badges = build_events(state.race_control, flag_until)
+
+    # The final classification is only trustworthy once there is one. Until the flag falls,
+    # who is out has to be read from the timing itself.
+    over = (flag_state == "CHEQUERED")
+    retired = _infer_retired(state, start)
 
     numbers = set(state.drivers) | set(state.position)
     rows = []
@@ -769,7 +824,8 @@ def _compose(state, session, flag_until=None):
             "tyreAge": tyre_age,
             "inPit": in_pit,
             "pitStops": len([n for n in pit_laps if n is not None]),
-            "dnf": bool(result.get("dnf") or result.get("dns") or result.get("dsq")),
+            "dnf": (bool(result.get("dnf") or result.get("dns") or result.get("dsq"))
+                    if over else num in retired),
             # Standing race-control state for this car: investigation, penalty, deletion.
             "badges": badges.get(num, []),
             # The whole stint history, not just the tyre currently on the car.
@@ -1054,6 +1110,9 @@ class _ReplaySession:
         self.loaded = time.time()
         self.streams = {}        # stream -> {driver_number: ([sort keys], [rows])}
         self.race_control = []
+        self.start = _parse_dt(session.get("date_start"))
+        # Car positions, in time blocks, loaded as the playhead reaches them.
+        self.location_blocks = OrderedDict()
 
         for name in REPLAY_STREAMS:
             rows = _get(name, [("session_key", key)], authed=False)
@@ -1094,6 +1153,25 @@ class _ReplaySession:
         if keys is None:
             return items
         return items[:bisect.bisect_right(keys, _api_time(moment) + "￿")]
+
+    def load_location_block(self, index):
+        """Fetch and index one block of car positions, once."""
+        if index < 0 or index in self.location_blocks:
+            if index in self.location_blocks:
+                self.location_blocks.move_to_end(index)
+            return
+
+        begin = self.start + timedelta(seconds=index * LOCATION_BLOCK_S)
+        rows = _get("location", [
+            ("session_key", self.key),
+            ("date>=", _api_time(begin)),
+            ("date<=", _api_time(begin + timedelta(seconds=LOCATION_BLOCK_S))),
+        ], authed=False)
+
+        self.location_blocks[index] = self._index("location", rows)
+        self.location_blocks.move_to_end(index)
+        while len(self.location_blocks) > LOCATION_BLOCKS_MAX:
+            self.location_blocks.popitem(last=False)
 
     def drivers_seen(self):
         seen = set()
@@ -1167,20 +1245,44 @@ def _replay_session(key):
     return loaded
 
 
-def _replay_location(key, moment):
-    """
-    Car positions for one replay instant.
+# Car positions are held in blocks rather than fetched per frame.
+#
+# A whole session of `location` is around half a million rows, far too much to load in one
+# go, but fetching a fresh window for every frame is worse: playback asks for four frames a
+# second, and each one was an unauthenticated call against a 2/sec, 25/min allowance. That
+# throttled, then stalled for a minute, then delivered a burst — playback that sat still and
+# then jumped. Blocks make a scrub or a played second cost nothing once its neighbourhood is
+# loaded.
+#
+# Three minutes is the balance: about fourteen thousand rows a block, and forty blocks for a
+# two-hour race, so even a 300x run through the whole thing stays inside the rate limit.
+LOCATION_BLOCK_S = 180
+LOCATION_BLOCKS_MAX = 12
 
-    Fetched per scrub rather than held: a session's worth of location data is far too large
-    to cache, and a two-second window is all a still frame needs.
-    """
-    rows = _get("location", [
-        ("session_key", key),
-        ("date>=", _api_time(moment - timedelta(seconds=2))),
-        ("date<=", _api_time(moment)),
-    ], authed=False)
+
+def _replay_location(replay, moment):
+    """Car positions at one replay instant, from the block cache."""
+    if replay.start is None:
+        return {}
+
+    index = int((moment - replay.start).total_seconds() // LOCATION_BLOCK_S)
+    # The previous block too: a car that has not moved — sitting in the pit lane under a red
+    # flag — may have no sample in the current one at all.
+    for wanted in (index - 1, index):
+        replay.load_location_block(wanted)
+
     latest = {}
-    _merge_latest(latest, rows)
+    for wanted in (index - 1, index):
+        block = replay.location_blocks.get(wanted)
+        if not block:
+            continue
+        for num, (keys, rows) in block.items():
+            cut = bisect.bisect_right(keys, _api_time(moment) + "￿")
+            if cut:
+                row = rows[cut - 1]
+                current = latest.get(num)
+                if current is None or str(row.get("date") or "") >= str(current.get("date") or ""):
+                    latest[num] = row
     return latest
 
 
@@ -1210,7 +1312,7 @@ def _replay(session_key, at, with_location=True):
     state = replay.snapshot(moment)
     if with_location:
         try:
-            state.location = _replay_location(key, moment)
+            state.location = _replay_location(replay, moment)
         except Exception:
             # The map simply has no cars for this frame; the rest of the panel is unaffected.
             pass

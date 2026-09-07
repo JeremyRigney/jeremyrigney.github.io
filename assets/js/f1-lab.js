@@ -27,7 +27,7 @@
   }());
 
   var STEPS = 1000;               // scrubber resolution
-  var FRAME_MS = 250;             // how often a frame is requested while playing
+  var FRAME_MS = 60;              // floor between playback frames, so it cannot spin
 
   /*
    * Cache-buster for the JSON under assets/data. GitHub Pages serves those with
@@ -52,7 +52,9 @@
   var timeline = null;
   var current = null;             // {key, start, end}
   var playing = false;
-  var playTimer = null;
+  var anchor = null;              // {wall, race} — pins playback to the wall clock
+  var ready = false;              // first frame rendered, so the data is warm
+  var loadedLabel = '';
   var inFlight = false;
   var pending = null;             // most recent requested instant while one is in flight
 
@@ -167,6 +169,7 @@
 
   function pick(key) {
     stop();
+    ready = false;
     setStatus('Loading session ' + key + '…');
     el('lab-play').disabled = true;
     if (window.f1Map) {
@@ -193,8 +196,11 @@
         paintTrack();
         paintJumps();
         pointMap(data.session);
-        setStatus((data.session.circuit || '') + ' · ' + (data.session.name || ''));
-        el('lab-play').disabled = false;
+        loadedLabel = (data.session.circuit || '') + ' · ' + (data.session.name || '');
+        // Play stays disabled until the first frame is back. The server has to pull this
+        // session's car positions from OpenF1 on first use, which takes a few seconds, and
+        // letting playback start into that is what made it sit still and then jump.
+        setStatus(loadedLabel + ' — loading positions…');
 
         // ?t= pins an instant, so a reload comes back to the moment being worked on rather
         // than to lights out.
@@ -386,6 +392,14 @@
         if (data && data.live && window.f1Live) {
           window.f1Live.render(data);
         }
+        if (!ready) {
+          // The first frame has landed, which means the server has the session and its
+          // opening block of car positions in memory. Only now is playing worth allowing:
+          // starting before this meant sitting on a still picture for ten seconds.
+          ready = true;
+          el('lab-play').disabled = false;
+          setStatus(loadedLabel);
+        }
       })
       .catch(function () { /* a dropped frame; the next scrub will ask again */ })
       .then(function () {
@@ -394,6 +408,11 @@
           var next = pending;
           pending = null;
           request(next);
+          return;
+        }
+        // Only ask for the next frame once this one is on screen.
+        if (playing) {
+          window.setTimeout(advance, FRAME_MS);
         }
       });
   }
@@ -407,26 +426,48 @@
 
   function stop() {
     playing = false;
-    window.clearInterval(playTimer);
+    anchor = null;
     el('lab-play').textContent = 'Play';
   }
 
+  /*
+   * Playback paces itself against the wall clock instead of firing on a fixed timer.
+   *
+   * A timer at four frames a second asks for frames whether or not the previous one has
+   * come back, so any latency built a queue and the picture arrived in bursts. Here the
+   * next frame is only requested once the last has landed, and which instant it asks for
+   * comes from how much real time has actually passed — so a slow connection shows fewer
+   * frames rather than falling behind, and the race still plays at the chosen speed.
+   */
   function play() {
-    if (!current) {
+    if (!current || !ready) {
       return;
     }
     playing = true;
     el('lab-play').textContent = 'Pause';
-    playTimer = window.setInterval(function () {
-      var speed = parseFloat(el('lab-speed').value) || 1;
-      var next = currentMs() + FRAME_MS * speed;
-      if (next >= current.end) {
-        seek(current.end);
-        stop();
-        return;
-      }
-      seek(next);
-    }, FRAME_MS);
+    anchor = { wall: Date.now(), race: currentMs() };
+    advance();
+  }
+
+  function advance() {
+    if (!playing || !anchor) {
+      return;
+    }
+    var speed = parseFloat(el('lab-speed').value) || 1;
+    var next = anchor.race + (Date.now() - anchor.wall) * speed;
+    if (next >= current.end) {
+      seek(current.end);
+      stop();
+      return;
+    }
+    seek(next);
+  }
+
+  /* Changing speed mid-play re-bases the clock, so the playhead does not leap. */
+  function reanchor() {
+    if (playing) {
+      anchor = { wall: Date.now(), race: currentMs() };
+    }
   }
 
   function main() {
@@ -449,6 +490,8 @@
         play();
       }
     });
+
+    el('lab-speed').addEventListener('change', reanchor);
 
     // Arrow keys nudge a frame at a time, which is how you actually pin down the instant a
     // flag changes.

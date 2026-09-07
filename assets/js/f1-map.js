@@ -46,8 +46,18 @@
   /* Beyond this from the centreline a car is not on the racing surface — pit lane. */
   var OFF_TRACK_M = 45;
 
-  /* How long a car takes to slide to a newly reported position. */
-  var EASE_MS = 900;
+  /*
+   * How long a car takes to slide to a newly reported position.
+   *
+   * Adaptive, not fixed. A car eased over 900ms while frames arrive every 150ms is
+   * permanently chasing a target it never reaches, which reads as lag — and the faster the
+   * lab plays, the worse it looks. Easing over roughly the gap between updates instead
+   * keeps the cars with the data at any speed.
+   */
+  var EASE_MIN = 90;
+  var EASE_MAX = 900;
+  var easeMs = EASE_MAX;
+  var lastRender = 0;
 
   var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -178,14 +188,45 @@
     return [px * cos + py * sin, -px * sin + py * cos];
   }
 
-  /* Nearest path index to a point, with its distance. Linear over ~300 points; trivial. */
-  function nearest(x, y) {
+  /*
+   * Nearest path index to a point, with its distance.
+   *
+   * `near` restricts the search to a window around where the car was last seen. Circuits
+   * run close to themselves — Zandvoort's banking, Monza's parallel straights — and a
+   * global search will happily snap a car onto the other side of the track, which shows up
+   * as a dot flicking back and forth across the infield. Searching near the last known
+   * position keeps a car on the piece of track it is actually on; the global search is the
+   * fallback for a car that has genuinely jumped, such as one coming out of the pits.
+   */
+  function nearest(x, y, near) {
     var best = 0;
     var bestD = Infinity;
-    for (var i = 0; i < local.length; i += 1) {
-      var dx = x - local[i][0];
-      var dy = y - local[i][1];
-      var d = dx * dx + dy * dy;
+    var count = local.length;
+    var i, idx, dx, dy, d;
+
+    if (near !== null && near !== undefined) {
+      var span = Math.max(6, Math.round(count * 0.08));
+      for (i = -span; i <= span; i += 1) {
+        idx = ((Math.round(near) + i) % count + count) % count;
+        dx = x - local[idx][0];
+        dy = y - local[idx][1];
+        d = dx * dx + dy * dy;
+        if (d < bestD) {
+          bestD = d;
+          best = idx;
+        }
+      }
+      // Close enough to be the same stretch of track: trust it.
+      if (Math.sqrt(bestD) <= OFF_TRACK_M) {
+        return { index: best, distance: Math.sqrt(bestD) };
+      }
+      bestD = Infinity;
+    }
+
+    for (i = 0; i < count; i += 1) {
+      dx = x - local[i][0];
+      dy = y - local[i][1];
+      d = dx * dx + dy * dy;
       if (d < bestD) {
         bestD = d;
         best = i;
@@ -288,7 +329,7 @@
       } else {
         // Ease along the path rather than across the infield.
         var t = reducedMotion ? 1 :
-          Math.min(1, (now - car.since) / EASE_MS);
+          Math.min(1, (now - car.since) / easeMs);
         var at = car.from + ringDelta(car.from, car.to, local.length) * t;
         var i0 = ((Math.floor(at) % local.length) + local.length) % local.length;
         var i1 = (i0 + 1) % local.length;
@@ -323,7 +364,7 @@
     draw();
     var now = Date.now();
     var moving = Object.keys(cars).some(function (num) {
-      return !cars[num].offTrack && (now - cars[num].since) < EASE_MS;
+      return !cars[num].offTrack && (now - cars[num].since) < easeMs;
     });
     if (moving && !reducedMotion) {
       window.requestAnimationFrame(loop);
@@ -448,14 +489,23 @@
       var t = transformOf();
       var now = Date.now();
 
+      // Ease over about the gap between frames. At 10x the lab delivers a frame every
+      // couple of hundred milliseconds, and easing each one over 900ms would leave every
+      // car permanently short of where the data says it is.
+      if (lastRender) {
+        easeMs = Math.max(EASE_MIN, Math.min(EASE_MAX, now - lastRender));
+      }
+      lastRender = now;
+
       (data.drivers || []).forEach(function (driver) {
         // No transform for this circuit, or no fix for this car: nothing to place.
         if (!t || !driver.xy || driver.xy[0] === null) {
           return;
         }
         var world = apply(t, driver.xy[0], driver.xy[1]);
-        var snap = nearest(world[0], world[1]);
-        var car = cars[driver.num];
+        var known = cars[driver.num];
+        var snap = nearest(world[0], world[1], known ? known.to : null);
+        var car = known;
         if (!car) {
           car = cars[driver.num] = { from: snap.index, to: snap.index, since: 0 };
         }
@@ -469,7 +519,7 @@
 
         if (!car.offTrack && snap.index !== car.to) {
           // Resume from wherever the last ease had reached, so a car never jumps back.
-          var progress = Math.min(1, (now - car.since) / EASE_MS);
+          var progress = Math.min(1, (now - car.since) / easeMs);
           car.from = car.since
             ? car.from + ringDelta(car.from, car.to, local.length) * progress
             : snap.index;
