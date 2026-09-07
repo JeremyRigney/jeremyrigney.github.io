@@ -47,16 +47,28 @@
   var OFF_TRACK_M = 45;
 
   /*
-   * How long a car takes to slide to a newly reported position.
+   * How a car travels between the positions it actually reports.
    *
-   * Adaptive, not fixed. A car eased over 900ms while frames arrive every 150ms is
-   * permanently chasing a target it never reaches, which reads as lag — and the faster the
-   * lab plays, the worse it looks. Easing over roughly the gap between updates instead
-   * keeps the cars with the data at any speed.
+   * Position updates arrive every few seconds — three or so live, less under playback — and
+   * the trick is to spend the *whole* interval covering the ground, so a car looks like it
+   * is driving rather than teleporting. An earlier version capped the travel at 900ms, so
+   * with a 3s poll a car darted for 900ms and then sat perfectly still for 2.1s, which is
+   * exactly what reads as jumping.
+   *
+   * The duration is therefore the measured gap between updates, stretched slightly: a car
+   * should still be moving when the next position lands, so the new target redirects a
+   * moving car instead of restarting a stopped one. Motion is linear along the track, not
+   * eased, because a racing car does not accelerate away from every sample and decelerate
+   * into the next.
    */
-  var EASE_MIN = 90;
-  var EASE_MAX = 900;
-  var easeMs = EASE_MAX;
+  var TRAVEL_MIN = 200;
+  var TRAVEL_MAX = 6000;
+  var TRAVEL_STRETCH = 1.25;
+
+  /* A jump bigger than this fraction of a lap is a scrub, not driving — snap instead. */
+  var SNAP_FRACTION = 0.25;
+
+  var gapMs = 3000;        // observed interval between position updates
   var lastRender = 0;
 
   var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -327,9 +339,10 @@
       if (car.offTrack) {
         here = [car.x, car.y];
       } else {
-        // Ease along the path rather than across the infield.
+        // Travel along the path rather than across the infield, at a constant rate over
+        // the whole interval between updates.
         var t = reducedMotion ? 1 :
-          Math.min(1, (now - car.since) / easeMs);
+          Math.min(1, (now - car.since) / (car.travel || TRAVEL_MIN));
         var at = car.from + ringDelta(car.from, car.to, local.length) * t;
         var i0 = ((Math.floor(at) % local.length) + local.length) % local.length;
         var i1 = (i0 + 1) % local.length;
@@ -364,7 +377,7 @@
     draw();
     var now = Date.now();
     var moving = Object.keys(cars).some(function (num) {
-      return !cars[num].offTrack && (now - cars[num].since) < easeMs;
+      return !cars[num].offTrack && (now - cars[num].since) < (cars[num].travel || 0);
     });
     if (moving && !reducedMotion) {
       window.requestAnimationFrame(loop);
@@ -489,13 +502,14 @@
       var t = transformOf();
       var now = Date.now();
 
-      // Ease over about the gap between frames. At 10x the lab delivers a frame every
-      // couple of hundred milliseconds, and easing each one over 900ms would leave every
-      // car permanently short of where the data says it is.
+      // Measure how often positions are actually arriving, and let cars take that long to
+      // cover the ground. Smoothed, so one slow frame does not make every car crawl.
       if (lastRender) {
-        easeMs = Math.max(EASE_MIN, Math.min(EASE_MAX, now - lastRender));
+        var seen = Math.max(TRAVEL_MIN, Math.min(TRAVEL_MAX, now - lastRender));
+        gapMs = gapMs * 0.6 + seen * 0.4;
       }
       lastRender = now;
+      var travel = Math.max(TRAVEL_MIN, Math.min(TRAVEL_MAX, gapMs * TRAVEL_STRETCH));
 
       (data.drivers || []).forEach(function (driver) {
         // No transform for this circuit, or no fix for this car: nothing to place.
@@ -518,13 +532,21 @@
         car.offTrack = snap.distance > OFF_TRACK_M;
 
         if (!car.offTrack && snap.index !== car.to) {
-          // Resume from wherever the last ease had reached, so a car never jumps back.
-          var progress = Math.min(1, (now - car.since) / easeMs);
-          car.from = car.since
+          // Pick up from wherever the car has actually got to, so a new position redirects
+          // a moving car rather than restarting it from behind.
+          var progress = Math.min(1, (now - car.since) / (car.travel || TRAVEL_MIN));
+          var at = car.since
             ? car.from + ringDelta(car.from, car.to, local.length) * progress
             : snap.index;
+
+          // A scrub moves the playhead by minutes; driving it is not. Crossing a quarter of
+          // the lap in one update means the clock jumped, so put the car where it belongs
+          // instead of sending it on a long glide to catch up.
+          var leap = Math.abs(ringDelta(at, snap.index, local.length)) / local.length;
+          car.from = leap > SNAP_FRACTION ? snap.index : at;
           car.to = snap.index;
           car.since = now;
+          car.travel = travel;
         }
       });
 
