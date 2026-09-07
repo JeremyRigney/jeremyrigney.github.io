@@ -329,6 +329,7 @@ def _fold_flag(messages, until=None):
     safety = None            # "SAFETY_CAR" | "VSC" | None
     ending = False           # safety car called in, but not yet green
     track = "GREEN"          # the track-wide flag: GREEN, RED or CHEQUERED
+    suspended = False        # the session itself is stopped, not merely neutralised
     finished = False
     since = {}
     triggered = {}
@@ -381,6 +382,25 @@ def _fold_flag(messages, until=None):
         elif category == "SessionStatus":
             if "FINISHED" in text:
                 finished = True
+            elif "ABORTED" in text:
+                # A stopped session, which is not the same thing as a red flag on the
+                # track. Marshals clear the circuit long before the race resumes — at
+                # Zandvoort in 2026, TRACK CLEAR came 25 minutes before the restart — so
+                # this deliberately cannot be lifted by any flag, only by the session
+                # starting again below.
+                suspended = True
+            elif "STARTED" in text:
+                # Running again, so neither stopped nor over. Test days in particular
+                # report several finishes and restarts under one session key.
+                suspended = False
+                finished = False
+
+        # The red flag does not always arrive as a flag. Zandvoort 2026 reported it only as
+        # prose — category "Other", no flag field, no scope — while 2025 sessions used a
+        # proper Flag/RED/Track record. Both forms have to count, or a suspended race reads
+        # as whatever sector yellows happen to be out at the time.
+        if category != "Flag" and "RED FLAG" in text:
+            track = "RED"
 
         # Resolve after each record so `since` tracks the true moment of the transition.
         #
@@ -388,10 +408,12 @@ def _fold_flag(messages, until=None):
         # through the cool-down lap and race control keeps issuing sector yellows for it, and
         # without this the panel announces a yellow flag several minutes after the race has
         # finished — which is what the 2025 Dutch GP timeline showed.
-        if finished:
-            state = "RED" if track == "RED" else "CHEQUERED"
-        elif track == "RED":
+        # A stopped session outranks a finished one: a red flag shown after the flag is
+        # still the more urgent thing on the page.
+        if suspended or track == "RED":
             state = "RED"
+        elif finished:
+            state = "CHEQUERED"
         elif safety:
             state = safety
         elif sectors:
