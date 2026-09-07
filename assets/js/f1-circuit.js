@@ -369,8 +369,19 @@
     return a + (b - a) * t;
   }
 
+  /*
+   * Cache-buster for everything under assets/data.
+   *
+   * GitHub Pages serves those files with max-age=600, and unlike the scripts and the
+   * stylesheet nothing in their URL changes when their contents do — so for ten minutes
+   * after a deploy a browser can pair new code with an old data file. That is not
+   * theoretical: it shipped a season index without circuitKey to a script that needed one
+   * and made the live map disappear with no error. Bump when the data changes.
+   */
+  var DATA_V = '20260907';
+
   function fetchJSON(url) {
-    return fetch(url).then(function (response) {
+    return fetch(url + (url.indexOf('?') < 0 ? '?v=' : '&v=') + DATA_V).then(function (response) {
       if (!response.ok) {
         throw new Error(url + ' -> ' + response.status);
       }

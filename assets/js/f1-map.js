@@ -36,6 +36,13 @@
   var M_PER_DEG_LAT = 110540;
   var M_PER_DEG_LON = 111320;
 
+  /*
+   * Cache-buster for the circuit JSON. Pages serves assets/data with max-age=600 and no
+   * version in the URL, so without this a browser can pair a fresh script with a stale
+   * data file for ten minutes after a deploy. Keep in step with f1-lab.js.
+   */
+  var DATA_V = '20260907';
+
   /* Beyond this from the centreline a car is not on the racing surface — pit lane. */
   var OFF_TRACK_M = 45;
 
@@ -377,12 +384,14 @@
       }
       loading = geoId;
       notice = '';
-      fetch('assets/data/f1/' + geoId + '.json')
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (data) {
-          if (!data) {
-            return;
+      fetch('assets/data/f1/' + geoId + '.json?v=' + DATA_V)
+        .then(function (r) {
+          if (!r.ok) {
+            throw new Error('HTTP ' + r.status);
           }
+          return r.json();
+        })
+        .then(function (data) {
           circuit = data;
           circuit.id = geoId;
           var flat = toLocal(data.path);
@@ -394,7 +403,20 @@
             resize();
           }
         })
-        .catch(function () { loading = null; });
+        .catch(function (error) {
+          /*
+           * Say what went wrong rather than leaving an empty rectangle. An earlier version
+           * returned quietly here, so a failed circuit fetch was indistinguishable from a
+           * map that had simply not been asked for — which cost real time to track down.
+           */
+          loading = null;
+          circuit = null;
+          local = null;
+          notice = 'Could not load the track for ' + geoId + ' (' + error.message + ')';
+          if (ready()) {
+            resize();
+          }
+        });
     },
 
     render: function (data) {

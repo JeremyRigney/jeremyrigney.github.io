@@ -29,6 +29,15 @@
   var STEPS = 1000;               // scrubber resolution
   var FRAME_MS = 250;             // how often a frame is requested while playing
 
+  /*
+   * Cache-buster for the JSON under assets/data. GitHub Pages serves those with
+   * max-age=600 and, unlike the scripts and stylesheet, nothing in their URL changes when
+   * the contents do — so a browser can hold a stale copy for ten minutes after a deploy.
+   * That is not academic: it shipped a season index with no circuitKey against a script
+   * that required one, and the map silently vanished. Bump this whenever the data changes.
+   */
+  var DATA_V = '20260907';
+
   /* Flag colours for the scrubber track. Same values as the --flag tokens in f1.css. */
   var BAND = {
     GREEN: 'rgba(62,207,120,0.30)',
@@ -213,9 +222,26 @@
 
     function match(index) {
       var rounds = (index && index.rounds) || [];
-      for (var i = 0; i < rounds.length; i += 1) {
+      var i;
+      for (i = 0; i < rounds.length; i += 1) {
         if (rounds[i].circuitKey && rounds[i].circuitKey === session.circuitKey) {
           return rounds[i].geoId;
+        }
+      }
+      /*
+       * Fall back to the names if no round carries a key. That happens with a season index
+       * cached from before circuitKey existed, and matching loosely is much better than
+       * losing the map over it — this exact skew is what made the map disappear once.
+       */
+      var wanted = String(session.circuit || '').toLowerCase();
+      if (!wanted) {
+        return null;
+      }
+      for (i = 0; i < rounds.length; i += 1) {
+        var r = rounds[i];
+        if (String(r.locality || '').toLowerCase() === wanted
+            || String(r.circuitName || '').toLowerCase().indexOf(wanted) >= 0) {
+          return r.geoId;
         }
       }
       return null;
@@ -225,9 +251,10 @@
       var found = match(index);
       if (found) {
         window.f1Map.use(found);
-      } else {
+      } else if (typeof window.f1Map.unavailable === 'function') {
         // Only circuits on the current calendar ship geometry, so a 2025-only venue like
         // Imola or Jeddah has no map. Say so rather than leaving an empty rectangle.
+        // Guarded because a browser can hold an older f1-map.js than this file.
         window.f1Map.unavailable(session.circuit || 'this circuit');
       }
     }
@@ -236,7 +263,7 @@
       settle(season);
       return;
     }
-    fetch('assets/data/f1/season-2026.json')
+    fetch('assets/data/f1/season-2026.json?v=' + DATA_V)
       .then(function (r) { return r.json(); })
       .then(function (index) {
         season = index;

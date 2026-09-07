@@ -451,9 +451,16 @@
     // id, since the short names disagree with our circuit names on a third of the calendar.
     var round = window.f1Round;
     var total = null;
-    if (round && round.stats && session.name === 'Race'
-        && round.circuitKey && round.circuitKey === session.circuitKey) {
-      total = round.stats.laps;
+    if (round && round.stats && session.name === 'Race') {
+      var sameCircuit = round.circuitKey
+        // Falls back to the name when the season index predates circuitKey, so a stale
+        // cached copy costs nothing rather than quietly dropping the lap count.
+        ? round.circuitKey === session.circuitKey
+        : String(round.locality || '').toLowerCase()
+            === String(session.circuit || '').toLowerCase();
+      if (sameCircuit) {
+        total = round.stats.laps;
+      }
     }
     var current = data.lap && data.lap.current;
     setText('live-lap', current ? ('Lap ' + current + (total ? ' / ' + total : '')) : '');
