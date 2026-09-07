@@ -51,6 +51,7 @@
   var spin = 0;            // the rotation applied to get there
   var bounds = null;
   var loading = null;      // geoId currently being fetched, to avoid duplicate loads
+  var notice = '';         // shown instead of a map when there is no geometry to draw
   var cars = {};           // driver number -> render state
   var running = false;
 
@@ -182,8 +183,29 @@
     return d;
   }
 
+  function drawNotice() {
+    if (!ctx) {
+      return;
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var styles = getComputedStyle(document.documentElement);
+    ctx.fillStyle = (styles.getPropertyValue('--ink-faint') || '#6b7178').trim();
+    ctx.font = Math.max(11, Math.round(canvas.width / 110)) + 'px "Chivo Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(notice, canvas.width / 2, canvas.height / 2);
+    ctx.textAlign = 'start';
+  }
+
   function draw() {
-    if (!ctx || !local) {
+    if (!ctx) {
+      return;
+    }
+    if (notice) {
+      drawNotice();
+      return;
+    }
+    if (!local) {
       return;
     }
     var project = projector();
@@ -294,15 +316,38 @@
     }
   }
 
+  /*
+   * Height follows the circuit's own proportions rather than a fixed strip.
+   *
+   * Laid on its long axis a circuit can be anything from Monza's 3:1 to Zandvoort's 3:2, and
+   * one fixed height either wastes most of the width on the squarer ones or crops the long
+   * ones. Deriving it from the aspect ratio means every circuit is drawn as large as the
+   * column allows, between sensible bounds.
+   */
+  function preferredHeight(width) {
+    if (!bounds) {
+      return null;
+    }
+    var aspect = (bounds.maxX - bounds.minX) / Math.max(1, bounds.maxY - bounds.minY);
+    return Math.round(Math.max(170, Math.min(400, width / aspect + 40)));
+  }
+
   function resize() {
     if (!canvas) {
       return;
     }
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
     var rect = canvas.getBoundingClientRect();
     if (!rect.width) {
       return;
     }
+
+    var wanted = preferredHeight(rect.width);
+    if (wanted) {
+      canvas.style.height = wanted + 'px';
+      rect = canvas.getBoundingClientRect();
+    }
+
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(rect.width * dpr);
     canvas.height = Math.round(rect.height * dpr);
     draw();
@@ -331,6 +376,7 @@
         return;
       }
       loading = geoId;
+      notice = '';
       fetch('assets/data/f1/' + geoId + '.json')
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (data) {
@@ -394,6 +440,25 @@
 
       wake();
       draw();
+    },
+
+    /*
+     * No geometry for this circuit. Only the current calendar ships circuit files, so a
+     * venue that has dropped off it — Imola, Jeddah, Sakhir — cannot be drawn. Saying so is
+     * better than an empty rectangle that looks like a bug.
+     */
+    unavailable: function (name) {
+      circuit = null;
+      local = null;
+      cars = {};
+      loading = null;
+      notice = 'No track geometry for ' + name;
+      if (ready()) {
+        if (!canvas.width) {
+          resize();
+        }
+        draw();
+      }
     },
 
     /* The lab clears the map when the session changes. */

@@ -60,22 +60,57 @@
 
   /* ---------- Session list ---------- */
 
+  var FIRST_YEAR = 2023;   // OpenF1's free historical data starts here
+
   function loadYears() {
     var select = el('lab-year');
     var now = new Date().getUTCFullYear();
-    // OpenF1's free historical data starts in 2023.
-    for (var y = now; y >= 2023; y -= 1) {
+    for (var y = now; y >= FIRST_YEAR; y -= 1) {
       var option = document.createElement('option');
       option.value = String(y);
       option.textContent = String(y);
       select.appendChild(option);
     }
-    select.value = String(now);
-    select.addEventListener('change', function () { loadSessions(select.value); });
-    loadSessions(select.value);
+    select.addEventListener('change', function () { loadSessions(select.value, null); });
+
+    /*
+     * A pinned session may belong to any season, and it is not knowable from the id which.
+     * Search back through the years until it turns up rather than loading the current one
+     * and quietly ignoring the request — which is what this did before, leaving the lab
+     * sitting on an empty panel with no clue why.
+     */
+    var wanted = new URLSearchParams(window.location.search).get('session');
+    if (!wanted) {
+      select.value = String(now);
+      loadSessions(select.value, null);
+      return;
+    }
+
+    (function hunt(year) {
+      if (year < FIRST_YEAR) {
+        select.value = String(now);
+        loadSessions(select.value, null);
+        setStatus('Session ' + wanted + ' not found in any season');
+        return;
+      }
+      fetch(API + '/f1/replay/sessions?year=' + year)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var found = (data.sessions || []).some(function (s) {
+            return String(s.key) === wanted;
+          });
+          if (found) {
+            select.value = String(year);
+            loadSessions(String(year), wanted);
+          } else {
+            hunt(year - 1);
+          }
+        })
+        .catch(function () { hunt(year - 1); });
+    }(now));
   }
 
-  function loadSessions(year) {
+  function loadSessions(year, autoSelect) {
     var select = el('lab-session');
     select.innerHTML = '<option value="">Loading…</option>';
 
@@ -103,10 +138,9 @@
 
         // A session pinned on the URL survives a reload, which matters when you are
         // iterating on one particular moment.
-        var wanted = new URLSearchParams(window.location.search).get('session');
-        if (wanted && select.querySelector('option[value="' + wanted + '"]')) {
-          select.value = wanted;
-          pick(wanted);
+        if (autoSelect && select.querySelector('option[value="' + autoSelect + '"]')) {
+          select.value = autoSelect;
+          pick(autoSelect);
         }
       })
       .catch(function () {
@@ -163,43 +197,50 @@
   }
 
   /*
-   * The map needs a circuit file, which is keyed by geoId. The timing feed only knows the
-   * circuit's short name, so the season index is the bridge — matched on locality, the same
-   * field /f1 already uses to decide whether the lap count belongs to the session.
+   * The map needs a circuit file, which is keyed by geoId, and the timing feed reports a
+   * circuit_key. The season index carries both, so it is the bridge.
+   *
+   * Keyed on the number, never on the name. Formula 1's short names disagree with the
+   * circuit names constantly — "Interlagos" against "Autódromo José Carlos Pace",
+   * "Spa-Francorchamps" against "Spa", "Yas Marina Circuit" against "Abu Dhabi" — and an
+   * earlier version of this matched on strings and silently lost the map on five circuits
+   * whose geometry we had all along.
    */
   function pointMap(session) {
-    if (!window.f1Map || !session || !session.circuit) {
+    if (!window.f1Map || !session) {
       return;
     }
-    var wanted = String(session.circuit).toLowerCase();
 
     function match(index) {
       var rounds = (index && index.rounds) || [];
       for (var i = 0; i < rounds.length; i += 1) {
-        var r = rounds[i];
-        if (String(r.locality || '').toLowerCase() === wanted
-            || String(r.circuitName || '').toLowerCase().indexOf(wanted) >= 0) {
-          return r.geoId;
+        if (rounds[i].circuitKey && rounds[i].circuitKey === session.circuitKey) {
+          return rounds[i].geoId;
         }
       }
       return null;
     }
 
-    if (season) {
-      var found = match(season);
+    function settle(index) {
+      var found = match(index);
       if (found) {
         window.f1Map.use(found);
+      } else {
+        // Only circuits on the current calendar ship geometry, so a 2025-only venue like
+        // Imola or Jeddah has no map. Say so rather than leaving an empty rectangle.
+        window.f1Map.unavailable(session.circuit || 'this circuit');
       }
+    }
+
+    if (season) {
+      settle(season);
       return;
     }
     fetch('assets/data/f1/season-2026.json')
       .then(function (r) { return r.json(); })
       .then(function (index) {
         season = index;
-        var found = match(index);
-        if (found) {
-          window.f1Map.use(found);
-        }
+        settle(index);
       })
       .catch(function () { /* no map for this session; the panel still works */ });
   }

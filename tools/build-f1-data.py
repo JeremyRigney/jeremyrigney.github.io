@@ -1216,6 +1216,12 @@ def main():
             'circuitId': circuit['circuitId'],
             'circuitName': circuit['circuitName'],
             'geoId': geo_id,
+            # Formula 1's own id for the circuit, which is what MultiViewer keys its maps on
+            # and what OpenF1 reports as `circuit_key`. It is the only reliable way to get
+            # from a timing feed back to our geometry: the short names disagree constantly
+            # ("Interlagos" against "Autódromo José Carlos Pace", "Spa-Francorchamps"
+            # against "Spa"), and matching on them silently loses circuits.
+            'circuitKey': MV_CIRCUIT_KEYS.get(geo_id),
             'locality': location['locality'],
             'country': location['country'],
             'date': race['date'],

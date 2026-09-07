@@ -447,11 +447,12 @@
     // The round on screen and the session being timed are the same race in normal use, but
     // not under a replay of another weekend, where a borrowed denominator is simply a wrong
     // number on the page. So the count is only shown when the round the page is built
-    // around is demonstrably the circuit being timed.
+    // around is demonstrably the circuit being timed — compared on Formula 1's own circuit
+    // id, since the short names disagree with our circuit names on a third of the calendar.
     var round = window.f1Round;
     var total = null;
-    if (round && round.stats && session.name === 'Race' && session.circuit
-        && String(round.locality || '').toLowerCase() === String(session.circuit).toLowerCase()) {
+    if (round && round.stats && session.name === 'Race'
+        && round.circuitKey && round.circuitKey === session.circuitKey) {
       total = round.stats.laps;
     }
     var current = data.lap && data.lap.current;

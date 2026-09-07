@@ -777,6 +777,9 @@ def _compose(state, session, flag_until=None):
             "name": session.get("session_name"),
             "type": session.get("session_type"),
             "circuit": session.get("circuit_short_name"),
+            # Formula 1's own circuit id, which is how the page matches a session back to
+            # our circuit geometry. Names are unreliable for this; see f1-lab.js.
+            "circuitKey": session.get("circuit_key"),
             "location": session.get("location"),
             "start": _iso(start),
             "end": _iso(_parse_dt(session.get("date_end"))),
@@ -842,6 +845,7 @@ def f1_replay_sessions():
         "name": s.get("session_name"),
         "type": s.get("session_type"),
         "circuit": s.get("circuit_short_name"),
+        "circuitKey": s.get("circuit_key"),
         "country": s.get("country_name"),
         "start": _iso(_parse_dt(s.get("date_start"))),
         "end": _iso(_parse_dt(s.get("date_end"))),
@@ -895,6 +899,9 @@ def f1_replay_timeline():
             "key": key,
             "name": session.get("session_name"),
             "circuit": session.get("circuit_short_name"),
+            # Formula 1's own circuit id. The only reliable way back to our geometry — the
+            # short names above disagree with our circuit names on a third of the calendar.
+            "circuitKey": session.get("circuit_key"),
             "country": session.get("country_name"),
         },
         "start": _iso(start),
