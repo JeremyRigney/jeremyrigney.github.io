@@ -51,6 +51,22 @@
 
   var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  /*
+   * Why a data fetch failed, in terms that point at the fix.
+   *
+   * Opening the page straight off disk is the overwhelmingly likely cause: a browser gives
+   * a file:// page a null origin and refuses to let it read neighbouring files, so the
+   * circuit JSON cannot load while the timing API — which sends CORS headers — works fine.
+   * The result is a page that looks like it is working with the map mysteriously absent,
+   * and it is worth naming rather than leaving anyone to guess.
+   */
+  window.f1MapHint = function (what) {
+    if (window.location.protocol === 'file:') {
+      return 'Serve this page over http:// — a page opened from a file cannot read ' + what;
+    }
+    return 'Could not load ' + what;
+  };
+
   var canvas = null;
   var ctx = null;
   var circuit = null;      // the loaded circuit JSON
@@ -412,7 +428,9 @@
           loading = null;
           circuit = null;
           local = null;
-          notice = 'Could not load the track for ' + geoId + ' (' + error.message + ')';
+          notice = window.f1MapHint
+            ? window.f1MapHint('the track for ' + geoId)
+            : 'Could not load the track for ' + geoId + ' (' + error.message + ')';
           if (ready()) {
             resize();
           }
@@ -469,12 +487,12 @@
      * venue that has dropped off it — Imola, Jeddah, Sakhir — cannot be drawn. Saying so is
      * better than an empty rectangle that looks like a bug.
      */
-    unavailable: function (name) {
+    unavailable: function (name, reason) {
       circuit = null;
       local = null;
       cars = {};
       loading = null;
-      notice = 'No track geometry for ' + name;
+      notice = reason || ('No track geometry for ' + name);
       if (ready()) {
         if (!canvas.width) {
           resize();

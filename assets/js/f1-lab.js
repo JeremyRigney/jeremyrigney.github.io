@@ -269,7 +269,16 @@
         season = index;
         settle(index);
       })
-      .catch(function () { /* no map for this session; the panel still works */ });
+      .catch(function () {
+        // The season index is what maps a session to our geometry, so losing it loses the
+        // map. This catch used to be empty, which meant a page opened from disk showed a
+        // blank rectangle and said nothing about why.
+        if (typeof window.f1Map.unavailable === 'function') {
+          window.f1Map.unavailable(null, window.f1MapHint
+            ? window.f1MapHint('the circuit data')
+            : 'Could not load the circuit data');
+        }
+      });
   }
 
   /* ---------- The scrubber track ---------- */
