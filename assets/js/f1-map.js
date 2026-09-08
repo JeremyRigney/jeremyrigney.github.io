@@ -105,6 +105,82 @@
   }
 
   /*
+   * Above this turn angle at one vertex, the geometry is not a corner.
+   *
+   * The shipped path is resampled to an even 15 m, so the turn at a vertex implies a corner
+   * radius: 120 degrees means 7 m, tighter than anything in Formula 1 — Monaco's hairpin,
+   * the sharpest corner on the calendar, turns 77. Anything past this is spline overshoot in
+   * the source geometry, where the curve loops back on itself and the resampler walks out
+   * and straight back in. There are 47 such vertices across 14 circuits, and they draw as
+   * needles: Silverstone has three, which is the doubling-back visible on its map.
+   *
+   * This mirrors despike() and smoothPath() in assets/js/f1-circuit.js, which do the same
+   * job for the scroll story's canvas. They are repeated here rather than shared because
+   * the lab does not load f1-circuit.js — that file boots an entire 3D scene, a preload
+   * sequence and a scroll library, none of which belong on a replay harness.
+   */
+  var MAX_TURN_COS = Math.cos(120 * Math.PI / 180);
+  var DESPIKE_PASSES = 12;
+  var SMOOTH_WEIGHT = 0.18;
+  var MAX_SMOOTH_SHIFT = 1.5;
+
+  /* Pull any vertex that doubles back onto the line between its neighbours. */
+  function despike(pts) {
+    var count = pts.length;
+    for (var pass = 0; pass < DESPIKE_PASSES; pass += 1) {
+      var next = [];
+      var moved = 0;
+      for (var i = 0; i < count; i += 1) {
+        var a = pts[(i - 1 + count) % count];
+        var b = pts[i];
+        var c = pts[(i + 1) % count];
+        next[i] = b;
+
+        var ax = b[0] - a[0];
+        var ay = b[1] - a[1];
+        var bx = c[0] - b[0];
+        var by = c[1] - b[1];
+        var la = Math.sqrt(ax * ax + ay * ay);
+        var lb = Math.sqrt(bx * bx + by * by);
+        if (la < 1e-6 || lb < 1e-6) {
+          continue;
+        }
+        // cos of the turn: 1 is dead straight, -1 is a full reversal.
+        if ((ax * bx + ay * by) / (la * lb) < MAX_TURN_COS) {
+          next[i] = [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2];
+          moved += 1;
+        }
+      }
+      // Applied as a whole, so a pass cannot depend on the order it walked the lap.
+      pts = next;
+      if (!moved) {
+        break;
+      }
+    }
+    return pts;
+  }
+
+  /* A light pull toward the local average, capped so it cannot round off real corners. */
+  function smoothPath(pts) {
+    var count = pts.length;
+    var out = [];
+    for (var i = 0; i < count; i += 1) {
+      var a = pts[(i - 1 + count) % count];
+      var b = pts[i];
+      var c = pts[(i + 1) % count];
+      var dx = SMOOTH_WEIGHT * ((a[0] + c[0]) / 2 - b[0]);
+      var dy = SMOOTH_WEIGHT * ((a[1] + c[1]) / 2 - b[1]);
+      var shift = Math.sqrt(dx * dx + dy * dy);
+      if (shift > MAX_SMOOTH_SHIFT) {
+        dx = dx / shift * MAX_SMOOTH_SHIFT;
+        dy = dy / shift * MAX_SMOOTH_SHIFT;
+      }
+      out[i] = [b[0] + dx, b[1] + dy];
+    }
+    return out;
+  }
+
+  /*
    * The circuit path in the same frame the transform outputs: equirectangular metres about
    * lat0, recentred on the centroid. This mirrors local_metres() plus the centring in
    * tools/build-f1-data.py — the two have to agree or the cars land beside the track.
@@ -134,7 +210,14 @@
       pts[i][0] -= cx;
       pts[i][1] -= cy;
     }
-    return pts;
+
+    /*
+     * Clean the shape only after centring on the raw points. The centroid is what
+     * locationTransform was fitted against, so it has to stay exactly where
+     * tools/build-f1-data.py put it — moving it would slide every car off the track. What
+     * follows changes the outline, not the frame it sits in.
+     */
+    return smoothPath(despike(pts));
   }
 
   /*
