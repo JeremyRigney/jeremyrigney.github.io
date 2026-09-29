@@ -3,10 +3,9 @@
  *
  * Usercentrics draws a floating shield button in the bottom-left corner so a visitor can
  * reopen their privacy settings. It has to stay (withdrawing consent must be as easy as
- * giving it), but out of the box it is a saturated, rounded, shadowed disc: the one
- * thing on the site that does not wear the coal system. This restyles it into a small,
- * flat, square hairline button in the page's own colours that sits back at half
- * opacity until it is pointed at or focused.
+ * giving it), but out of the box it is the loudest thing in the corner of every page.
+ * This shrinks it, drains its colour and fades it back, until it is pointed at or
+ * focused.
  *
  * The widget renders inside its own shadow root, so page CSS cannot reach it. Instead
  * this finds the root once the widget appears, and injects a stylesheet into it. The
@@ -28,49 +27,30 @@
   var STYLE_ID = 'jr-trigger-style';
   var MAX_SIZE = 90; // px: anything bigger is the banner, not the trigger
 
+  /*
+   * Deliberately hands-off. An earlier version re-drew the button (its size, border,
+   * background and icon fill), and on the real widget that produced a grey outlined
+   * box with the shield spilling out of it: the vendor's markup does not size the way
+   * a guess at it does. So nothing inside the trigger is restyled any more. The whole
+   * pinned element is scaled down from its corner and faded back, which works whatever
+   * is inside it, and it comes back to full strength when pointed at or focused.
+   */
   var CSS = [
-    '[' + MARK + '="box"] {',
-    '  left: 14px !important;',
-    '  bottom: 14px !important;',
+    '[' + MARK + '="fixed"] {',
+    '  transform: scale(0.68) !important;',
+    '  transform-origin: 0 100% !important;',
+    '  opacity: 0.42 !important;',
+    '  filter: grayscale(1) !important;',
     '  box-shadow: none !important;',
+    '  transition: opacity 200ms ease, filter 200ms ease !important;',
+    '}',
+    '[' + MARK + '="fixed"]:hover,',
+    '[' + MARK + '="fixed"]:focus-within {',
+    '  opacity: 0.9 !important;',
+    '  filter: none !important;',
     '}',
     'button[' + MARK + '] {',
-    '  width: 30px !important;',
-    '  height: 30px !important;',
-    '  min-width: 0 !important;',
-    '  min-height: 0 !important;',
-    '  padding: 0 !important;',
-    '  display: inline-flex !important;',
-    '  align-items: center !important;',
-    '  justify-content: center !important;',
-    '  background: rgba(17, 18, 20, 0.78) !important;',
-    '  border: 1px solid rgba(236, 238, 240, 0.14) !important;',
-    '  border-radius: 0 !important;',
     '  box-shadow: none !important;',
-    '  color: #7e9c89 !important;',
-    '  opacity: 0.5 !important;',
-    '  transition: opacity 200ms ease, border-color 200ms ease !important;',
-    '}',
-    'button[' + MARK + ']:hover,',
-    'button[' + MARK + ']:focus-visible {',
-    '  opacity: 1 !important;',
-    '  border-color: rgba(126, 156, 137, 0.6) !important;',
-    '}',
-    'button[' + MARK + ']:focus-visible {',
-    '  outline: 1px solid #7e9c89 !important;',
-    '  outline-offset: 2px !important;',
-    '}',
-    'button[' + MARK + '] svg {',
-    '  width: 14px !important;',
-    '  height: 14px !important;',
-    '}',
-    // The icon's own fills are hard-coded brand colours; take them over.
-    'button[' + MARK + '] svg,',
-    'button[' + MARK + '] svg * {',
-    '  fill: currentColor !important;',
-    '}',
-    'button[' + MARK + '] svg [fill="none"] {',
-    '  fill: none !important;',
     '}'
   ].join('\n');
 
@@ -104,8 +84,8 @@
       // is a control on the banner, and is left alone.
       if (box !== btn && !small(box)) { continue; }
 
-      btn.setAttribute(MARK, '');
-      if (box !== btn) { box.setAttribute(MARK, 'box'); }
+      btn.setAttribute(MARK, box === btn ? 'fixed' : '');
+      if (box !== btn) { box.setAttribute(MARK, 'fixed'); }
       found = true;
     }
 
