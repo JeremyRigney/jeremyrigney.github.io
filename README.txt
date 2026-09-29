@@ -14,6 +14,7 @@ PAGES
   404.html        Not-found page (reuses the homepage shimmer)
   eclipse.html    Ireland 12 August 2026 eclipse (standalone, own theme)
   f1.html         Next F1 circuit (standalone, own theme)
+  galaxy.html     Interactive spiral galaxy, WebGL2 (standalone, the hero's palette)
   f1-lab.html     F1 development page, noindex
 
 DESIGN SYSTEM ("coal")
@@ -28,7 +29,9 @@ DESIGN SYSTEM ("coal")
   accent. No cards, no rounded corners, no shadows. The token values are listed at the
   top of coal.css.
 
-  eclipse and f1 keep their own stylesheets on purpose.
+  eclipse, f1 and galaxy keep their own stylesheets on purpose. galaxy is three
+  scripts: galaxy-model.js (the physics, shared constants with home-galaxy.js),
+  galaxy-bands.js (what each viewing wavelength shows) and galaxy-view.js (WebGL2).
 
 LEGACY
 
