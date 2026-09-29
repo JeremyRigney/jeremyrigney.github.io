@@ -188,6 +188,7 @@
   var count = 0;
   var rad, th0, zed, omega, colour, tier; // per-star, typed arrays
   var phase0, dOmega, thr, lvl; // density-wave phase, drift, light-up threshold, level
+  var dead; // stars that have gone supernova, and are no longer drawn
   var px, py; // projected positions this frame, CSS pixels
   var buckets = []; // [colour * 3 + tier] -> Int32Array of star indices
   var named = []; // indices of catalogue stars
@@ -204,7 +205,12 @@
   CLASSES[C_SOFT] = ['G8', 'K1', 'K3', 'K5'];
   CLASSES[C_WARM] = ['K5', 'K7', 'M0', 'M2'];
 
-  var ARM_NAMES = ['Perseus', 'Scutum–Centaurus'];
+  /*
+   * Named the way observers name the arms of an external galaxy: by the side of the
+   * nucleus each one emerges on, as in the literature on M51 or M81. They are labels
+   * for this synthetic spiral, not the Milky Way's arms.
+   */
+  var ARM_NAMES = ['N', 'S'];
 
   function pick(list) {
     return list[Math.floor(rand() * list.length)];
@@ -242,7 +248,7 @@
   /*
    * What a star's card says about where it is right now. This is read at the moment of
    * hovering rather than stored, because the stars move through the arms: a star that
-   * was in Perseus a minute ago is not necessarily in it now.
+   * was in the N arm a minute ago is not necessarily in it now.
    */
   function locate(i) {
     if (rad[i] < 0.16) { return 'Bulge'; }
@@ -280,6 +286,8 @@
     dOmega = new Float32Array(n);
     thr = new Float32Array(n);
     lvl = new Uint8Array(n);
+    dead = new Uint8Array(n);
+    sn = -1;
     px = new Float32Array(n);
     py = new Float32Array(n);
 
@@ -386,7 +394,7 @@
   }
 
   var haloSprites = [];
-  var coreSprite, hazeSprite;
+  var coreSprite, hazeSprite, snSprite;
 
   function buildSprites() {
     haloSprites = COLOURS.map(function (c) {
@@ -401,6 +409,12 @@
       [0.18, 'rgba(' + rgb(WARM) + ',0.18)'],
       [0.55, 'rgba(' + rgb(SAGE) + ',0.08)'],
       [1, 'rgba(' + rgb(SAGE) + ',0)']
+    ]);
+    snSprite = makeSprite(128, [
+      [0, 'rgba(255,255,255,1)'],
+      [0.08, 'rgba(' + rgb(WARM) + ',0.85)'],
+      [0.25, 'rgba(' + rgb(TEAL) + ',0.28)'],
+      [1, 'rgba(' + rgb(TEAL) + ',0)']
     ]);
     hazeSprite = makeSprite(256, [
       [0, 'rgba(' + rgb(SAGE) + ',0.16)'],
@@ -541,6 +555,10 @@
      */
     var a0 = clock, i, a, r, x, y, crest, d;
     for (i = 0; i < count; i++) {
+      if (dead[i]) {
+        lvl[i] = 3;
+        continue;
+      }
       crest = INTERARM + (1 - INTERARM)
         * Math.exp(ARM_SHARP * (Math.cos(2 * (phase0[i] + dOmega[i] * a0)) - 1));
       d = crest - thr[i];
@@ -604,6 +622,8 @@
       ctx.drawImage(haloSprites[colour[i]], px[i] - 7, py[i] - 7, 14, 14);
     }
 
+    drawSupernova(rev);
+
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
 
@@ -644,6 +664,127 @@
       ctx.fillText(Math.round(rl * GALAXY_KPC) + ' kpc', projX + 6, projY);
     }
     ctx.restore();
+  }
+
+  /* ---------- Supernovae ---------- */
+
+  /*
+   * Now and then a star explodes. Purely illustrative: a real galaxy like this has
+   * one or two a century, and this has one about a minute. The first comes 10-22 s
+   * after load, so a visitor who stays a moment sees one; after that the gaps are
+   * random (exponential, as for any rare independent event), floored so two never
+   * crowd each other.
+   *
+   * The host is usually a young hot star on an arm crest, which is where massive stars
+   * are and so where core-collapse (Type II) supernovae happen; now and then an old
+   * disc star instead, standing in for a Type Ia. Either way the star is gone after.
+   *
+   * The label names the type, not a designation: a made-up "SN 2026abc" could collide
+   * with a real transient's name, and this is not one.
+   */
+  var SN_MEAN_GAP = 45; // seconds, mean of the random part of the gap
+  var SN_MIN_GAP = 20; // seconds, the floor under it
+  var SN_LIFE = 12; // seconds from flash to gone
+
+  var sn = -1; // exploding star, or -1
+  var snAge = 0;
+  var snType = '';
+  var snNext = 10 + Math.random() * 12;
+
+  // Where star i is on screen right now. The main loop skips dead stars, so the one
+  // that is exploding is placed here instead.
+  function placeStar(i) {
+    var a = th0[i] + omega[i] * clock + spin;
+    project(rad[i] * Math.cos(a), rad[i] * Math.sin(a), zed[i]);
+  }
+
+  function visibleSpot(i) {
+    if (px[i] < 20 || px[i] > w - 20 || py[i] < 20 || py[i] > h - 20) { return false; }
+    // Not behind the copy: beside it on a desktop, below it on a phone.
+    return narrow ? py[i] > h * 0.5 : px[i] > w * 0.42;
+  }
+
+  function igniteSupernova() {
+    var wantYoung = Math.random() < 0.8;
+    for (var tries = 0; tries < 400; tries++) {
+      var i = Math.floor(Math.random() * count);
+      if (lvl[i] !== 0 || rad[i] < 0.12 || catalogue[i]) { continue; }
+      if (wantYoung && colour[i] !== C_TEAL && tries < 300) { continue; }
+      if (!visibleSpot(i)) { continue; }
+      sn = i;
+      snAge = 0;
+      snType = colour[i] === C_TEAL ? 'SN II' : 'SN Ia';
+      dead[i] = 1;
+      return;
+    }
+    // Nothing suitable in view this time (e.g. mid-resize): try again shortly.
+    snNext = clock + 3;
+  }
+
+  function stepSupernova(dt) {
+    if (sn >= 0) {
+      snAge += dt;
+      if (snAge > SN_LIFE) {
+        sn = -1;
+        snNext = clock + SN_MIN_GAP - Math.log(1 - Math.random()) * SN_MEAN_GAP;
+      }
+    } else if (clock >= snNext && revealMs > REVEAL_MS) {
+      igniteSupernova();
+    }
+  }
+
+  /*
+   * The light curve: a quarter-second rise, then a fast drop with a slow tail. The
+   * real thing rises over weeks and fades over months; the shape is the point.
+   */
+  function snLight(t) {
+    if (t < 0.25) { return t / 0.25; }
+    var u = t - 0.25;
+    return 0.6 * Math.exp(-u / 1.2) + 0.4 * Math.exp(-u / 5);
+  }
+
+  function drawSupernova(rev) {
+    if (sn < 0) { return; }
+    placeStar(sn);
+    var x = projX, y = projY;
+    var t = snAge;
+    var L = snLight(t) * rev;
+    var end = Math.min(1, (SN_LIFE - t) / 2); // fade the last two seconds to nothing
+
+    // The flash itself.
+    var size = 14 + 110 * L;
+    ctx.globalAlpha = Math.min(1, L * 1.2) * end;
+    ctx.drawImage(snSprite, x - size / 2, y - size / 2, size, size);
+
+    // Diffraction spikes, as a telescope's secondary-mirror supports draw them.
+    var spike = 70 * L;
+    ctx.globalAlpha = 0.55 * L * end;
+    ctx.strokeStyle = 'rgb(' + rgb(WARM) + ')';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x - spike, y); ctx.lineTo(x + spike, y);
+    ctx.moveTo(x, y - spike); ctx.lineTo(x, y + spike);
+    ctx.stroke();
+
+    // The ejecta shell: expanding, fading, and squashed with the disc's inclination.
+    var ring = 5 + t * 11;
+    ctx.globalAlpha = 0.35 * Math.exp(-t / 3) * end;
+    ctx.strokeStyle = 'rgb(' + rgb(TEAL) + ')';
+    ctx.beginPath();
+    ctx.ellipse(x, y, ring, ring * Math.max(0.35, cT), baseRoll + roll, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // The label, in the page's mono, fading in after the peak.
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 0.75 * Math.min(1, Math.max(0, (t - 0.3) / 0.6)) * end * rev;
+    ctx.fillStyle = 'rgb(' + rgb(SAGE_SOFT) + ')';
+    ctx.font = '9px "Chivo Mono", "Courier New", monospace';
+    ctx.textBaseline = 'middle';
+    var label = 'TRANSIENT · ' + snType;
+    var lx = x + 16;
+    if (lx + ctx.measureText(label).width > w - 8) { lx = x - 16 - ctx.measureText(label).width; }
+    ctx.fillText(label, lx, y - 14);
+    ctx.globalCompositeOperation = 'lighter';
   }
 
   /* ---------- Hover ---------- */
@@ -782,6 +923,7 @@
 
     clock += dt;
     revealMs += dt * 1000;
+    stepSupernova(dt);
 
     if (coarse) {
       // A slow Lissajous sway in place of the pointer: one turn every ~40 s, one tip
