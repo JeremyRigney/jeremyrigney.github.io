@@ -283,18 +283,43 @@
 }
 
 /*
- * On a phone the galaxy is centred low in the frame, behind the copy rather than beside
- * it, so the left-to-right fade is replaced by a lower overall level and a fade at the
- * top, where the headline is.
+ * Tablets: the copy runs most of the way across, so the plot is pushed right and the
+ * fade starts later than on a desktop.
+ */
+@media (max-width: 900px) and (min-width: 701px) {
+  .opening {
+    --galaxy-mask: linear-gradient(
+      to right,
+      rgba(0, 0, 0, 0.1) 10%,
+      rgba(0, 0, 0, 0.5) 45%,
+      rgba(0, 0, 0, 1) 75%
+    );
+  }
+}
+
+/*
+ * On a phone the galaxy is a background: it fills the whole frame, behind the copy
+ * rather than beside it (home-galaxy.js centres it and rolls it onto the diagonal).
+ * So instead of fading it out beside the text, the whole layer runs quieter and is
+ * held lower still behind the headline at the top, reaching full strength below the
+ * copy, where there is nothing to read.
  */
 @media (max-width: 700px) {
   .opening {
-    --galaxy-strength: 0.5;
+    --galaxy-strength: 0.6;
     --galaxy-mask: linear-gradient(
       to bottom,
-      rgba(0, 0, 0, 0) 22%,
-      rgba(0, 0, 0, 1) 55%
+      rgba(0, 0, 0, 0.3) 0%,
+      rgba(0, 0, 0, 0.45) 35%,
+      rgba(0, 0, 0, 1) 70%
     );
+  }
+
+  /* Narrower than the desktop card, so it fits a 320px screen with a margin. */
+  .galaxy-card {
+    min-width: 0;
+    max-width: calc(100vw - 24px);
+    font-size: 0.62rem;
   }
 }
 

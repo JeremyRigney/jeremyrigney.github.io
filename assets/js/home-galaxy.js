@@ -40,11 +40,12 @@
   // Overall opacity lives in CSS as --galaxy-strength; everything here shapes the disc.
 
   /*
-   * Stars in the whole model. Only about a quarter of the disc is lit at any moment
-   * (see the density wave below), so this is several times what is on screen.
+   * Stars in the whole model. All of them are drawn, but only about a quarter are lit
+   * at full strength at any moment (see the density wave below); the rest sit faint
+   * between the arms.
    */
-  var STAR_COUNT = 18000;
-  var STAR_COUNT_SMALL = 9000; // narrow screens: fewer points, same look at that size
+  var STAR_COUNT = 12000;
+  var STAR_COUNT_SMALL = 6000; // phones: fewer points, and they are much smaller there
   var NAMED_COUNT = 90; // stars that carry a hover card
 
   var BULGE_SHARE = 0.1; // fraction of stars in the central bulge
@@ -223,9 +224,17 @@
     return V_ROT / Math.sqrt(r * r + R_CORE * R_CORE);
   }
 
-  // The crest of arm 0 at radius r, as an angle: a logarithmic spiral.
+  /*
+   * The crest of arm 0 at radius r, as an angle: a logarithmic spiral.
+   *
+   * The sign matters. Stars orbit toward increasing angle, so the crest angle must
+   * decrease outward: the arms trail, their outer ends bending back against the
+   * direction of rotation, which is how essentially every observed spiral is wound.
+   * With the opposite sign the arms lead, and the disc reads as if it is turning
+   * backwards.
+   */
   function crestAngle(r) {
-    return ARM_WINDING * Math.log(1 + 6 * r);
+    return -ARM_WINDING * Math.log(1 + 6 * r);
   }
 
   var PATTERN_SPEED = angularSpeed(CO_RADIUS);
@@ -405,30 +414,47 @@
   var w = 0, h = 0, dpr = 1;
   var cx = 0, cy = 0, R = 0;
   var narrow = false;
+  var baseRoll = 0; // a fixed turn of the whole disc on the page, before the pointer's
 
   function resize() {
     var rect = frame.getBoundingClientRect();
     w = Math.max(1, Math.round(rect.width));
     h = Math.max(1, Math.round(rect.height));
 
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var wasNarrow = narrow;
+    narrow = w < 700;
+
+    // Phones get 1.5x at most: the stars are sub-pixel points either way, and a 3x
+    // buffer on a tall frame is a lot of fill for no visible gain.
+    dpr = Math.min(window.devicePixelRatio || 1, narrow ? 1.5 : 2);
     while (dpr > 1 && w * h * dpr * dpr > MAX_PIXELS) {
       dpr -= 0.25;
     }
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
 
-    var wasNarrow = narrow;
-    narrow = w < 700;
-
-    // The plot bleeds off the right edge on purpose: a galaxy that fits its box looks
-    // like a diagram, and one that overflows it looks like a view through a telescope.
+    /*
+     * The plot bleeds off the right edge on purpose: a galaxy that fits its box looks
+     * like a diagram, and one that overflows it looks like a view through a telescope.
+     *
+     * On a phone there is no room beside the copy, so it becomes a true background:
+     * centred behind the whole frame, wider than the screen, and rolled onto a diagonal
+     * so an inclined disc (a thin lens) spans a tall portrait frame rather than
+     * sitting in a stripe across the middle of it. CSS dims it behind the type.
+     */
     if (w >= 900) {
       cx = w * 0.68; cy = h * 0.52; R = Math.min(w * 0.43, h * 0.72);
+      baseRoll = 0;
     } else if (!narrow) {
-      cx = w * 0.6; cy = h * 0.58; R = Math.min(w * 0.52, h * 0.6);
+      cx = w * 0.6; cy = h * 0.55; R = Math.min(w * 0.6, h * 0.6);
+      baseRoll = -0.2;
     } else {
-      cx = w * 0.5; cy = h * 0.72; R = Math.min(w * 0.72, h * 0.34);
+      // The core goes below the copy: its crowded middle is the one part bright enough
+      // to fight the lead paragraph. The disc is big enough to reach up behind the
+      // headline regardless.
+      cx = w * 0.58; cy = h * 0.7;
+      R = Math.max(w * 0.9, Math.min(w * 1.2, h * 0.55));
+      baseRoll = h > w * 1.3 ? -0.62 : -0.25;
     }
 
     // Crossing the phone breakpoint changes how many stars the plot wants.
@@ -482,14 +508,14 @@
 
     var rev = reducedMotion ? 1 : easeOut(revealMs / REVEAL_MS);
     var tilt = BASE_TILT + tiltOff;
-    setView(tilt, roll, R * (0.7 + 0.3 * rev));
+    setView(tilt, baseRoll + roll, R * (0.7 + 0.3 * rev));
 
     ctx.globalCompositeOperation = 'lighter';
 
     // Haze and core. Both are squashed and turned with the disc.
     ctx.save();
     ctx.translate(cx, cy);
-    ctx.rotate(roll);
+    ctx.rotate(baseRoll + roll);
     ctx.scale(1, cT);
     ctx.globalAlpha = rev;
     var hz = scale * 2.3;
@@ -506,8 +532,12 @@
      * pointer's turn; its phase against the wave is a separate number, because the
      * star and the pattern do not turn at the same speed.
      *
-     * lvl: 0 lit, 1 fading in or out (drawn dim), 2 dark (not projected, not drawn).
+     * lvl: 0 lit, 1 fading in or out (drawn dim), 2 between the arms, 3 not drawn.
      * The dim band is what stops stars snapping on and off as the crest passes.
+     *
+     * Old stars never disappear: a density wave only crowds them, so between the arms
+     * they are still there, just faint (level 2). Only the young hot stars go dark
+     * (level 3), because they genuinely live and die within one arm crossing.
      */
     var a0 = clock, i, a, r, x, y, crest, d;
     for (i = 0; i < count; i++) {
@@ -515,10 +545,14 @@
         * Math.exp(ARM_SHARP * (Math.cos(2 * (phase0[i] + dOmega[i] * a0)) - 1));
       d = crest - thr[i];
       if (d < -0.16) {
+        if (colour[i] === C_TEAL) {
+          lvl[i] = 3;
+          continue;
+        }
         lvl[i] = 2;
-        continue;
+      } else {
+        lvl[i] = d >= 0 ? 0 : 1;
       }
-      lvl[i] = d >= 0 ? 0 : 1;
 
       r = rad[i];
       a = th0[i] + omega[i] * a0 + spin;
@@ -530,7 +564,8 @@
     }
 
     var b, list, n, size, half, k, alpha, pass;
-    for (pass = 0; pass < 2; pass++) {
+    var PASS_ALPHA = [1, 0.42, 0.1];
+    for (pass = 0; pass < 3; pass++) {
       for (b = 0; b < buckets.length; b++) {
         list = buckets[b];
         n = list.length;
@@ -538,10 +573,10 @@
         var t = b % 3;
         size = TIERS[t][0];
         half = size / 2;
-        alpha = TIERS[t][1] * rev * (pass ? 0.4 : 1);
+        alpha = TIERS[t][1] * rev * PASS_ALPHA[pass];
         ctx.globalAlpha = alpha;
         ctx.fillStyle = 'rgb(' + rgb(COLOURS[(b / 3) | 0]) + ')';
-        var step = t === 0 && skipFaint ? 2 : 1;
+        var step = (t === 0 || pass === 2) && skipFaint ? 2 : 1;
         for (k = 0; k < n; k += step) {
           i = list[k];
           if (lvl[i] !== pass) { continue; }
@@ -600,8 +635,10 @@
     }
 
     // Labels sit on a fixed bearing in the disc, so they tip with it but do not spin.
+    // Not on a phone, where the plot is a background and the labels would land in the
+    // copy or off the edge of the screen.
     ctx.setLineDash([]);
-    for (s = 0; s < KPC_LABELS.length; s++) {
+    for (s = 0; s < KPC_LABELS.length && !narrow; s++) {
       var rl = KPC_LABELS[s];
       project(rl * Math.cos(-0.75), rl * Math.sin(-0.75), 0);
       ctx.fillText(Math.round(rl * GALAXY_KPC) + ' kpc', projX + 6, projY);
@@ -696,9 +733,19 @@
     reticle.style.transform = 'translate3d(' + (sx - 11).toFixed(1) + 'px,' + (sy - 11).toFixed(1) + 'px,0)';
 
     // Sit to the right of the star, flipping to the left near the edge.
-    var cxp = sx + 20;
-    if (cxp + cardW > w - 12) { cxp = sx - 20 - cardW; }
-    var cyp = Math.min(Math.max(12, sy - cardH / 2), h - cardH - 12);
+    // On a phone there is no room beside it, so it goes below (or above, near the
+    // bottom) and is centred on the star as far as the screen edges allow.
+    var cxp, cyp;
+    if (narrow) {
+      cxp = sx - cardW / 2;
+      cyp = sy + 20 + cardH > h - 12 ? sy - 20 - cardH : sy + 20;
+    } else {
+      cxp = sx + 20;
+      if (cxp + cardW > w - 12) { cxp = sx - 20 - cardW; }
+      cyp = sy - cardH / 2;
+    }
+    cxp = Math.min(Math.max(12, cxp), w - cardW - 12);
+    cyp = Math.min(Math.max(12, cyp), h - cardH - 12);
     card.style.transform = 'translate3d(' + cxp.toFixed(1) + 'px,' + cyp.toFixed(1) + 'px,0)';
   }
 
@@ -736,6 +783,14 @@
     clock += dt;
     revealMs += dt * 1000;
 
+    if (coarse) {
+      // A slow Lissajous sway in place of the pointer: one turn every ~40 s, one tip
+      // every ~55 s, a third of the range the mouse gets. Enough to read as 3D.
+      spinTarget = Math.sin(clock * 0.157) * SPIN_RANGE * 0.35;
+      rollTarget = Math.sin(clock * 0.157) * ROLL_RANGE * 0.35;
+      tiltTarget = Math.sin(clock * 0.114 + 1) * TILT_RANGE * 0.35;
+    }
+
     var k = 1 - Math.exp(-EASE_RATE * dt);
     spin += (spinTarget - spin) * k;
     tiltOff += (tiltTarget - tiltOff) * k;
@@ -767,23 +822,30 @@
 
   /* ---------- Pointer ---------- */
 
-  function clear() {
-    pointerIn = false;
-    if (reducedMotion) {
-      updateHover();
-    }
-  }
+  /*
+   * Touch has no hover and no viewing angle. A tap near a catalogue star picks it out,
+   * and the card clears itself after a few seconds, since there is no "pointer left"
+   * to clear it. Touch moves are ignored entirely: on a phone they are the page
+   * scrolling, and the galaxy lurching with every scroll would be the wrong response.
+   */
+  var TOUCH_CARD_MS = 4000;
+  var touchTimer = null;
+
+  // Phones and tablets: no pointer to tilt with, so the view sways gently on its own.
+  var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
 
   function onPointer(event) {
     // The listener is on the window, so ignore it while the frame is scrolled away.
     if (!visible) { return; }
+
+    var touch = event.pointerType === 'touch' || event.pointerType === 'pen';
+    if (touch && event.type !== 'pointerdown') { return; }
 
     var rect = frame.getBoundingClientRect();
     if (rect.height <= 0) { return; }
 
     var nx = (event.clientX - rect.left) / rect.width;
     var ny = (event.clientY - rect.top) / rect.height;
-    var touch = event.pointerType === 'touch';
 
     if (!touch) {
       // Clamped: past the edge of the frame the view holds at its limit.
@@ -797,13 +859,27 @@
     pointerX = event.clientX - rect.left;
     pointerY = event.clientY - rect.top;
 
-    // Links, buttons and the header are not part of the plot.
+    // Links, buttons, the header and the copy itself are not part of the plot. On a
+    // phone the galaxy sits behind the text, and tapping a paragraph is not a request
+    // for a star.
     var target = event.target;
-    var overUi = target && target.closest && target.closest('a, button, nav, header');
+    var overUi = target && target.closest
+      && target.closest('a, button, nav, header, h1, p');
     pointerIn = !overUi && nx >= 0 && nx <= 1 && ny >= 0 && ny <= 1;
 
-    if (reducedMotion) {
-      // No loop running: positions are from the last (only) render, so just re-pick.
+    if (touch) {
+      window.clearTimeout(touchTimer);
+      if (pointerIn) {
+        touchTimer = window.setTimeout(function () {
+          pointerIn = false;
+          if (reducedMotion) { updateHover(); }
+        }, TOUCH_CARD_MS);
+      }
+    }
+
+    if (reducedMotion || touch) {
+      // Pick straight away rather than on the next frame, and under reduced motion
+      // there is no next frame: positions are from the last (only) render.
       updateHover();
     }
   }
