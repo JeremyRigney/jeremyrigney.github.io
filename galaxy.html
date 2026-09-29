@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Galaxy — a simulated spiral you can turn in your hands</title>
+  <meta name="description" content="The spiral galaxy from the jeremy.ie homepage, up close: drag to turn it to any angle, zoom in, and watch its stars stream through a density-wave spiral on a flat rotation curve." />
+  <link rel="icon" href="assets/favicon-galaxy.svg" type="image/svg+xml" />
+  <meta name="theme-color" content="#050608" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/galaxy.css?v=20260929" />
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-6G0WFV4TS8"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-6G0WFV4TS8');
+  </script>
+</head>
+<body>
+  <!--
+    One screen and no scroll. The stage takes every pointer: drag turns the galaxy,
+    the wheel or a pinch zooms, a twist rolls it, a double-click or double-tap sets it
+    back. Everything drawn is from galaxy-view.js; the model is galaxy-model.js and
+    the colours are galaxy-bands.js. The catalogue data on the hover cards is
+    synthetic, as on the homepage.
+  -->
+  <main class="stage" id="stage">
+    <canvas id="galaxy-gl" role="img" aria-label="A simulated spiral galaxy. Drag to turn it to any angle; scroll, pinch or use plus and minus to zoom; arrow keys also turn it, and R resets the view."></canvas>
+    <canvas id="galaxy-overlay" aria-hidden="true"></canvas>
+    <span class="galaxy-reticle" aria-hidden="true"></span>
+    <div class="galaxy-card" aria-hidden="true">
+      <div class="galaxy-card-head">
+        <span class="galaxy-card-id"></span>
+        <span class="galaxy-card-tag"></span>
+      </div>
+      <div class="galaxy-card-row"></div>
+      <div class="galaxy-card-row"></div>
+      <div class="galaxy-card-row"></div>
+    </div>
+  </main>
+
+  <header class="site-header">
+    <div class="brand">
+      <a class="masthead" href="galaxy.html">Galaxy<span class="masthead-dot">.</span></a>
+      <span class="byline">a page by <a href="https://jeremy.ie">Jeremy</a></span>
+    </div>
+    <p class="hud" id="galaxy-hud" aria-hidden="true"></p>
+  </header>
+
+  <footer class="foot">
+    <div class="foot-left">
+      <p class="caption">A synthetic spiral, 30 kpc across, on a flat rotation curve. The arms are a density wave: the stars stream through them.</p>
+      <div class="bands" id="galaxy-bands" aria-label="Viewing band"></div>
+    </div>
+    <p class="hint" id="galaxy-hint">
+      <span class="hint-fine">Drag to turn &middot; Scroll to zoom &middot; Double-click to reset</span>
+      <span class="hint-coarse">Drag to turn &middot; Pinch to zoom &middot; Twist to roll &middot; Double-tap to reset</span>
+    </p>
+  </footer>
+
+  <div class="fallback" id="galaxy-fallback" hidden>
+    <p class="fallback-title">This galaxy needs WebGL2.</p>
+    <p>Your browser or device doesn&rsquo;t offer it, or has it turned off. A smaller version of the same galaxy turns on the <a href="index.html">homepage</a>.</p>
+  </div>
+  <noscript>
+    <div class="fallback">
+      <p class="fallback-title">This galaxy is drawn with JavaScript.</p>
+      <p>With it turned off there is nothing to show here. <a href="index.html">Back to the homepage</a>.</p>
+    </div>
+  </noscript>
+
+  <script src="assets/js/galaxy-model.js?v=20260929"></script>
+  <script src="assets/js/galaxy-bands.js?v=20260929"></script>
+  <script src="assets/js/galaxy-view.js?v=20260929"></script>
+</body>
+</html>
