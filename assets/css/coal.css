@@ -1,6 +1,6 @@
 /*
- * The coal design system — shared by index.html, speaking.html, dashboard.html and
- * cv.html.
+ * The coal design system — shared by index.html, speaking.html, dashboard.html,
+ * cv.html, blog.html, its article and 404.html.
  *
  * Set in the same language as assets/css/f1.css: one continuous coal ground, hairline
  * rules instead of panels, and a wide gap in size between a figure and its label. The
@@ -27,8 +27,20 @@
  * timeline, the bullets under a record row and the publication rows. Load this file
  * first; all four depend on its tokens.
  *
- * Not loaded on the rest of the site. eclipse and f1 are off-palette by their own
- * design; blog, 404 and the older articles still run main.css.
+ * Also shared: assets/js/site-nav.js (mobile nav, reveals, footer year) and
+ * assets/css/noscript-coal.css. blog.css and notfound.css sit on top of this file the
+ * way speaking.css does.
+ *
+ * Not loaded on eclipse, f1 and f1-lab, which are off-palette by their own design.
+ * The legacy Stellar template (main.css) survives only in generic.html, elements.html
+ * and design.html, which nothing links to.
+ *
+ * Reference tokens for any redesign — the values at :root below are canonical:
+ *   ground  --coal #111214    ink  --chalk #f6f7f8 / --ink #eceef0
+ *   prose   --ink-soft #9aa0a6    labels  --ink-faint #6b7178
+ *   accent  --accent #6e8a78 (deep #5a7566, soft #7e9c89)
+ *   type    Chivo Mono (UI) / Fraunces (chapter titles) / Inter (prose)
+ *   layout  1180px wrap, 13rem margin spine, 3.9rem header; breakpoints 860 / 700px
  */
 
 :root {

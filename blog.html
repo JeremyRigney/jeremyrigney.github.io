@@ -1,39 +1,26 @@
-<!DOCTYPE HTML>
-<!--
-	Stellar by HTML5 UP
-	html5up.net | @ajlkn
-	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
--->
-<html>
+<!DOCTYPE html>
+<html lang="en">
 	<head>
-		<title>Jeremy Rigney | Blog</title>
 		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Jeremy Rigney | Blog</title>
+
 		<!-- Favicon-->
-        <link rel="icon" type="image/x-icon" href="images/favicon.png"/>
-		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		<link rel="stylesheet" href="assets/css/main.css" />
-		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
-		<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+		<link rel="icon" type="image/png" href="images/favicon.png"/>
+		<meta name="theme-color" content="#111214" />
 		<meta name="author" content="Jeremy Rigney">
-		<meta name="description" content="I hold a PhD in astrophysics from Queen's University Belfast. My research focused on observing the Sun and other stars using some of the largest and most advanced telescopes in the world to better understand stellar dynamics. Throughout my PhD I have presented my research at international conferences, and published peer reviewed research, collaborating with colleagues across the globe."/>
-		<meta name="keywords" content="Jeremy Rigney, Jeremy, astronomy ireland, irish astronomy, jeremy astronomy, jeremy irish astronomy, jeremy science communication, science communication ireland, Jeremy Rigney astro, Dublin Institute for Advanced Studies, AOP, Armagh Observatory, Queen's University Belfast, Lindsay Scholar, jeremy queens, jeremy dias, jeremy armagh"/>
+		<meta name="description" content="Writing by Jeremy Rigney on astronomy, radio telescopes and science communication."/>
 
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+		<link rel="stylesheet" href="assets/css/coal.css?v=20260929" />
+		<link rel="stylesheet" href="assets/css/blog.css?v=20260929" />
+		<noscript><link rel="stylesheet" href="assets/css/noscript-coal.css?v=20260929" /></noscript>
 
-		<link rel="preconnect" href="https://fonts.googleapis.com">
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300..700;1,300..700&display=swap" rel="stylesheet">
-
-
-		<script type='text/javascript'>
-        	function toggleMenu() {
-        	    var menu = document.getElementById("menu");
-        	    if (menu.style.display === "flex") {
-        	        menu.style.display = "none";
-        	    } else {
-        	        menu.style.display = "flex";
-        	    }
-        	}
-    	</script>
+		<!--Cookie consent-->
+		<script src="https://web.cmp.usercentrics.eu/modules/autoblocker.js"></script>
+		<script id="usercentrics-cmp" src="https://web.cmp.usercentrics.eu/ui/loader.js" data-settings-id="nt7NWEM4FPFze0" async></script>
 
 		<!-- Google tag (gtag.js) -->
 		<script async src="https://www.googletagmanager.com/gtag/js?id=G-6G0WFV4TS8"></script>
@@ -44,119 +31,63 @@
 		  gtag('config', 'G-6G0WFV4TS8');
 		</script>
 	</head>
-	<body class="is-preload">
 
-		<!-- Wrapper -->
-			<div id="wrapper">
+	<body>
 
+		<header class="site-header" id="site-header">
+			<div class="brand">
+				<a class="masthead" href="index.html">Jeremy<span class="masthead-dot">.</span></a>
+			</div>
+			<p class="header-meta">Dublin &middot; Ireland</p>
+			<button class="nav-toggle" type="button" aria-label="Open menu" aria-controls="site-nav" aria-expanded="false">
+				<span></span>
+				<span></span>
+			</button>
+			<nav class="site-nav" id="site-nav" aria-label="Site navigation">
+				<a href="index.html">Home</a>
+				<a href="speaking.html">Speaking</a>
+				<a href="dashboard.html">Dashboard</a>
+				<a href="eclipse.html">Eclipse</a>
+				<a href="f1.html">F1</a>
+				<a href="cv.html">CV</a>
+			</nav>
+		</header>
 
-				<div class="hamburger" onclick="toggleMenu()">
-   				    <div class="bar"></div>
-   				    <div class="bar"></div>
-   				    <div class="bar"></div>
-   				</div>
-   				<div class="menu" id="menu">
-    			    <a href="https://jeremy.ie" class="active">Home</a>
-					<a href="https://jeremy.ie/cv">CV</a>
-					<a href="#cta">Contact</a>
-    			</div>
-
-				<!-- Nav -->
-					<nav id="nav">
-						<ul>
-							<li><a href="https://jeremy.ie" class="active">Home</a></li>
-							<li><a href="https://jeremy.ie/cv">CV</a></li>
-							<li><a href="#cta">Contact</a></li>
-						</ul>
-					</nav>
-
-				<!-- Main -->
-					<div id="main">
-
-						<!-- Content -->
-							<section id="first" class="main">
-
-								<h1 class="cvtitle" style="color:#03220C;">Blog</h1>
-							</br>
-
-							<!--<div class='blog_article'>
-
-							<h2>The Absurdity and Possible Reality of a Radio Telescope on the Moon</h2>
-
-							<span class="image main"><img src="images/lcrt_blog.jpeg" alt="" title='The Lunar Crater Radio Telescope concept, NASA' /></span>
-							<h5 style="margin-bottom:0px;">This article was first published as part of the <a href="https://armaghplanet.com/the-absurdity-and-possible-reality-of-a-radio-telescope-on-the-moon.html", target='_blank'>armaghplanet.com</a> blog.</h5><h6><b>April 14, 2023 - Jeremy Rigney</b></h6>
-							</br>
-							
-							
-
-							</div>-->
-
-							<!-- First lunar telescope concept image-->
-							<div class="row gtr-uniform" style="align-items: center; justify-content: center; margin:20px 0px 20px 0px;">
-								<div class="col-4"><span class="image fit"><a href = 'the-absurdity-and-possible-reality-of-a-radio-telescope-on-the-moon.html'><img src="images/gbt_img.jpg" alt="" /></a></span>The Absurdity and Possible Reality of a Radio Telescope on the Moon</div>
-								<div class="col-4"><span class="image fit"><a href = 'the-absurdity-and-possible-reality-of-a-radio-telescope-on-the-moon.html'><img src="images/pic02.jpg" alt="" /></a></span>Watch this space for more blog posts</div>
-								<div class="col-4"><span class="image fit"><a href = 'the-absurdity-and-possible-reality-of-a-radio-telescope-on-the-moon.html'><img src="images/pic03.jpg" alt="" /></a></span>Watch this space for more blog posts</div>
-							</div>
-							
-
-							</br>
-							
-							
-								<hr>
-
-
-							</section>
-
-					
-
+		<main id="top">
+			<section class="chapter">
+				<div class="wrap">
+					<div class="chapter-head reveal">
+						<p class="chapter-index"><b>Blog</b> / Writing</p>
+						<h1 class="chapter-title">Writing on astronomy and the spaces between.</h1>
+						<p class="chapter-lead">Longer pieces on astronomy and science communication. More posts to come.</p>
 					</div>
 
-				<!-- Footer -->
-					<footer id="footer">
-						<section id="cta">
-							<h2>Get in Touch</h2>
-							<p>I welcome opportunities to engage in public speaking, particularly at science festivals, open days, and similar events. Feel free to reach out with any enquiries.</p>
-							<ul class="actions">
-								<li><a href="https://jeremy.ie/speaking" class="button">See Previous Talks</a></li>
-							</ul>
-						</section>
-						<section>
-							<h2 style='color:#03220C;'>Contact Information</h2>
-							<dl class="alt">
-								<dt>Location</dt>
-								<dd>Dublin &bull; Ireland</dd>
-								<!--<dt>Phone</dt>
-								<dd>(000) 000-0000 x 0000</dd>-->
-								<dt>Email</dt>
-								<dd><a href="#">jeremy.rigney [at] gmail [dot] com</a></dd>
-							</dl>
-							<ul class="icons">
-								<li><a href="https://x.com/jeremyrigney" target='_blank' class="icon brands fa-x-twitter alt"><span class="label">Twitter</span></a></li>
-								<li><a href="https://www.instagram.com/jeremy.rigney/" target='_blank' class="icon brands fa-instagram alt"><span class="label">Instagram</span></a></li>
-								<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" class="icon brands fa-linkedin alt"><span class="label">LinkedIn</span></a></li>
-								<li><a href="https://github.com/jeremyrigney" target='_blank' class="icon brands fa-github alt"><span class="label">GitHub</span></a></li>
-								<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target='_blank' class="icon brands fa-google-scholar alt"><span class="label">Google Scholar</span></a></li>
-							</ul>
-						</section>
-						<p class="copyright">&copy;Template from <a href="https://html5up.net">HTML5 UP</a>.</p>
-					</footer>
+					<ul class="index-list reveal">
+						<li>
+							<a class="index-row" href="the-absurdity-and-possible-reality-of-a-radio-telescope-on-the-moon.html">
+								<span class="index-meta">
+									<span class="index-num">01</span>
+									<span class="index-tag">Radio astronomy</span>
+								</span>
+								<span class="index-body">
+									<span class="index-name">The Absurdity and Possible Reality of a Radio Telescope on the Moon</span>
+									<span class="index-note">Why the far side of the Moon is the quietest place to listen to the early universe, and the concepts trying to get a dish there.</span>
+								</span>
+								<span class="index-go" aria-hidden="true">&rarr;</span>
+							</a>
+						</li>
+					</ul>
+				</div>
+			</section>
+		</main>
 
+		<footer class="site-footer">
+			<div class="wrap">
+				<p>&copy; <span id="year">2026</span> Jeremy Rigney</p>
+				<p><a href="cv.html">CV</a> &nbsp;&middot;&nbsp; <a href="dashboard.html">Dashboard</a> &nbsp;&middot;&nbsp; <a href="eclipse.html">Eclipse</a> &nbsp;&middot;&nbsp; <a href="f1.html">F1</a> &nbsp;&middot;&nbsp; <a href="speaking.html">Speaking</a></p>
 			</div>
+		</footer>
 
-		<!-- Scripts -->
-			<script src="assets/js/jquery.min.js"></script>
-			<script src="assets/js/jquery.scrollex.min.js"></script>
-			<script src="assets/js/jquery.scrolly.min.js"></script>
-			<script src="assets/js/browser.min.js"></script>
-			<script src="assets/js/breakpoints.min.js"></script>
-			<script src="assets/js/util.js"></script>
-			<script src="assets/js/main.js"></script>
-
-
-
-
-
-
-
+		<script src="assets/js/site-nav.js?v=20260929"></script>
 	</body>
 </html>

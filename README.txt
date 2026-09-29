@@ -1,18 +1,37 @@
+Welcome to the repository for my personal website, jeremy.ie.
 
-Welcome to the repository for my personal website,  jeremy.ie.
+Hosted on GitHub Pages. Static HTML, CSS and vanilla JS, with no build step.
 
-The site is built on a bootstrap template, and is hosted via Github Pages. 
+PAGES
 
-The website consists of the following pages: 
+  index.html      Home
+  cv.html         Curriculum vitae
+  speaking.html   Public speaking
+  dashboard.html  Solar and sky dashboard
+  blog.html       Blog index
+  the-absurdity-and-possible-reality-of-a-radio-telescope-on-the-moon.html
+                  Blog article
+  404.html        Not-found page (reuses the homepage shimmer)
+  eclipse.html    Ireland 12 August 2026 eclipse (standalone, own theme)
+  f1.html         Next F1 circuit (standalone, own theme)
+  f1-lab.html     F1 development page, noindex
 
-jeremy.ie(/index.html) - Jeremy Rigney | Home
-jeremy.ie/cv(.html) - Jeremy Rigney | Curriculum Vitae
-jeremy.ie/speaking(.html) - Jeremy Rigney | Public Speaking
+DESIGN SYSTEM ("coal")
 
+  assets/css/coal.css           tokens, header, footer, type, row grids (start here)
+  assets/css/home-coal.css      homepage opening frame and shimmer
+  assets/css/{cv,speaking,dashboard-coal,blog,notfound}.css   per-page additions
+  assets/css/noscript-coal.css  no-JavaScript fallback for every coal page
+  assets/js/site-nav.js         shared mobile nav, scroll reveals, footer year
 
-This website is a modification of the template 'Stellar' by HTML5 UP
+  Dark only. Chivo Mono for UI, Fraunces for chapter titles, Inter for prose. One sage
+  accent. No cards, no rounded corners, no shadows. The token values are listed at the
+  top of coal.css.
 
-Stellar by HTML5 UP
-html5up.net | @ajlkn
-Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+  eclipse and f1 keep their own stylesheets on purpose.
 
+LEGACY
+
+  generic.html, elements.html, design.html and assets/css/{main,noscript,home,refresh}.css
+  are unlinked leftovers from the original "Stellar" template by HTML5 UP
+  (html5up.net, CCA 3.0) and earlier redesigns.
