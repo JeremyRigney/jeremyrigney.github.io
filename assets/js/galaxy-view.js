@@ -25,8 +25,9 @@
  * instead of clipping flat.
  *
  * Depth comes from perspective: stars are drawn larger the nearer they are, so a
- * turned disc has a near edge and a far one, and the thick disc, the halo and the
- * two satellite galaxies move against each other as it turns. Behind all of it, the
+ * turned disc has a near edge and a far one, and the thick disc, the halo, the
+ * globular clusters and the two satellite galaxies move against each other as it
+ * turns. Behind all of it, the
  * sky and the distant galaxies are at infinity: they turn but never move.
  *
  * The camera is a trackball on a quaternion, so there is no gimbal lock and no angle
@@ -741,7 +742,7 @@
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
-  var DRAW_ORDER = ['distant', 'sky', 'halo', 'satellites', 'faint', 'disc', 'bulge', 'young'];
+  var DRAW_ORDER = ['distant', 'sky', 'halo', 'globular', 'satellites', 'faint', 'disc', 'bulge', 'young'];
 
   function render() {
     applyView();

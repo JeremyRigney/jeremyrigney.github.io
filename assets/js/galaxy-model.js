@@ -33,7 +33,7 @@
  *     the old edge instead of a clip at radius 1.
  *   - Depth: a thin disc and a thicker, older one; a disc that flares and bends (a
  *     gentle warp, which most spiral discs have) past the old edge; a round bulge; a
- *     sparse stellar halo on orbits in every plane.
+ *     sparse stellar halo and globular clusters on orbits in every plane.
  *   - Company: two small satellite galaxies on orbits of their own, and far behind
  *     everything a field of distant galaxies, for a sense of how far away the rest of
  *     the universe is.
@@ -116,6 +116,8 @@ window.GalaxyModel = (function () {
     young: [10000, 5100],
     bulge: [1800, 600],
     halo: [900, 450],
+    clusters: [72, 48], // globular clusters, not stars
+    clusterStars: [22, 14], // stars per cluster
     // Both of these cover the whole sphere, and the view only ever sees a few percent
     // of it: 3,000 distant galaxies is about a hundred on screen.
     sky: [2400, 1300],
@@ -246,8 +248,8 @@ window.GalaxyModel = (function () {
     this.extra = new Float32Array(n * 4);
     /*
      * How the renderer moves a point of this population, independent of band:
-     *   mode    0 disc orbit, 1 orbit in its own plane (halo, satellites), 2 a star at
-     *           infinity, 4 a distant galaxy at infinity
+     *   mode    0 disc orbit, 1 orbit in its own plane (halo, clusters,
+     *           satellites), 2 a star at infinity, 4 a distant galaxy at infinity
      *   jam     how strongly it crowds into the arms (disc orbits only)
      *   reveal  [from, to]: fades in between these zooms, if given
      */
@@ -357,6 +359,37 @@ window.GalaxyModel = (function () {
       pop.set(i, rand() < 0.5 ? r : -r, rand() * Math.PI * 2, Math.acos(2 * rand() - 1),
         rand() * Math.PI * 2, classTeff(rand() < 0.6 ? 'warm' : 'soft'),
         between(0.3, 0.46), -1, 1, 0, 0, 0, 1.1);
+    }
+    return pop;
+  }
+
+  /*
+   * Globular clusters. Each is a tight Plummer sphere of old stars on an orbit of its
+   * own, at the rotation curve's speed but in a random plane and either direction: the
+   * halo has almost no net rotation. Real clusters are a few parsecs across, far too
+   * small to see at this scale, so they are drawn several times larger than life.
+   */
+  function makeClusters(nClusters, perCluster) {
+    var n = nClusters * perCluster;
+    var pop = new Population('globular', n, { mode: 1 });
+    var i = 0;
+    for (var c = 0; c < nClusters; c++) {
+      var r = Math.min(1.7, 0.12 + Math.abs(gauss()) * 0.5);
+      var dir = rand() < 0.5 ? 1 : -1;
+      var theta = rand() * Math.PI * 2;
+      var incl = Math.acos(2 * rand() - 1);
+      var node = rand() * Math.PI * 2;
+      var a = between(0.003, 0.006); // Plummer radius
+      for (var s = 0; s < perCluster; s++, i++) {
+        var u = Math.max(0.02, rand());
+        var d = Math.min(5 * a, a / Math.sqrt(Math.pow(u, -2 / 3) - 1));
+        var ct = 2 * rand() - 1;
+        var st = Math.sqrt(1 - ct * ct);
+        var ph = rand() * Math.PI * 2;
+        var t = TIERS[rand() < 0.85 ? 0 : 1];
+        pop.set(i, r * dir, theta, incl, node, classTeff(rand() < 0.5 ? 'soft' : 'field'),
+          t[1], -1, 1, d * st * Math.cos(ph), d * st * Math.sin(ph), d * ct, t[0]);
+      }
     }
     return pop;
   }
@@ -563,6 +596,7 @@ window.GalaxyModel = (function () {
       makeYoung(COUNTS.young[s]),
       makeHalo(COUNTS.halo[s]),
       makeSatellites(small),
+      makeClusters(COUNTS.clusters[s], COUNTS.clusterStars[s]),
       makeSky(COUNTS.sky[s]),
       makeDistant(COUNTS.distant[s])
     ];

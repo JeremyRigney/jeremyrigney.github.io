@@ -88,6 +88,7 @@ window.GalaxyBands = (function () {
         distant: 1,
         sky: 0.5,
         halo: 0.7,
+        globular: 0.75,
         satellites: 0.9,
         faint: 0.6,
         disc: 1,
