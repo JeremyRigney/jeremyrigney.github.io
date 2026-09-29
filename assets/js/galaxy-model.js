@@ -1,40 +1,44 @@
 /*
  * jeremy.ie/galaxy — the model.
  *
- * The same galaxy as the homepage hero (assets/js/home-galaxy.js), built bigger and in
- * more parts, for a page where it can be turned to any angle and looked at closely.
- * This file is data only: no DOM, no WebGL. It says where every point is and what it
- * physically is. It never says what colour anything is drawn in, because that depends
- * on the band being looked at (galaxy-bands.js), and the renderer (galaxy-view.js)
- * only ever connects the two.
+ * The same galaxy as the homepage hero (assets/js/home-galaxy.js), built out in three
+ * dimensions for a page where it can be turned to any angle and looked at closely.
+ * This file is data only: no DOM, no WebGL. It says where every star is and what it
+ * physically is (its temperature, its brightness). It never says what colour anything
+ * is drawn in, because that depends on the band being looked at (galaxy-bands.js),
+ * and the renderer (galaxy-view.js) only ever connects the two.
  *
- * The physics is the hero's, unchanged:
+ * The physics is the hero's:
  *
  *   - A flat rotation curve, v(r) = V_FLAT * r / sqrt(r^2 + R_CORE^2). The core turns
  *     like a solid body and the rest shears.
  *   - Spiral arms that are a density wave, turning rigidly at the pattern speed of the
  *     corotation radius, with stars streaming through them. The arms trail.
- *   - Old stars are only crowded by the wave, never removed: between the arms they are
- *     faint but present. Young hot stars light only on the crest, because they live and
- *     die within one arm crossing.
+ *   - Old stars are brightest on the crest and faint between the arms, but never
+ *     gone. Young hot stars light only on the crest, because they live and die within
+ *     one arm crossing.
  *
  * THE TUNABLES BELOW MUST STAY IN STEP WITH home-galaxy.js. They are copied rather than
  * shared so the hero, which is tuned by eye as a Canvas 2D plot, is never disturbed by
  * a change made for this page.
  *
- * What this page adds is parts the hero has no room for, each following from the same
- * wave:
+ * What this page adds, because it can be turned and zoomed:
  *
- *   - dust lanes on the inner edge of each arm, where gas runs into the wave and is
- *     compressed. Upstream of the crest inside corotation, and on the other side
- *     outside it, since the gas crosses the arm in the opposite direction there. Near
- *     corotation the gas barely crosses the arm at all, so the lanes fade out.
- *   - HII regions, the pink glow of hydrogen ionised by the youngest stars, just
- *     downstream of the crest where that compressed gas has had time to form stars.
- *   - an unresolved glow of the millions of stars too faint to draw one by one.
- *   - a halo of globular clusters on inclined orbits, which only reads once the disc
- *     has been turned.
- *   - a sparse field of background stars at infinity, for a sense of orientation.
+ *   - Crowding. In a real density wave the arms are not only brighter but denser: a
+ *     star slows as it climbs into the crest and speeds up leaving it, so stars pile
+ *     up there like traffic at a bottleneck. Each star's phase against the wave is
+ *     remapped so it spends longer near the crest (see "jam" below). The hero only
+ *     lights its stars by the wave; here they gather too.
+ *   - A disc that thins out rather than stops: exponential, with a soft taper past
+ *     the old edge instead of a clip at radius 1.
+ *   - Depth: a thin disc and a thicker, older one; a disc that flares and bends (a
+ *     gentle warp, which most spiral discs have) past the old edge; a round bulge; a
+ *     sparse stellar halo and globular clusters on orbits in every plane.
+ *   - Dust, as numbers rather than points: DUST describes a thin layer in the midplane,
+ *     densest in lanes on the inner edge of each arm, and the renderer works out how
+ *     much of it lies between the camera and each star.
+ *   - Faint stars that only come out as the view zooms in, as a longer exposure would
+ *     show them.
  *
  * Every point carries three vec4s, the same layout for every population, so one shader
  * program draws them all:
@@ -42,8 +46,8 @@
  *   orbit  disc:  r, theta0, z, phase0      (phase0 = angle against the arm crest)
  *          halo:  r, theta0, incl, node      (r < 0 for a retrograde orbit)
  *          sky:   direction x, y, z, 0
- *   phys   teff (K), luminosity, light-up threshold, floor (brightness between arms)
- *   extra  offset x, y, z (a star's place in its globular cluster), size multiplier
+ *   phys   teff (K), brightness (0-1), light-up threshold, floor (brightness off-arm)
+ *   extra  offset x, y, z (a star's place in its globular cluster), size (CSS px)
  */
 window.GalaxyModel = (function () {
   'use strict';
@@ -65,28 +69,55 @@ window.GalaxyModel = (function () {
   /* ---------- This page's own ---------- */
 
   /*
-   * Counts, desktop and phone. Only a fraction of the young stars and HII regions are
-   * lit at any moment (the ones on a crest), so those populations are generous.
+   * Crowding into the arms. A star's phase against the wave, psi, is drawn at
+   * psi - (jam / 2) * sin(2 psi): it lingers on the crest and hurries between arms.
+   * The density on the crest is then 1 / (1 - jam) of the average and between the
+   * arms 1 / (1 + jam), so 0.42 is about 2.4 times denser on the crest than between.
+   * Old stars respond mildly; young stars (and the gas they formed from) sharply.
+   */
+  var JAM_OLD = 0.42;
+  var JAM_YOUNG = 0.6;
+
+  /*
+   * The warp: past WARP_R0 the disc bends up on one side and down on the other, up to
+   * WARP_AMP (about 1.4 kpc) by WARP_R1. It is fixed in space and the stars orbit
+   * through it, as the Milky Way's do through its own.
+   */
+  var WARP = { amp: 0.09, r0: 0.8, r1: 1.6, node: 0.9 };
+
+  /*
+   * The dust layer. tau is the optical depth straight through it, face-on, on a lane
+   * at radius 0; the lanes sit `lead` radians of phase upstream of the stellar crest,
+   * on the side gas enters the arm from (inside corotation, where gas overtakes the
+   * pattern; the other side outside it; neither near it), and are `sharp` narrower
+   * than the arms. scale is its exponential radius; inner and outer where it ends.
+   */
+  var DUST = { tau: 1.2, lead: 0.2, sharp: 6, scale: 0.45, inner: 0.07, outer: 1.3 };
+
+  /*
+   * The stellar disc: the hero's exponential (scale 0.55 from 0.05), but tapering off
+   * past `edge` over about `taper` instead of stopping dead at radius 1.
+   */
+  var DISC = { scale: 0.55, min: 0.05, edge: 0.92, taper: 0.3, max: 1.8 };
+
+  /*
+   * Counts, desktop and phone. About a third of the disc is lit at full strength at
+   * any moment and only a fraction of the young stars (the ones on a crest), so what
+   * reads on screen is far fewer. The faint population is only drawn zoomed in.
    */
   var COUNTS = {
-    disc: [70000, 32000],
-    young: [30000, 14000],
-    bulge: [9000, 4500],
-    bulgeGlow: [4000, 1600],
-    diffuse: [24000, 9000],
-    hii: [3200, 1500],
-    dust: [7000, 3200],
-    clusters: [120, 70], // globular clusters, not stars
-    clusterStars: [40, 24], // stars per cluster
-    sky: [2200, 1100]
+    disc: [20000, 9000],
+    faint: [36000, 14000],
+    young: [9000, 4500],
+    bulge: [1800, 600],
+    halo: [900, 450],
+    clusters: [90, 60], // globular clusters, not stars
+    clusterStars: [22, 14], // stars per cluster
+    sky: [900, 500]
   };
 
   var NAMED_DISC = 110; // catalogue stars that carry a hover card
   var NAMED_YOUNG = 40;
-
-  // Phase offsets from the crest, in radians of phase (an arm repeats every pi).
-  var DUST_LEAD = 0.2;
-  var HII_LAG = 0.09;
 
   var ARM_NAMES = ['N', 'S']; // as home-galaxy.js: by the side of the nucleus
 
@@ -114,6 +145,10 @@ window.GalaxyModel = (function () {
     return a + (b - a) * rand();
   }
 
+  function pick(list) {
+    return list[Math.floor(rand() * list.length)];
+  }
+
   /* ---------- The rotation curve and the wave (as home-galaxy.js) ---------- */
 
   function circularKms(r) {
@@ -131,15 +166,6 @@ window.GalaxyModel = (function () {
 
   var PATTERN_SPEED = angularSpeed(P.CO_RADIUS);
 
-  /*
-   * Which way gas crosses the arm at radius r: +1 well inside corotation (it overtakes
-   * the pattern), -1 well outside (the pattern overtakes it), and near 0 at corotation.
-   */
-  function crossing(r) {
-    var d = (angularSpeed(r) - PATTERN_SPEED) / PATTERN_SPEED;
-    return Math.tanh(d * 3);
-  }
-
   function crest(phase) {
     return P.INTERARM + (1 - P.INTERARM)
       * Math.exp(P.ARM_SHARP * (Math.cos(2 * phase) - 1));
@@ -150,13 +176,40 @@ window.GalaxyModel = (function () {
     return t * t * (3 - 2 * t);
   }
 
-  // Exponential disc radius, clipped to r <= max, as the hero draws it.
-  function discRadius(scale, min, max) {
-    var r;
-    do {
-      r = -Math.log(1 - rand()) * scale + min;
-    } while (r > max);
-    return r;
+  function warpZ(r, a) {
+    return WARP.amp * smoothstep(WARP.r0, WARP.r1, r) * Math.sin(a - WARP.node);
+  }
+
+  /* ---------- Star classes (as home-galaxy.js) ---------- */
+
+  var CLASS_TEFF = {
+    O9: 31500, B1: 25400, B3: 18700, B8: 12000, A0: 9700, A2: 8800,
+    F5: 6500, F8: 6150, G0: 5930, G2: 5770, G8: 5350,
+    K0: 5250, K1: 5080, K3: 4750, K5: 4400, K7: 4050, M0: 3850, M2: 3550
+  };
+
+  // The hero's four colour classes, as the spectral types they stand for.
+  var CLASSES = {
+    hot: ['O9', 'B1', 'B3', 'B8', 'A0', 'A2'],
+    field: ['F5', 'F8', 'G0', 'G2', 'G8', 'K0'],
+    soft: ['G8', 'K1', 'K3', 'K5'],
+    warm: ['K5', 'K7', 'M0', 'M2']
+  };
+
+  function classTeff(kind) {
+    return CLASS_TEFF[pick(CLASSES[kind])];
+  }
+
+  /*
+   * Brightness tiers, as the hero's: [size in CSS px, brightness]. The top tier also
+   * gets a soft halo when lit. The core is crowded, so it is kept dimmer or it clips.
+   */
+  var TIERS = [[1.2, 0.46], [1.6, 0.7], [2.3, 0.92]];
+
+  function tier(r) {
+    var b = rand();
+    if (r < 0.12) { return b < 0.97 ? 0 : 1; }
+    return b < 0.78 ? 0 : (b < 0.95 ? 1 : 2);
   }
 
   /* ---------- Populations ---------- */
@@ -168,13 +221,10 @@ window.GalaxyModel = (function () {
     this.phys = new Float32Array(n * 4);
     this.extra = new Float32Array(n * 4);
     /*
-     * How a point of this population is drawn, independent of band:
-     *   mode      0 disc orbit, 1 halo orbit, 2 sky
-     *   extended  false: a point source of fixed pixel size (a star)
-     *             true:  a patch of fixed size in the galaxy, in units of the radius
-     *   shape     'round', or 'plane' for a patch that lies in the disc and so
-     *             foreshortens with it
-     *   size      pixels for a star, disc radii for an extended patch
+     * How the renderer moves a point of this population, independent of band:
+     *   mode    0 disc orbit, 1 orbit in its own plane (halo), 2 sky at infinity
+     *   jam     how strongly it crowds into the arms (disc orbits only)
+     *   reveal  [from, to]: fades in between these zooms, if given
      */
     this.render = render;
   }
@@ -186,110 +236,102 @@ window.GalaxyModel = (function () {
     this.extra[k] = e0; this.extra[k + 1] = e1; this.extra[k + 2] = e2; this.extra[k + 3] = size;
   };
 
-  // A disc point: orbit on the rotation curve, lit by the wave at phase offset `shift`.
-  function discPoint(pop, i, r, z, teff, lum, thr, floor, size, shift) {
+  // A disc point: an orbit on the rotation curve, lit by the wave.
+  function discPoint(pop, i, r, z, teff, lum, thr, floor, size) {
     var theta = rand() * Math.PI * 2;
-    pop.set(i, r, theta, z, theta - crestAngle(r) + (shift || 0),
-      teff, lum, thr, floor, 0, 0, 0, size);
+    pop.set(i, r, theta, z, theta - crestAngle(r), teff, lum, thr, floor, 0, 0, 0, size);
   }
 
-  // A bright star is drawn a little larger, as a bright star smears over more pixels.
-  function starSize(lum) {
-    return Math.min(2.2, Math.max(0.8, 1 + 0.32 * Math.log(lum) / Math.LN10));
+  /*
+   * An exponential radius that thins out past `edge` instead of stopping there: beyond
+   * it, a star is kept with a probability that falls off as a Gaussian in the overshoot.
+   */
+  function discRadius(scale, min, edge, taper, max) {
+    for (;;) {
+      var r = -Math.log(1 - rand()) * scale + min;
+      if (r > max) { continue; }
+      if (r > edge) {
+        var t = (r - edge) / taper;
+        if (rand() > Math.exp(-t * t)) { continue; }
+      }
+      return r;
+    }
   }
 
-  // Log-normal luminosity around `mid`.
-  function lumAround(mid, spread) {
-    return mid * Math.exp(gauss() * spread);
+  /*
+   * Height above the midplane. A thin disc, a little thicker toward the bulge (as the
+   * hero's), flaring past the edge where the disc's own gravity no longer holds it
+   * flat; and one star in ten in the thick disc, older and puffier.
+   */
+  function discZ(r, h) {
+    var s = rand() < 0.1 ? 0.055 : h * (1 + (1 - Math.min(r, 1)) * 0.6);
+    return gauss() * s * (1 + 1.8 * Math.max(0, r - 0.9));
   }
 
   function makeDisc(n) {
-    var pop = new Population('disc', n, { mode: 0, extended: false, shape: 'round', size: 2.1 });
+    var pop = new Population('disc', n, { mode: 0, jam: JAM_OLD });
     for (var i = 0; i < n; i++) {
-      var r = discRadius(0.55, 0.05, 1);
-      var z = gauss() * 0.022 * (1 + (1 - r) * 0.8);
+      var r = discRadius(DISC.scale, DISC.min, DISC.edge, DISC.taper, DISC.max);
       var q = rand();
-      // Old stars: mostly K and M, with some G and a few F. The inner disc is redder.
-      var teff = q < (r < 0.2 ? 0.8 : 0.62) ? between(3500, 5000)
-        : q < 0.93 ? between(5200, 6100) : between(6300, 8200);
-      var lum = lumAround(teff > 6000 ? 0.9 : 0.55, 0.55);
-      discPoint(pop, i, r, z, teff, lum, rand(), 0.1, starSize(lum));
+      // As the hero: the inner disc is old and warm, the rest sage and soft.
+      var teff = r < 0.14 ? classTeff(q < 0.7 ? 'warm' : 'soft')
+        : classTeff(q < 0.6 ? 'field' : 'soft');
+      var t = TIERS[tier(r)];
+      discPoint(pop, i, r, discZ(r, 0.02), teff, t[1], rand(), 0.1, t[0]);
+    }
+    return pop;
+  }
+
+  // Stars too faint to show until the view is zoomed in: the same disc, sampled deeper.
+  function makeFaint(n) {
+    var pop = new Population('faint', n, { mode: 0, jam: JAM_OLD, reveal: [1.25, 2.6] });
+    for (var i = 0; i < n; i++) {
+      var r = discRadius(DISC.scale, DISC.min, DISC.edge, DISC.taper, DISC.max);
+      var q = rand();
+      var teff = r < 0.14 ? classTeff(q < 0.7 ? 'warm' : 'soft')
+        : classTeff(q < 0.5 ? 'field' : q < 0.85 ? 'soft' : 'warm');
+      discPoint(pop, i, r, discZ(r, 0.02), teff, between(0.26, 0.42), rand(), 0.12, 0.9);
     }
     return pop;
   }
 
   function makeYoung(n) {
-    var pop = new Population('young', n, { mode: 0, extended: false, shape: 'round', size: 2.3 });
+    var pop = new Population('young', n, { mode: 0, jam: JAM_YOUNG });
     for (var i = 0; i < n; i++) {
-      var r = discRadius(0.55, 0.22, 1); // as the hero: no young stars in the core
-      var z = gauss() * 0.009;
-      var teff = 9000 * Math.exp(Math.pow(rand(), 2) * Math.log(3.6)); // 9,000-32,000 K
-      var lum = lumAround(1.2 + teff / 12000, 0.45);
-      discPoint(pop, i, r, z, teff, lum, 0.5 + rand() * 0.5, 0, starSize(lum));
+      // As the hero: none in the core. Their disc also ends sooner than the old one.
+      var r = discRadius(0.5, 0.2, 1.0, 0.25, 1.6);
+      var z = gauss() * 0.008 * (1 + 1.8 * Math.max(0, r - 0.9));
+      var t = TIERS[tier(r)];
+      discPoint(pop, i, r, z, classTeff('hot'), t[1], 0.5 + rand() * 0.5, 0, t[0]);
     }
     return pop;
   }
 
   function makeBulge(n) {
-    var pop = new Population('bulge', n, { mode: 0, extended: false, shape: 'round', size: 1.9 });
+    var pop = new Population('bulge', n, { mode: 0, jam: 0 });
     for (var i = 0; i < n; i++) {
+      // As the hero: a round, dense knot with real vertical extent, always lit.
       var r = Math.abs(gauss()) * 0.075;
       var z = gauss() * 0.06;
-      var lum = lumAround(0.45, 0.45);
-      // thr -1: always lit. The bulge does not take part in the wave.
-      discPoint(pop, i, r, z, between(3600, 5100), lum, -1, 1, starSize(lum));
-    }
-    return pop;
-  }
-
-  function makeBulgeGlow(n) {
-    var pop = new Population('bulgeGlow', n, { mode: 0, extended: true, shape: 'round', size: 1 });
-    for (var i = 0; i < n; i++) {
-      var r = Math.abs(gauss()) * 0.08;
-      discPoint(pop, i, r, gauss() * 0.05, between(4000, 4700), between(0.7, 1.1), -1, 1,
-        between(0.05, 0.09));
-    }
-    return pop;
-  }
-
-  // The light of the stars too faint to draw: an old smooth part and a young arm part.
-  function makeDiffuse(n) {
-    var pop = new Population('diffuse', n, { mode: 0, extended: true, shape: 'plane', size: 1 });
-    for (var i = 0; i < n; i++) {
-      var young = rand() < 0.32;
-      var r = discRadius(0.5, young ? 0.2 : 0.04, 1);
-      var z = gauss() * 0.02;
-      if (young) {
-        discPoint(pop, i, r, z, between(10000, 16000), between(0.6, 1.2),
-          0.3 + rand() * 0.5, 0, between(0.08, 0.14));
-      } else {
-        discPoint(pop, i, r, z, between(4300, 5600), between(0.6, 1.2),
-          rand(), 0.45, between(0.12, 0.2));
-      }
-    }
-    return pop;
-  }
-
-  function makeHii(n) {
-    var pop = new Population('hii', n, { mode: 0, extended: true, shape: 'plane', size: 1 });
-    for (var i = 0; i < n; i++) {
-      var r = discRadius(0.5, 0.2, 0.96);
-      discPoint(pop, i, r, gauss() * 0.006, 10000, lumAround(1, 0.5),
-        0.7 + rand() * 0.3, 0, between(0.006, 0.02), -HII_LAG * crossing(r));
+      var t = TIERS[tier(r)];
+      discPoint(pop, i, r, z, classTeff(rand() < 0.7 ? 'warm' : 'soft'), t[1], -1, 1, t[0]);
     }
     return pop;
   }
 
   /*
-   * Dust. Its "luminosity" is optical depth: how much of the light behind it a patch
-   * takes out. A little lies everywhere (the floor); most of it sits in the lanes.
+   * The stellar halo: a thin spray of old stars on orbits in every plane, falling off
+   * as a power of radius. Few, and faint, but it is what makes the space around the
+   * disc read as a volume once the disc is turned.
    */
-  function makeDust(n) {
-    var pop = new Population('dust', n, { mode: 0, extended: true, shape: 'plane', size: 1 });
+  function makeHalo(n) {
+    var pop = new Population('halo', n, { mode: 1 });
     for (var i = 0; i < n; i++) {
-      var r = discRadius(0.45, 0.1, 0.95);
-      discPoint(pop, i, r, gauss() * 0.004, 0, between(0.4, 1.1),
-        0.35 + rand() * 0.65, 0.12, between(0.025, 0.055), DUST_LEAD * crossing(r));
+      var r;
+      do { r = 0.12 * Math.pow(1 - rand(), -0.9); } while (r > 1.9);
+      pop.set(i, rand() < 0.5 ? r : -r, rand() * Math.PI * 2, Math.acos(2 * rand() - 1),
+        rand() * Math.PI * 2, classTeff(rand() < 0.6 ? 'warm' : 'soft'),
+        between(0.3, 0.46), -1, 1, 0, 0, 0, 1.1);
     }
     return pop;
   }
@@ -298,11 +340,11 @@ window.GalaxyModel = (function () {
    * Globular clusters. Each is a tight Plummer sphere of old stars on an orbit of its
    * own, at the rotation curve's speed but in a random plane and either direction: the
    * halo has almost no net rotation. Real clusters are a few parsecs across, far too
-   * small to see at this scale, so they are drawn about ten times larger than life.
+   * small to see at this scale, so they are drawn several times larger than life.
    */
   function makeClusters(nClusters, perCluster) {
     var n = nClusters * perCluster;
-    var pop = new Population('globular', n, { mode: 1, extended: false, shape: 'round', size: 1.9 });
+    var pop = new Population('globular', n, { mode: 1 });
     var i = 0;
     for (var c = 0; c < nClusters; c++) {
       var r = Math.min(1.7, 0.12 + Math.abs(gauss()) * 0.5);
@@ -317,37 +359,29 @@ window.GalaxyModel = (function () {
         var ct = 2 * rand() - 1;
         var st = Math.sqrt(1 - ct * ct);
         var ph = rand() * Math.PI * 2;
-        // Metal-poor and old: a little bluer than the bulge, plus a few horizontal
-        // branch stars.
-        var teff = rand() < 0.1 ? between(7500, 10500) : between(4600, 6100);
-        var lum = lumAround(0.2, 0.5);
-        pop.set(i, r * dir, theta, incl, node, teff, lum, -1, 1,
-          d * st * Math.cos(ph), d * st * Math.sin(ph), d * ct, starSize(lum));
+        var t = TIERS[rand() < 0.85 ? 0 : 1];
+        pop.set(i, r * dir, theta, incl, node, classTeff(rand() < 0.5 ? 'soft' : 'field'),
+          t[1], -1, 1, d * st * Math.cos(ph), d * st * Math.sin(ph), d * ct, t[0]);
       }
     }
     return pop;
   }
 
+  // A sparse field of background stars at infinity, for a sense of which way is up.
   function makeSky(n) {
-    var pop = new Population('sky', n, { mode: 2, extended: false, shape: 'round', size: 1.6 });
+    var pop = new Population('sky', n, { mode: 2 });
     for (var i = 0; i < n; i++) {
       var ct = 2 * rand() - 1;
       var st = Math.sqrt(1 - ct * ct);
       var ph = rand() * Math.PI * 2;
-      var lum = 0.04 * Math.exp(-Math.log(1 - rand()) * 0.9);
       pop.set(i, st * Math.cos(ph), st * Math.sin(ph), ct, 0,
-        between(3400, 11000), lum, -1, 1, 0, 0, 0, starSize(lum * 10));
+        classTeff(pick(['field', 'soft', 'warm', 'hot'])), between(0.12, 0.34), -1, 1,
+        0, 0, 0, 1);
     }
     return pop;
   }
 
   /* ---------- The catalogue ---------- */
-
-  var CLASS_TEFF = {
-    O9: 31500, B1: 25400, B3: 18700, B8: 12000, A0: 9700, A2: 8800,
-    F5: 6500, F8: 6150, G0: 5930, G2: 5770, G8: 5350,
-    K0: 5250, K1: 5080, K3: 4750, K5: 4400, K7: 4050, M0: 3850, M2: 3550
-  };
 
   function spectralClass(teff) {
     var best = 'G2', bestD = Infinity;
@@ -364,15 +398,15 @@ window.GalaxyModel = (function () {
 
   /*
    * Catalogue stars: bright ones outside the core, lit most of the time so there is
-   * nearly always something to point at (as in the hero). Their light-up thresholds
-   * and luminosities are adjusted in place, before anything is uploaded.
+   * nearly always something to point at (as in the hero). Their tiers and light-up
+   * thresholds are adjusted in place, before anything is uploaded.
    */
   function pickNamed(pop, want, serialStart, hot) {
     var pool = [];
     var i;
     for (i = 0; i < pop.count; i++) {
       var r = pop.orbit[i * 4];
-      if (r > 0.12 && r < 0.96) { pool.push(i); }
+      if (r > 0.12 && r < 0.96 && pop.extra[i * 4 + 3] >= TIERS[1][0]) { pool.push(i); }
     }
     for (i = pool.length - 1; i > 0; i--) {
       var j = Math.floor(rand() * (i + 1));
@@ -380,9 +414,7 @@ window.GalaxyModel = (function () {
     }
     return pool.slice(0, want).map(function (idx, k) {
       var o = idx * 4;
-      pop.phys[o + 1] = Math.max(pop.phys[o + 1], hot ? 3 : 1.4);
       pop.phys[o + 2] = Math.min(pop.phys[o + 2], rand() * 0.25);
-      pop.extra[o + 3] = starSize(pop.phys[o + 1]);
       var teff = pop.phys[o];
       var serial = serialStart + k;
       var cls = spectralClass(teff);
@@ -405,6 +437,14 @@ window.GalaxyModel = (function () {
 
   /* ---------- Evaluating a point on the CPU ---------- */
 
+  // A star's phase against the wave at time t, after crowding. See JAM_OLD.
+  function jammedPhase(pop, i, t) {
+    var o = i * 4;
+    var psi = pop.orbit[o + 3] + (angularSpeed(pop.orbit[o]) - PATTERN_SPEED) * t;
+    var jam = pop.render.jam || 0;
+    return { psi: psi, phase: psi - 0.5 * jam * Math.sin(2 * psi) };
+  }
+
   /*
    * Where disc point i of `pop` is at time t, and how brightly the wave lights it.
    * This is the vertex shader's arithmetic, repeated for the few points the page has
@@ -413,25 +453,21 @@ window.GalaxyModel = (function () {
   function evaluate(pop, i, t, out) {
     var o = i * 4;
     var r = pop.orbit[o];
-    var w = angularSpeed(r);
-    var a = pop.orbit[o + 1] + w * t;
-    var phase = pop.orbit[o + 3] + (w - PATTERN_SPEED) * t;
+    var jp = jammedPhase(pop, i, t);
+    var a = pop.orbit[o + 1] + angularSpeed(r) * t + (jp.phase - jp.psi);
     var thr = pop.phys[o + 2];
     var floor = pop.phys[o + 3];
     out.x = r * Math.cos(a);
     out.y = r * Math.sin(a);
-    out.z = pop.orbit[o + 2];
-    out.phase = phase;
-    out.light = floor + (1 - floor) * smoothstep(thr - 0.16, thr, crest(phase));
+    out.z = pop.orbit[o + 2] + warpZ(r, a);
+    out.light = floor + (1 - floor) * smoothstep(thr - 0.16, thr, crest(jp.phase));
     return out;
   }
 
   // What a catalogue star's card says about where it is right now.
   function locate(pop, i, t) {
-    var o = i * 4;
-    var r = pop.orbit[o];
-    if (r < 0.16) { return 'Bulge'; }
-    var phase = pop.orbit[o + 3] + (angularSpeed(r) - PATTERN_SPEED) * t;
+    if (pop.orbit[i * 4] < 0.16) { return 'Bulge'; }
+    var phase = jammedPhase(pop, i, t).phase;
     if (crest(phase) < 0.4) { return 'Inter-arm'; }
     return ARM_NAMES[Math.cos(phase) > 0 ? 0 : 1] + ' arm';
   }
@@ -443,58 +479,34 @@ window.GalaxyModel = (function () {
     var s = small ? 1 : 0;
     var pops = [
       makeSky(COUNTS.sky[s]),
-      makeDiffuse(COUNTS.diffuse[s]),
-      makeBulgeGlow(COUNTS.bulgeGlow[s]),
+      makeHalo(COUNTS.halo[s]),
+      makeClusters(COUNTS.clusters[s], COUNTS.clusterStars[s]),
+      makeFaint(COUNTS.faint[s]),
       makeDisc(COUNTS.disc[s]),
       makeBulge(COUNTS.bulge[s]),
-      makeYoung(COUNTS.young[s]),
-      makeClusters(COUNTS.clusters[s], COUNTS.clusterStars[s]),
-      makeHii(COUNTS.hii[s]),
-      makeDust(COUNTS.dust[s])
+      makeYoung(COUNTS.young[s])
     ];
     var byName = {};
     pops.forEach(function (p) { byName[p.name] = p; });
 
-    /*
-     * On a phone each population has fewer points, so each carries proportionally more
-     * light (or dust): the galaxy is as bright, and its lanes as dark, whatever it is
-     * sampled with. The sky is left alone, since there only the count shows.
-     */
-    if (small) {
-      var ratio = {
-        disc: COUNTS.disc, young: COUNTS.young, bulge: COUNTS.bulge,
-        bulgeGlow: COUNTS.bulgeGlow, diffuse: COUNTS.diffuse, hii: COUNTS.hii,
-        dust: COUNTS.dust, globular: COUNTS.clusterStars
-      };
-      Object.keys(ratio).forEach(function (k) {
-        var f = ratio[k][0] / ratio[k][1];
-        var pop = byName[k];
-        for (var i = 0; i < pop.count; i++) { pop.phys[i * 4 + 1] *= f; }
-      });
-    }
-
     var catalogue = pickNamed(byName.disc, NAMED_DISC, 0, false)
       .concat(pickNamed(byName.young, NAMED_YOUNG, NAMED_DISC, true));
-
-    var stars = 0;
-    ['disc', 'young', 'bulge', 'globular'].forEach(function (k) { stars += byName[k].count; });
 
     return {
       populations: pops,
       byName: byName,
-      catalogue: catalogue,
-      stars: stars
+      catalogue: catalogue
     };
   }
 
   return {
     params: P,
+    warp: WARP,
+    dust: DUST,
     PATTERN_SPEED: PATTERN_SPEED,
     build: build,
     evaluate: evaluate,
     locate: locate,
-    angularSpeed: angularSpeed,
-    circularKms: circularKms,
     thousands: thousands
   };
 })();

@@ -1,11 +1,11 @@
 /*
  * /galaxy — the galaxy explorer.
  *
- * Off-palette from the coal pages, as eclipse and f1 are: the ground is the near
- * black of a dark sky and the galaxy is drawn in its own light, so the only colour on
- * the page is the stars'. What it keeps from the site is the type (Chivo Mono for
- * every label and readout, Inter for the one line of prose) and the rules: hairlines,
- * no rounded corners, no shadows.
+ * The homepage's opening frame, given the whole screen: the coal ground and the
+ * galaxy in the hero's own palette (sage for the disc, teal for the young hot stars,
+ * warm for the old core), with the same hairline card and mono readout. Values are
+ * coal.css's and home-coal.css's, repeated here because this page loads neither: it
+ * has no header nav, no reveals and no footer for them to style.
  *
  * One screen, no scroll. The stage fills the viewport and takes every pointer and
  * touch itself (touch-action: none), so the browser never pans or zooms the page; the
@@ -13,16 +13,18 @@
  */
 
 :root {
-  --ground: #050608;
-  --ink: #e9ebef;
-  --ink-soft: #a3a8b1;
-  --ink-faint: #6c727c;
-  --line: rgba(233, 235, 239, 0.14);
-  --line-strong: rgba(233, 235, 239, 0.28);
-  /* Starlight: the warm white of the old disc, for the one accent on the page. */
-  --accent: #e2c992;
-  /* The young hot stars' blue, for the card and reticle when one is picked out. */
-  --hot-rgb: 158, 192, 255;
+  --ground: #111214;
+  --ink: #eceef0;
+  --ink-soft: #9aa0a6;
+  --ink-faint: #6b7178;
+  --chalk: #f6f7f8;
+  --line: rgba(236, 238, 240, 0.14);
+  --line-strong: rgba(236, 238, 240, 0.28);
+  --accent: #6e8a78;
+  --accent-soft: #7e9c89;
+  --accent-rgb: 110, 138, 120;
+  /* The young hot stars' teal, for the card and reticle when one is picked out. */
+  --hot-rgb: 72, 190, 176;
   --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "Chivo Mono", "Courier New", monospace;
   --fs-micro: 0.58rem;
@@ -138,7 +140,7 @@ a {
 }
 
 .masthead-dot {
-  color: var(--accent);
+  color: var(--accent-soft);
 }
 
 .byline {
@@ -281,7 +283,7 @@ button.band:focus-visible {
   left: 0;
   width: 22px;
   height: 22px;
-  border: 1px solid rgba(226, 201, 146, 0.9);
+  border: 1px solid rgba(var(--accent-rgb), 0.9);
   opacity: 0;
   pointer-events: none;
   transition: opacity 160ms var(--ease);
@@ -302,7 +304,7 @@ button.band:focus-visible {
   left: 0;
   min-width: 13rem;
   padding: 0.7rem 0.85rem 0.75rem;
-  background: rgba(5, 6, 8, 0.84);
+  background: rgba(17, 18, 20, 0.86);
   border: 1px solid var(--line-strong);
   border-left: 2px solid var(--accent);
   font-family: var(--font-mono);
@@ -342,7 +344,7 @@ button.band:focus-visible {
   font-size: var(--fs-micro);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-soft);
 }
 
 .galaxy-card.is-hot .galaxy-card-tag {

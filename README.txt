@@ -14,7 +14,7 @@ PAGES
   404.html        Not-found page (reuses the homepage shimmer)
   eclipse.html    Ireland 12 August 2026 eclipse (standalone, own theme)
   f1.html         Next F1 circuit (standalone, own theme)
-  galaxy.html     Interactive spiral galaxy, WebGL2 (standalone, own theme)
+  galaxy.html     Interactive spiral galaxy, WebGL2 (standalone, the hero's palette)
   f1-lab.html     F1 development page, noindex
 
 DESIGN SYSTEM ("coal")
