@@ -1,0 +1,33 @@
+/*
+ * jeremy.ie — 404.
+ *
+ * Loads on top of coal.css and home-coal.css: the page is the homepage's opening
+ * frame with a different sentence in it, shimmer and all. This file only sets the
+ * oversized status code and lets the requested path in the readout wrap.
+ */
+.notfound-code {
+  display: block;
+  font-size: clamp(5.5rem, 26vw, 19rem);
+  line-height: 0.86;
+  letter-spacing: -0.04em;
+  /* The digits are cut from the same ground the etching sits on. */
+  background: linear-gradient(180deg, var(--chalk) 30%, rgba(var(--accent-rgb), 0.55));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: var(--chalk);
+}
+
+.notfound-line {
+  margin-top: 0.9rem;
+}
+
+.notfound-path {
+  overflow-wrap: anywhere;
+  color: var(--chalk);
+}
+
+.readout-value.notfound-path {
+  font-size: clamp(0.9rem, 2vw, 1.2rem);
+  max-width: 34ch;
+}

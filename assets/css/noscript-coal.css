@@ -1,0 +1,29 @@
+/*
+ * Without JavaScript nothing ever adds .is-in, so every .reveal would sit at opacity 0
+ * and the homepage header (which ships .is-hidden) would never return. This hands all
+ * of it over statically, and returns the fixed nav drawer to the flow below 860px.
+ * Loaded via <noscript><link> on every coal page.
+ */
+.reveal { opacity: 1; transform: none; }
+.needs-js { display: none; }
+.line-mask > span { transform: none; }
+.site-header,
+.site-header.is-hidden { transform: none; opacity: 1; pointer-events: auto; }
+@media (max-width: 860px) {
+	.nav-toggle { display: none; }
+	.site-header { position: static; height: auto; padding: 0.9rem 1.4rem; flex-wrap: wrap; }
+	.site-nav {
+		position: static;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 0 1.1rem;
+		padding: 0.6rem 0 0;
+		background: none;
+		border-bottom: 0;
+		transform: none;
+		opacity: 1;
+		pointer-events: auto;
+	}
+	.site-nav a { padding: 0.3rem 0; border-bottom: 1px solid transparent; }
+}
+			

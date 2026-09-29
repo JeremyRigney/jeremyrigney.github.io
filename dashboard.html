@@ -51,8 +51,8 @@
 			rows and the Leaflet overrides. Order matters; the second depends on the
 			first's tokens.
 		-->
-		<link rel="stylesheet" href="assets/css/coal.css?v=20260901" />
-		<link rel="stylesheet" href="assets/css/dashboard-coal.css?v=20260901" />
+		<link rel="stylesheet" href="assets/css/coal.css?v=20260929" />
+		<link rel="stylesheet" href="assets/css/dashboard-coal.css?v=20260929" />
 
 		<!--
 			Without JavaScript nothing ever adds .is-in, so every .reveal would sit at
@@ -65,30 +65,7 @@
 			stay, since they are what says where each one comes from, and the colophon
 			in chapter 05 lists every source as links that work without any of this.
 		-->
-		<noscript>
-			<style>
-				.reveal { opacity: 1; transform: none; }
-				.line-mask > span { transform: none; }
-				.needs-js { display: none; }
-				@media (max-width: 860px) {
-					.nav-toggle { display: none; }
-					.site-header { position: static; height: auto; padding: 0.9rem 1.4rem; flex-wrap: wrap; }
-					.site-nav {
-						position: static;
-						flex-direction: row;
-						flex-wrap: wrap;
-						gap: 0 1.1rem;
-						padding: 0.6rem 0 0;
-						background: none;
-						border-bottom: 0;
-						transform: none;
-						opacity: 1;
-						pointer-events: auto;
-					}
-					.site-nav a { padding: 0.3rem 0; border-bottom: 1px solid transparent; }
-				}
-			</style>
-		</noscript>
+		<noscript><link rel="stylesheet" href="assets/css/noscript-coal.css?v=20260929" /></noscript>
 
 		<!--Cookie consent-->
 		<script src="https://web.cmp.usercentrics.eu/modules/autoblocker.js"></script>
@@ -119,7 +96,7 @@
 			<nav class="site-nav" id="site-nav" aria-label="Site navigation">
 				<a href="index.html">Home</a>
 				<a href="speaking.html">Speaking</a>
-				<a href="https://jeremy.ie/dashboard" aria-current="page">Dashboard</a>
+				<a href="dashboard.html" aria-current="page">Dashboard</a>
 				<a href="eclipse.html">Eclipse</a>
 				<a href="f1.html">F1</a>
 				<a href="cv.html">CV</a>
@@ -522,7 +499,7 @@
 		<footer class="site-footer">
 			<div class="wrap">
 				<p>&copy; <span id="year">2026</span> Jeremy Rigney</p>
-				<p><a href="index.html">Home</a> &nbsp;&middot;&nbsp; <a href="cv.html">CV</a> &nbsp;&middot;&nbsp; <a href="speaking.html">Speaking</a> &nbsp;&middot;&nbsp; <a href="eclipse.html">Eclipse</a> &nbsp;&middot;&nbsp; <a href="f1.html">F1</a></p>
+				<p><a href="cv.html">CV</a> &nbsp;&middot;&nbsp; <a href="dashboard.html">Dashboard</a> &nbsp;&middot;&nbsp; <a href="eclipse.html">Eclipse</a> &nbsp;&middot;&nbsp; <a href="f1.html">F1</a> &nbsp;&middot;&nbsp; <a href="speaking.html">Speaking</a></p>
 			</div>
 		</footer>
 
@@ -530,7 +507,8 @@
 		<script src="assets/js/carto-basemap.js?v=20260901"></script>
 		<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
 		<script src="assets/js/jquery.min.js"></script>
-		<script src="assets/js/dashboard-coal.js?v=20260901"></script>
+		<script src="assets/js/site-nav.js?v=20260929"></script>
+		<script src="assets/js/dashboard-coal.js?v=20260929"></script>
 		<script src="assets/js/dashboard-xray.js?v=20260901"></script>
 		<script src="assets/js/dashboard-feeds.js?v=20260901"></script>
 		<script src="assets/js/dashboard-rail.js?v=20260901"></script>

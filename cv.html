@@ -44,8 +44,8 @@
 			bullet list under a record row, and the publication rows. Order matters; the
 			second depends on the first's tokens.
 		-->
-		<link rel="stylesheet" href="assets/css/coal.css?v=20260902" />
-		<link rel="stylesheet" href="assets/css/cv.css?v=20260902" />
+		<link rel="stylesheet" href="assets/css/coal.css?v=20260929" />
+		<link rel="stylesheet" href="assets/css/cv.css?v=20260929" />
 
 		<!--
 			Without JavaScript nothing ever adds .is-in, so every .reveal would sit at
@@ -53,29 +53,7 @@
 			overlay below 860px that only the toggle can open, so it is returned to the
 			flow here as well.
 		-->
-		<noscript>
-			<style>
-				.reveal { opacity: 1; transform: none; }
-				.line-mask > span { transform: none; }
-				@media (max-width: 860px) {
-					.nav-toggle { display: none; }
-					.site-header { position: static; height: auto; padding: 0.9rem 1.4rem; flex-wrap: wrap; }
-					.site-nav {
-						position: static;
-						flex-direction: row;
-						flex-wrap: wrap;
-						gap: 0 1.1rem;
-						padding: 0.6rem 0 0;
-						background: none;
-						border-bottom: 0;
-						transform: none;
-						opacity: 1;
-						pointer-events: auto;
-					}
-					.site-nav a { padding: 0.3rem 0; border-bottom: 1px solid transparent; }
-				}
-			</style>
-		</noscript>
+		<noscript><link rel="stylesheet" href="assets/css/noscript-coal.css?v=20260929" /></noscript>
 
 		<!--Cookie consent-->
 		<script src="https://web.cmp.usercentrics.eu/modules/autoblocker.js"></script>
@@ -111,7 +89,7 @@
 			<nav class="site-nav" id="site-nav" aria-label="Site navigation">
 				<a href="index.html">Home</a>
 				<a href="speaking.html">Speaking</a>
-				<a href="https://jeremy.ie/dashboard">Dashboard</a>
+				<a href="dashboard.html">Dashboard</a>
 				<a href="eclipse.html">Eclipse</a>
 				<a href="f1.html">F1</a>
 				<a href="cv.html" aria-current="page">CV</a>
@@ -488,11 +466,12 @@
 		<footer class="site-footer">
 			<div class="wrap">
 				<p>&copy; <span id="year">2026</span> Jeremy Rigney</p>
-				<p><a href="index.html">Home</a> &nbsp;&middot;&nbsp; <a href="speaking.html">Speaking</a> &nbsp;&middot;&nbsp; <a href="https://jeremy.ie/dashboard">Dashboard</a> &nbsp;&middot;&nbsp; <a href="eclipse.html">Eclipse</a> &nbsp;&middot;&nbsp; <a href="f1.html">F1</a></p>
+				<p><a href="cv.html">CV</a> &nbsp;&middot;&nbsp; <a href="dashboard.html">Dashboard</a> &nbsp;&middot;&nbsp; <a href="eclipse.html">Eclipse</a> &nbsp;&middot;&nbsp; <a href="f1.html">F1</a> &nbsp;&middot;&nbsp; <a href="speaking.html">Speaking</a></p>
 			</div>
 		</footer>
 
-		<script src="assets/js/cv.js?v=20260902"></script>
+		<script src="assets/js/site-nav.js?v=20260929"></script>
+		<script src="assets/js/cv.js?v=20260929"></script>
 		<script src="assets/js/cv-timeline.js?v=20260902"></script>
 	</body>
 </html>

@@ -9,7 +9,7 @@
 
 <url>
   <loc>https://jeremy.ie/</loc>
-  <lastmod>2025-04-14T20:17:26+00:00</lastmod>
+  <lastmod>2026-09-29T00:00:00+00:00</lastmod>
   <priority>1.00</priority>
 </url>
 <url>
@@ -29,34 +29,33 @@
 </url>
 <url>
   <loc>https://jeremy.ie/cv</loc>
-  <lastmod>2025-04-14T20:17:26+00:00</lastmod>
+  <lastmod>2026-09-29T00:00:00+00:00</lastmod>
   <priority>0.80</priority>
 </url>
 <url>
   <loc>https://jeremy.ie/speaking</loc>
-  <lastmod>2025-04-14T20:17:26+00:00</lastmod>
-  <priority>0.80</priority>
-</url>
-<url>
-  <loc>https://jeremy.ie/cv.html</loc>
-  <lastmod>2025-04-14T20:17:26+00:00</lastmod>
+  <lastmod>2026-09-29T00:00:00+00:00</lastmod>
   <priority>0.80</priority>
 </url>
 <url>
   <loc>https://jeremy.ie/JeremyRigneyCV.pdf</loc>
-  <lastmod>2025-04-14T20:17:26+00:00</lastmod>
+  <lastmod>2026-09-29T00:00:00+00:00</lastmod>
   <priority>0.64</priority>
 </url>
 <url>
   <loc>https://jeremy.ie/FYP_JeremyRigneyUCD.pdf</loc>
-  <lastmod>2025-04-14T20:17:26+00:00</lastmod>
+  <lastmod>2026-09-29T00:00:00+00:00</lastmod>
   <priority>0.64</priority>
 </url>
 <url>
-  <loc>https://jeremy.ie/speaking.html</loc>
-  <lastmod>2025-04-14T20:17:26+00:00</lastmod>
+  <loc>https://jeremy.ie/blog</loc>
+  <lastmod>2026-09-29T00:00:00+00:00</lastmod>
   <priority>0.64</priority>
 </url>
-
+<url>
+  <loc>https://jeremy.ie/the-absurdity-and-possible-reality-of-a-radio-telescope-on-the-moon</loc>
+  <lastmod>2026-09-29T00:00:00+00:00</lastmod>
+  <priority>0.64</priority>
+</url>
 
 </urlset>
