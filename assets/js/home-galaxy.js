@@ -9,9 +9,11 @@
  *
  * Everything moves on two clocks, and the pointer only ever touches the second.
  *
- * The first is the galaxy's own rotation: a slow, mildly differential spin (the inner
- * disc turns a little faster than the rim), which never stops and never needs the
- * pointer. The second is the viewing angle. Pointer y tips the disc toward or away
+ * The first is the galaxy's own rotation, which never stops and never needs the
+ * pointer. Stars orbit on a flat rotation curve (the core turns like a solid body,
+ * the rest shears), and the spiral arms are a density wave turning at its own
+ * pattern speed, with the stars streaming through them. See "The rotation curve"
+ * in the tunables. The second is the viewing angle. Pointer y tips the disc toward or away
  * from the viewer, pointer x turns it a few degrees either way and rolls it a hair
  * about the line of sight. All three ease toward their targets, so a fast flick of the
  * mouse is a lazy drift on screen, and the whole range is small on purpose.
@@ -37,20 +39,24 @@
 
   // Overall opacity lives in CSS as --galaxy-strength; everything here shapes the disc.
 
-  var STAR_COUNT = 4200;
-  var STAR_COUNT_SMALL = 2400; // narrow screens: fewer points, same look at that size
+  /*
+   * Stars in the whole model. Only about a quarter of the disc is lit at any moment
+   * (see the density wave below), so this is several times what is on screen.
+   */
+  var STAR_COUNT = 18000;
+  var STAR_COUNT_SMALL = 9000; // narrow screens: fewer points, same look at that size
   var NAMED_COUNT = 90; // stars that carry a hover card
 
   var BULGE_SHARE = 0.1; // fraction of stars in the central bulge
-  var DISC_SHARE = 0.13; // fraction spread through the disc between the arms
   var GALAXY_KPC = 15; // what a radius of 1 stands for in the labels
 
   /*
    * Viewing geometry, in radians. BASE_TILT is the inclination from face-on: 0 is a
-   * flat disc seen from above, pi/2 is edge-on. Around 1 rad shows the arms clearly
-   * while still reading as a disc in space.
+   * flat disc seen from above, pi/2 is edge-on. 1.08 (about 62 degrees) is well
+   * inclined, so the disc reads as a thin lens in space, while the arms still show.
+   * Past about 1.2 the arms foreshorten into a smear.
    */
-  var BASE_TILT = 0.85;
+  var BASE_TILT = 1.08;
   var TILT_RANGE = 0.16; // pointer y, either way from BASE_TILT
   var SPIN_RANGE = 0.34; // pointer x turns the disc this far either way (about 19 deg)
   var ROLL_RANGE = 0.09; // and rolls it this far about the line of sight
@@ -59,12 +65,36 @@
   var EASE_RATE = 3.2;
 
   /*
-   * Rotation speed in radians per second, with a mild falloff toward the rim. Full
-   * differential rotation would wind the arms visibly tighter within a minute; this
-   * keeps them coherent for as long as anyone reads a title page.
+   * The rotation curve. Circular speed rises roughly linearly through the core and then
+   * goes flat, which is what observed galaxies do (and what needs dark matter to
+   * explain), modelled as the softened form
+   *
+   *     v(r) = V_FLAT * r / sqrt(r^2 + R_CORE^2)
+   *
+   * so the angular speed of a star is omega(r) = v / r = V_ROT / sqrt(r^2 + R_CORE^2).
+   * The core turns like a solid body and the rest shears: the outskirts take several
+   * times longer per orbit than the middle, which is the winding problem. V_FLAT is
+   * only used for the numbers on the hover card; V_ROT sets the pace on screen, and is
+   * slowed enormously (a real orbit at the Sun's radius takes ~230 million years).
+   * With 0.02, the rim takes about five minutes a turn and the core under a minute.
    */
-  var SPIN_RATE = 0.012;
-  var SHEAR = 0.6;
+  var V_FLAT_KMS = 220;
+  var V_ROT = 0.02; // rad/s at r = 1, at the flat part of the curve
+  var R_CORE = 0.15; // where the curve turns over, in units of the plot radius
+
+  /*
+   * The spiral arms are a density wave, not a set of stars. If the stars themselves
+   * were the arms, differential rotation would wind them into a tight coil within
+   * about a minute. In real galaxies the pattern turns rigidly at its own speed and
+   * stars drift through it: inside the corotation radius they overtake the arm, outside
+   * they fall behind it. Here every disc star is lit by how close it currently is to
+   * the wave crest, so the arms hold their shape while the stars visibly stream
+   * through them.
+   */
+  var CO_RADIUS = 0.6; // corotation: the radius that turns at the pattern speed
+  var ARM_WINDING = 2.9; // how tightly the logarithmic spiral is wound
+  var ARM_SHARP = 4.5; // how narrow the crest is; higher is thinner, sharper arms
+  var INTERARM = 0.05; // share of the disc that stays lit between the arms
 
   // The build-up on load: the disc swells from 70% of its size and fades in.
   var REVEAL_MS = 2200;
@@ -105,7 +135,7 @@
   var C_SAGE = 0, C_SOFT = 1, C_TEAL = 2, C_WARM = 3;
 
   // Brightness tiers: [size in px, alpha]. Tier 2 also gets a soft halo.
-  var TIERS = [[1.1, 0.34], [1.5, 0.62], [2.2, 0.9]];
+  var TIERS = [[1.2, 0.46], [1.6, 0.7], [2.3, 0.92]];
 
   function rgb(c) { return c[0] + ',' + c[1] + ',' + c[2]; }
 
@@ -155,7 +185,8 @@
   /* ---------- The galaxy ---------- */
 
   var count = 0;
-  var rad, th0, zed, omega, colour, tier, arm; // per-star, typed arrays
+  var rad, th0, zed, omega, colour, tier; // per-star, typed arrays
+  var phase0, dOmega, thr, lvl; // density-wave phase, drift, light-up threshold, level
   var px, py; // projected positions this frame, CSS pixels
   var buckets = []; // [colour * 3 + tier] -> Int32Array of star indices
   var named = []; // indices of catalogue stars
@@ -182,26 +213,48 @@
     return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   }
 
+  // Circular speed from the rotation curve, in km/s, at a radius in plot units.
+  function circularKms(r) {
+    return V_FLAT_KMS * r / Math.sqrt(r * r + R_CORE * R_CORE);
+  }
+
+  // Angular speed from the same curve, in rad/s on screen: v / r.
+  function angularSpeed(r) {
+    return V_ROT / Math.sqrt(r * r + R_CORE * R_CORE);
+  }
+
+  // The crest of arm 0 at radius r, as an angle: a logarithmic spiral.
+  function crestAngle(r) {
+    return ARM_WINDING * Math.log(1 + 6 * r);
+  }
+
+  var PATTERN_SPEED = angularSpeed(CO_RADIUS);
+
+  /*
+   * What a star's card says about where it is right now. This is read at the moment of
+   * hovering rather than stored, because the stars move through the arms: a star that
+   * was in Perseus a minute ago is not necessarily in it now.
+   */
+  function locate(i) {
+    if (rad[i] < 0.16) { return 'Bulge'; }
+    var p = phase0[i] + dOmega[i] * clock;
+    var crest = Math.exp(ARM_SHARP * (Math.cos(2 * p) - 1));
+    if (crest < 0.4) { return 'Inter-arm'; }
+    return ARM_NAMES[Math.cos(p) > 0 ? 0 : 1] + ' arm';
+  }
+
   function describe(i, serial) {
     var cls = pick(CLASSES[colour[i]]);
     var teff = CLASS_TEFF[cls];
     var hot = colour[i] === C_TEAL;
     var mag = (hot ? 7.6 : 9.4) + rand() * 4.2;
-    var where;
-    if (rad[i] < 0.16) {
-      where = 'Bulge';
-    } else if (arm[i] < 0) {
-      where = 'Inter-arm';
-    } else {
-      where = ARM_NAMES[arm[i]] + ' arm';
-    }
     return {
       id: 'SVY-' + String(1000 + ((serial * 613 + 271) % 9000)),
       cls: cls + ' V',
       teff: thousands(teff) + ' K',
       mag: 'V ' + mag.toFixed(1),
       radius: (rad[i] * GALAXY_KPC).toFixed(1) + ' kpc',
-      where: where,
+      vc: Math.round(circularKms(rad[i])) + ' km/s',
       hot: hot
     };
   }
@@ -214,62 +267,66 @@
     omega = new Float32Array(n);
     colour = new Uint8Array(n);
     tier = new Uint8Array(n);
-    arm = new Int8Array(n);
+    phase0 = new Float32Array(n);
+    dOmega = new Float32Array(n);
+    thr = new Float32Array(n);
+    lvl = new Uint8Array(n);
     px = new Float32Array(n);
     py = new Float32Array(n);
 
     for (var i = 0; i < n; i++) {
-      var r, theta, z, a = -1;
-      var roll = rand();
+      var r, theta, z, inBulge = false;
 
-      if (roll < BULGE_SHARE) {
+      if (rand() < BULGE_SHARE) {
         // Bulge: a round, dense knot with real vertical extent.
+        inBulge = true;
         r = Math.abs(gauss()) * 0.075;
-        theta = rand() * Math.PI * 2;
         z = gauss() * 0.06;
       } else {
         // Exponential disc, clipped to the frame of the plot.
         do {
-          r = -Math.log(1 - rand()) * 0.3 + 0.04;
+          r = -Math.log(1 - rand()) * 0.55 + 0.05;
         } while (r > 1);
-
-        if (roll < BULGE_SHARE + DISC_SHARE) {
-          theta = rand() * Math.PI * 2;
-        } else {
-          // Logarithmic spiral. Scatter is roughly constant across the arm, so it is
-          // a wide angle near the centre and a tight one at the rim.
-          a = rand() < 0.5 ? 0 : 1;
-          var spread = Math.min(0.8, 0.04 / Math.max(r, 0.06) + 0.07);
-          theta = a * Math.PI + 2.9 * Math.log(1 + 6 * r) + gauss() * spread;
-        }
         z = gauss() * 0.022 * (1 + (1 - r) * 0.8);
       }
+      // Both are spread evenly in angle: the arms are drawn by the wave, not the stars.
+      theta = rand() * Math.PI * 2;
 
       rad[i] = r;
       th0[i] = theta;
       zed[i] = z;
-      arm[i] = a;
-      omega[i] = SPIN_RATE * Math.max(0.35, 1.3 - SHEAR * r);
 
-      // Colour: the bulge is old and warm, the arms carry the young hot stars.
+      // Each star orbits at the rotation curve's speed for its radius; against the arm
+      // pattern it drifts at the difference, which is what carries it through the arms.
+      omega[i] = angularSpeed(r);
+      dOmega[i] = omega[i] - PATTERN_SPEED;
+      phase0[i] = theta - crestAngle(r);
+
+      // Colour: the bulge is old and warm; young hot stars belong to the arm crests.
       var c;
       var q = rand();
-      if (r < 0.2 && a < 0) {
+      if (inBulge || r < 0.14) {
         c = q < 0.7 ? C_WARM : C_SOFT;
-      } else if (a >= 0 && r > 0.22 && q < 0.24) {
+      } else if (r > 0.22 && q < 0.2) {
         c = C_TEAL;
       } else {
         c = q < 0.6 ? C_SAGE : C_SOFT;
       }
       colour[i] = c;
 
+      /*
+       * The star lights up when the wave is strong enough at its position to beat its
+       * own threshold. Thresholds are uniform, so the fraction lit at any spot equals
+       * the wave strength there. The bulge has none: it is always lit. Young hot stars
+       * need a high one, so they show only on the crest itself.
+       */
+      thr[i] = inBulge ? -1 : (c === C_TEAL ? 0.5 + rand() * 0.5 : rand());
+
       var b = rand();
       // The core is crowded, so it is kept dimmer or it clips to a white blob.
-      // Arm stars run a little brighter, which is what makes the arms read as arms.
-      var lift = a >= 0 ? 0.06 : 0;
       tier[i] = r < 0.12
         ? (b < 0.97 ? 0 : 1)
-        : (b < 0.78 - lift ? 0 : (b < 0.95 - lift * 0.5 ? 1 : 2));
+        : (b < 0.78 ? 0 : (b < 0.95 ? 1 : 2));
     }
 
     // Bucket by colour and tier so the draw loop changes fillStyle once per bucket.
@@ -299,8 +356,10 @@
     catalogue = {};
     named.forEach(function (idx, serial) {
       catalogue[idx] = describe(idx, serial);
-      // Named stars are drawn at full tier so there is always something to point at.
+      // Named stars are drawn at full tier, and lit most of the time, so there is
+      // nearly always something to point at.
       tier[idx] = Math.max(tier[idx], 1);
+      thr[idx] = Math.min(thr[idx], rand() * 0.25);
     });
   }
 
@@ -362,12 +421,14 @@
     var wasNarrow = narrow;
     narrow = w < 700;
 
+    // The plot bleeds off the right edge on purpose: a galaxy that fits its box looks
+    // like a diagram, and one that overflows it looks like a view through a telescope.
     if (w >= 900) {
-      cx = w * 0.7; cy = h * 0.52; R = Math.min(w * 0.32, h * 0.55);
+      cx = w * 0.68; cy = h * 0.52; R = Math.min(w * 0.43, h * 0.72);
     } else if (!narrow) {
-      cx = w * 0.62; cy = h * 0.56; R = Math.min(w * 0.4, h * 0.5);
+      cx = w * 0.6; cy = h * 0.58; R = Math.min(w * 0.52, h * 0.6);
     } else {
-      cx = w * 0.5; cy = h * 0.72; R = Math.min(w * 0.55, h * 0.3);
+      cx = w * 0.5; cy = h * 0.72; R = Math.min(w * 0.72, h * 0.34);
     }
 
     // Crossing the phone breakpoint changes how many stars the plot wants.
@@ -439,9 +500,26 @@
 
     drawGraticule(rev);
 
-    // Project every star once, then draw them a bucket at a time.
-    var a0 = clock, i, a, r, x, y;
+    /*
+     * One pass over every star: work out how strongly the arm wave lights it, and if it
+     * is lit at all, where it is on screen. Each star is at its orbital angle plus the
+     * pointer's turn; its phase against the wave is a separate number, because the
+     * star and the pattern do not turn at the same speed.
+     *
+     * lvl: 0 lit, 1 fading in or out (drawn dim), 2 dark (not projected, not drawn).
+     * The dim band is what stops stars snapping on and off as the crest passes.
+     */
+    var a0 = clock, i, a, r, x, y, crest, d;
     for (i = 0; i < count; i++) {
+      crest = INTERARM + (1 - INTERARM)
+        * Math.exp(ARM_SHARP * (Math.cos(2 * (phase0[i] + dOmega[i] * a0)) - 1));
+      d = crest - thr[i];
+      if (d < -0.16) {
+        lvl[i] = 2;
+        continue;
+      }
+      lvl[i] = d >= 0 ? 0 : 1;
+
       r = rad[i];
       a = th0[i] + omega[i] * a0 + spin;
       x = r * Math.cos(a);
@@ -451,25 +529,28 @@
       py[i] = projY;
     }
 
-    var b, list, n, size, half, k, alpha;
-    for (b = 0; b < buckets.length; b++) {
-      list = buckets[b];
-      n = list.length;
-      if (!n) { continue; }
-      var t = b % 3;
-      size = TIERS[t][0];
-      half = size / 2;
-      alpha = TIERS[t][1] * rev;
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = 'rgb(' + rgb(COLOURS[(b / 3) | 0]) + ')';
-      var step = t === 0 && skipFaint ? 2 : 1;
-      for (k = 0; k < n; k += step) {
-        i = list[k];
-        ctx.fillRect(px[i] - half, py[i] - half, size, size);
+    var b, list, n, size, half, k, alpha, pass;
+    for (pass = 0; pass < 2; pass++) {
+      for (b = 0; b < buckets.length; b++) {
+        list = buckets[b];
+        n = list.length;
+        if (!n) { continue; }
+        var t = b % 3;
+        size = TIERS[t][0];
+        half = size / 2;
+        alpha = TIERS[t][1] * rev * (pass ? 0.4 : 1);
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = 'rgb(' + rgb(COLOURS[(b / 3) | 0]) + ')';
+        var step = t === 0 && skipFaint ? 2 : 1;
+        for (k = 0; k < n; k += step) {
+          i = list[k];
+          if (lvl[i] !== pass) { continue; }
+          ctx.fillRect(px[i] - half, py[i] - half, size, size);
+        }
       }
     }
 
-    // Soft halos on the brightest stars and the catalogue.
+    // Soft halos on the brightest lit stars and the catalogue.
     ctx.globalAlpha = 0.85 * rev;
     for (b = 0; b < buckets.length; b++) {
       if (b % 3 !== 2) { continue; }
@@ -477,12 +558,14 @@
       var sprite = haloSprites[(b / 3) | 0];
       for (k = 0; k < list.length; k++) {
         i = list[k];
+        if (lvl[i] !== 0) { continue; }
         ctx.drawImage(sprite, px[i] - 8, py[i] - 8, 16, 16);
       }
     }
     ctx.globalAlpha = 0.6 * rev;
     for (k = 0; k < named.length; k++) {
       i = named[k];
+      if (lvl[i] !== 0) { continue; }
       ctx.drawImage(haloSprites[colour[i]], px[i] - 7, py[i] - 7, 14, 14);
     }
 
@@ -533,8 +616,9 @@
   var cardW = 0, cardH = 0;
 
   function eligible(i) {
-    // Stars behind the headline are dimmed by the mask; do not offer cards there.
-    return narrow || px[i] >= w * 0.34;
+    // Only stars that are lit: a dark star has no position this frame. And not those
+    // behind the headline, which the mask dims.
+    return lvl[i] === 0 && (narrow || px[i] >= w * 0.34);
   }
 
   function nearest() {
@@ -544,7 +628,7 @@
     var i, dx, dy, d;
 
     // Hysteresis: hold the current star until the pointer is clearly off it.
-    if (hovered >= 0) {
+    if (hovered >= 0 && lvl[hovered] < 2) {
       dx = px[hovered] - pointerX;
       dy = py[hovered] - pointerY;
       if (dx * dx + dy * dy <= limit * 2.2) {
@@ -562,6 +646,18 @@
     return best;
   }
 
+  var cardWhere = '';
+
+  // The third row is live: the star is drifting through the arms, so where it is
+  // changes while the card is open. Only touched when the text actually changes.
+  function setWhere(i, data) {
+    var text = locate(i) + ' · ' + data.vc;
+    if (text !== cardWhere) {
+      cardWhere = text;
+      cardRows[2].textContent = text;
+    }
+  }
+
   function showCard(i) {
     var data = catalogue[i];
     if (!data || !card) { return; }
@@ -571,7 +667,8 @@
     reticle.classList.toggle('is-hot', data.hot);
     cardRows[0].textContent = data.cls + ' · ' + data.teff;
     cardRows[1].textContent = data.mag + ' · R ' + data.radius;
-    cardRows[2].textContent = data.where;
+    cardWhere = '';
+    setWhere(i, data);
     card.classList.add('is-on');
     reticle.classList.add('is-on');
     cardW = card.offsetWidth;
@@ -592,6 +689,7 @@
       if (hovered >= 0) { showCard(hovered); } else { hideCard(); }
     }
     if (hovered < 0) { return; }
+    setWhere(hovered, catalogue[hovered]);
 
     var sx = px[hovered];
     var sy = py[hovered];
