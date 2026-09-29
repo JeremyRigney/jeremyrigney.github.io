@@ -32,11 +32,11 @@
 		<!--
 			coal.css is the design system — tokens, motion, header, the row grids — and is
 			shared with /speaking. home-coal.css is only what this page owns: the opening
-			frame and its shimmer, the record board, the intro overlay. Order matters; the
+			frame and its galaxy, the record board, the intro overlay. Order matters; the
 			second file depends on the first's custom properties.
 		-->
 		<link rel="stylesheet" href="assets/css/coal.css?v=20260929" />
-		<link rel="stylesheet" href="assets/css/home-coal.css?v=20260929" />
+		<link rel="stylesheet" href="assets/css/home-coal.css?v=20260929e" />
 
 		<!--
 			Without JavaScript nothing ever adds .is-in, so every .reveal would sit at
@@ -50,6 +50,7 @@
 		<!--Cookie consent-->
 		<script src="https://web.cmp.usercentrics.eu/modules/autoblocker.js"></script>
 		<script id="usercentrics-cmp" src="https://web.cmp.usercentrics.eu/ui/loader.js" data-settings-id="nt7NWEM4FPFze0" async></script>
+		<script src="assets/js/consent-trigger.js?v=20260929b" defer></script>
 
 		<!-- Google tag (gtag.js) -->
 		<script async src="https://www.googletagmanager.com/gtag/js?id=G-6G0WFV4TS8"></script>
@@ -125,25 +126,32 @@
 				set flush to the left edge of .wrap while every chapter below hangs off
 				the margin spine — the change of alignment is what marks the difference
 				between the title page and the body. The one thing it carries that the
-				body does not is the shimmer, immediately below.
+				body does not is the galaxy, immediately below.
 			-->
 			<section class="opening">
 
 				<!--
-					The shimmer: an etched contour field over an iridescent ground, after
-					an anodised finish where the etching is fixed and only the colour moves
-					with the viewing angle. The pointer is that angle.
-
-					Both live in one canvas: the iridescence and the etching are functions
-					of the same per-pixel value, so their composite is too, and the whole
-					thing is one lookup a pixel. They keep separate phases, which is what
-					stops the grooves travelling with the light. See home-shimmer.js.
+					The galaxy: a survey plot of a spiral disc, in the page's sage with a
+					teal accent for the young hot stars. The pointer is the viewing angle:
+					it tips the disc and turns it a few degrees either way. About ninety of
+					the brighter stars are catalogue stars and pick up a reticle and a data
+					card on hover. The data is synthetic. See home-galaxy.js.
 					All of it is decoration and none of it is exposed to assistive tech.
 				-->
-				<div class="shimmer-etch" aria-hidden="true">
-					<canvas id="shimmer-hue"></canvas>
+				<div class="galaxy" aria-hidden="true">
+					<canvas id="galaxy-canvas"></canvas>
+					<span class="galaxy-reticle"></span>
+					<div class="galaxy-card">
+						<div class="galaxy-card-head">
+							<span class="galaxy-card-id"></span>
+							<span class="galaxy-card-tag"></span>
+						</div>
+						<div class="galaxy-card-row"></div>
+						<div class="galaxy-card-row"></div>
+						<div class="galaxy-card-row"></div>
+					</div>
+					<p class="galaxy-hud"></p>
 				</div>
-				<div class="shimmer-light" aria-hidden="true"></div>
 
 				<div class="wrap">
 					<div class="reveal">
@@ -415,6 +423,7 @@
 		</footer>
 
 		<script src="assets/js/home-coal.js?v=20260830"></script>
-		<script src="assets/js/home-shimmer.js?v=20260831"></script>
+		<script src="assets/js/home-galaxy.js?v=20260929e"></script>
+		<script src="assets/js/home-sky.js?v=20260929"></script>
 	</body>
 </html>

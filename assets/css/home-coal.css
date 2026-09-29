@@ -5,7 +5,7 @@
  * the motion primitives, the header, the opening type, and the row grids that hang off
  * the margin spine — the record board among them, which moved there when /cv became
  * the second page to set one. Everything in this file is something only the homepage
- * has: the opening frame and its shimmer, the readout foot, and the intro overlay. It
+ * has: the opening frame and its galaxy, the readout foot, and the intro overlay. It
  * cannot be loaded on its own; every var() below is defined there.
  *
  * The constraints coal.css states hold here too: no card, no rounded corner (bar the
@@ -19,7 +19,7 @@
  * flush to the left edge of .wrap while everything below it hangs off the margin
  * spine — the change of alignment is what separates the title page from the body.
  *
- * The one thing it does carry is the shimmer, below. The rule the rest of the page
+ * The one thing it does carry is the galaxy, below. The rule the rest of the page
  * still keeps is narrower than it was but it is still a rule: one atmospheric layer,
  * confined to this frame, never behind body copy.
  */
@@ -30,24 +30,33 @@
   flex-direction: column;
   justify-content: space-between;
   gap: 4rem;
-  padding: 8rem 0 2.4rem;
+  /*
+   * No header to clear: home-coal.js holds it off-screen until the page has scrolled
+   * 70% of a viewport, so at the top of the page this is only breathing room.
+   */
+  padding: 3.2rem 0 2.4rem;
 
   /*
-   * The dial. Everything about how loud the shimmer is lives here; the material
-   * itself is shaped by the constants at the top of home-shimmer.js.
+   * The dial. Everything about how loud the galaxy is lives here; its shape is set by
+   * the constants at the top of home-galaxy.js.
+   */
+  --galaxy-strength: 0.95;
+
+  /*
+   * The one colour the page does not otherwise have: a teal for the young hot stars,
+   * the hover reticle and the catalogue tag. It sits next to the sage rather than
+   * against it — similar weight, cooler — and is read by home-galaxy.js from here.
+   * Bare channels, like --accent-rgb, so it can take an alpha.
+   */
+  --galaxy-teal-rgb: 72, 190, 176;
+
+  /*
+   * The old shimmer's dials. The homepage no longer uses it, but /404 still does (see
+   * "The shimmer, kept for /404" below), and it reads these from .opening.
    */
   --shimmer-strength: 0.22;
-
-  /*
-   * Where the light is coming from. home-shimmer.js overwrites these on pointer move;
-   * the defaults are the position the old static wash sat at, so before the pointer
-   * has moved — and on touch, and with no JavaScript at all — the frame looks the way
-   * it did before any of this existed.
-   */
   --shimmer-x: 88%;
   --shimmer-y: 88%;
-
-  /* Where the etching is allowed to show. See .shimmer-etch. */
   --shimmer-mask: radial-gradient(
     115% 105% at 78% 88%,
     rgba(0, 0, 0, 1) 8%,
@@ -55,47 +64,205 @@
     rgba(0, 0, 0, 0.18) 78%,
     rgba(0, 0, 0, 0) 100%
   );
+
+  /*
+   * Where the stars are allowed to show. The headline lives on the left, so the plot
+   * fades out toward it.
+   */
+  --galaxy-mask: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0) 14%,
+    rgba(0, 0, 0, 0.45) 40%,
+    rgba(0, 0, 0, 1) 64%
+  );
 }
 
 /*
- * The etched field. Painted at a fraction of CSS resolution and scaled up: at this
- * opacity the softness of the upscale reads as material, and a sharp version of the
- * same thing reads as a screenshot of a contour map.
+ * The galaxy layer. It fills the frame and takes no pointer events of its own: the
+ * script listens on the window, so the type and the links above it stay clickable, and
+ * the hover cards are positioned inside this box rather than being hit targets.
  *
- * Empty and transparent until the script fills it, so no-JS loses the etching and
- * keeps the highlight.
+ * Empty and transparent until home-galaxy.js has painted its first frame, so with no
+ * JavaScript the frame is simply the plain coal ground.
+ */
+.galaxy {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 900ms var(--ease);
+}
+
+.opening.is-ready .galaxy {
+  opacity: var(--galaxy-strength);
+}
+
+/*
+ * The mask is on the canvas and not on .galaxy, or it would dim the hover cards too.
+ * The plot fades out toward the headline on the left, which is where there is
+ * something to read. Without it the stars run edge to edge and sit on the type.
+ */
+.galaxy canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-mask-image: var(--galaxy-mask);
+  mask-image: var(--galaxy-mask);
+}
+
+/*
+ * The hover reticle: a square hairline, no rounding, as the page keeps to. Positioned
+ * by transform from the script; hidden until a catalogue star is picked out.
+ */
+.galaxy-reticle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(var(--accent-rgb), 0.9);
+  opacity: 0;
+  transition: opacity 160ms var(--ease);
+  will-change: transform;
+}
+
+.galaxy-reticle.is-hot {
+  border-color: rgba(var(--galaxy-teal-rgb), 0.95);
+}
+
+.galaxy-reticle.is-on {
+  opacity: 1;
+}
+
+/*
+ * The data card for the star under the reticle. A hairline panel in the page's mono,
+ * not a card in the sense coal.css rules out: square, flat, no shadow, and it carries
+ * text the way the readout rail does.
+ */
+.galaxy-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-width: 12.5rem;
+  padding: 0.7rem 0.85rem 0.75rem;
+  background: rgba(17, 18, 20, 0.86);
+  border: 1px solid var(--line-strong);
+  border-left: 2px solid var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  line-height: 1.55;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 160ms var(--ease);
+  will-change: transform;
+}
+
+.galaxy-card.is-hot {
+  border-left-color: rgb(var(--galaxy-teal-rgb));
+}
+
+.galaxy-card.is-on {
+  opacity: 1;
+}
+
+.galaxy-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.2rem;
+  margin-bottom: 0.3rem;
+}
+
+.galaxy-card-id {
+  color: var(--ink);
+  letter-spacing: 0.08em;
+}
+
+.galaxy-card-tag {
+  font-size: var(--fs-micro);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+.galaxy-card.is-hot .galaxy-card-tag {
+  color: rgb(var(--galaxy-teal-rgb));
+}
+
+/* The live plot readout, tucked under the header at the right. */
+.galaxy-hud {
+  position: absolute;
+  top: 3.4rem;
+  right: clamp(1.4rem, 4vw, 4rem);
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+  white-space: pre;
+}
+
+/* ---------- The sky below the title page ---------- */
+
+/*
+ * Clusters and nearby stars dotted down the chapters, painted once by home-sky.js.
+ * They sit only in the empty band above each chapter heading, or in the side gutters
+ * outside the text column on wide screens, never behind copy. With no JavaScript the
+ * chapters are exactly as they were.
+ */
+.chapter.has-sky {
+  position: relative;
+}
+
+.sky-object {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 900ms var(--ease);
+}
+
+.sky-object.is-seen {
+  opacity: 0.8;
+}
+
+/* Centred in the chapter's padding band, by the same clamp coal.css pads it with. */
+.sky-object.is-band {
+  top: calc(clamp(6rem, 14vh, 11rem) / 2);
+  transform: translateY(-50%);
+}
+
+.sky-object.is-gutter {
+  transform: translateY(-50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky-object {
+    transition: none;
+  }
+}
+
+/* ---------- The shimmer, kept for /404 ---------- */
+
+/*
+ * The homepage moved from the anodised contour shimmer to the galaxy above, but the
+ * not-found page reuses the homepage frame, and this is its background: home-shimmer.js
+ * is loaded there and nowhere else. Unchanged from when it was the homepage's.
  */
 .shimmer-etch {
   position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-
-  /*
-   * Hidden until home-shimmer.js has finished building the field, which it does a slice
-   * at a time over about two thirds of a second. Fading up from nothing is the point:
-   * the frame simply shows the plain highlight wash until the material is ready, rather
-   * than the canvas popping into existence part-built.
-   */
   opacity: 0;
   transition: opacity 600ms var(--ease);
-
-  /*
-   * Weighted toward the lower right and fading out under the headline, which is where
-   * the old wash was and where there is nothing to read. Without this the field is
-   * even edge to edge and reads as wallpaper — the fade is what makes it look like
-   * light falling across a surface rather than a texture tiled behind the page. It
-   * also keeps the etching off the top edge, where the frame meets the header.
-   */
   -webkit-mask-image: var(--shimmer-mask);
   mask-image: var(--shimmer-mask);
-
-  /*
-   * A last low-pass over the contour bands. The field is drawn at one buffer pixel per
-   * CSS pixel and damped where it gets too steep to resolve, so most of the aliasing is
-   * already gone by the time it reaches here; this only takes the hard edge off what
-   * survives. Small enough that the contours stay legible as lines.
-   */
   filter: blur(0.5px);
 }
 
@@ -103,7 +270,6 @@
   opacity: var(--shimmer-strength);
 }
 
-/* One canvas, filling the frame. */
 .shimmer-etch canvas {
   position: absolute;
   inset: 0;
@@ -111,11 +277,6 @@
   height: 100%;
 }
 
-/*
- * The highlight that follows the pointer. Kept in CSS rather than drawn into the
- * canvas because the compositor already knows how to move a radial gradient for free,
- * and because it lets the canvas loop stay down to a lookup per pixel.
- */
 .shimmer-light {
   position: absolute;
   inset: 0;
@@ -128,23 +289,6 @@
   );
 }
 
-/*
- * No transition on the highlight: --shimmer-x/y are plain custom properties and are
- * not interpolable without registering them, so a transition here would be dead code.
- * It wants to track the pointer one to one anyway — a light that lags reads as a bug.
- * The colour sweep is the part that is smoothed, and that is lerped in the script.
- */
-
-/* The type sits above both layers. */
-.opening > .wrap {
-  position: relative;
-  z-index: 1;
-}
-
-/*
- * Reduced motion keeps the material and loses the movement: home-shimmer.js paints one
- * frame and never starts its loop, and the highlight stays at its default angle.
- */
 @media (prefers-reduced-motion: reduce) {
   .shimmer-light {
     --shimmer-x: 88%;
@@ -153,6 +297,80 @@
 
   .shimmer-etch {
     transition: none;
+  }
+}
+
+/*
+ * The type sits above the galaxy layer, in a wider column than the body's. The body's
+ * 1180px column, centred, left a wide screen with a third of its width empty to the
+ * left of the headline; the title page instead takes a proportional margin, so the
+ * type sits near the left edge at any width and the galaxy has the rest.
+ */
+.opening > .wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 1680px;
+  padding: 0 clamp(1.4rem, 6vw, 7rem);
+}
+
+/*
+ * Reduced motion keeps the picture and loses the movement: home-galaxy.js paints one
+ * frame and never starts its loop. Hovering a star still works, since that is a
+ * response to the pointer and not an animation, but nothing fades.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .galaxy,
+  .galaxy-reticle,
+  .galaxy-card {
+    transition: none;
+  }
+}
+
+/* The corner readout would collide with the nav toggle and the type on a phone. */
+@media (max-width: 900px) {
+  .galaxy-hud {
+    display: none;
+  }
+}
+
+/*
+ * Tablets: the copy runs most of the way across, so the plot is pushed right and the
+ * fade starts later than on a desktop.
+ */
+@media (max-width: 900px) and (min-width: 701px) {
+  .opening {
+    --galaxy-mask: linear-gradient(
+      to right,
+      rgba(0, 0, 0, 0.1) 10%,
+      rgba(0, 0, 0, 0.5) 45%,
+      rgba(0, 0, 0, 1) 75%
+    );
+  }
+}
+
+/*
+ * On a phone the galaxy is a background: it fills the whole frame, behind the copy
+ * rather than beside it (home-galaxy.js centres it and rolls it onto the diagonal).
+ * So instead of fading it out beside the text, the whole layer runs quieter and is
+ * held lower still behind the headline at the top, reaching full strength below the
+ * copy, where there is nothing to read.
+ */
+@media (max-width: 700px) {
+  .opening {
+    --galaxy-strength: 0.6;
+    --galaxy-mask: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.3) 0%,
+      rgba(0, 0, 0, 0.45) 35%,
+      rgba(0, 0, 0, 1) 70%
+    );
+  }
+
+  /* Narrower than the desktop card, so it fits a 320px screen with a margin. */
+  .galaxy-card {
+    min-width: 0;
+    max-width: calc(100vw - 24px);
+    font-size: 0.62rem;
   }
 }
 
@@ -201,7 +419,7 @@
 
 @media (max-width: 700px) {
   .opening {
-    padding-top: 6.4rem;
+    padding-top: 2.4rem;
     gap: 3rem;
   }
 
