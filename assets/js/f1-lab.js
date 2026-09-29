@@ -36,7 +36,7 @@
    * That is not academic: it shipped a season index with no circuitKey against a script
    * that required one, and the map silently vanished. Bump this whenever the data changes.
    */
-  var DATA_V = '20260907';
+  var DATA_V = '20260911';
 
   /* Flag colours for the scrubber track. Same values as the --flag tokens in f1.css. */
   var BAND = {
@@ -428,6 +428,7 @@
     playing = false;
     anchor = null;
     el('lab-play').textContent = 'Play';
+    el('lab-play').dataset.playing = '';
   }
 
   /*
@@ -445,6 +446,8 @@
     }
     playing = true;
     el('lab-play').textContent = 'Pause';
+    // Published for f1-dash.js, which holds replay while a radio clip plays. Inert here.
+    el('lab-play').dataset.playing = '1';
     anchor = { wall: Date.now(), race: currentMs() };
     advance();
   }
