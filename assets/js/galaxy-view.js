@@ -26,7 +26,8 @@
  *
  * Depth comes from perspective: stars are drawn larger the nearer they are, so a
  * turned disc has a near edge and a far one, and the thick disc, the halo and the
- * clusters move against each other as it turns.
+ * two satellite galaxies move against each other as it turns. Behind all of it, the
+ * sky and the distant galaxies are at infinity: they turn but never move.
  *
  * The camera is a trackball on a quaternion, so there is no gimbal lock and no angle
  * the disc cannot be turned to.
@@ -130,7 +131,7 @@
     'uniform vec3 u_extinct;',
     'uniform vec3 u_cam;', // the camera, in galaxy coordinates
     'uniform mat3 u_rot;',
-    'uniform float u_dist, u_focal, u_dpr, u_scale, u_zoomSize, u_maxSize;',
+    'uniform float u_dist, u_focal, u_dpr, u_scale, u_zoom, u_zoomSize, u_maxSize;',
     'uniform vec2 u_halfView;',
     'uniform float u_gain, u_haloPx, u_haloGain;',
     'uniform float u_useLut;',
@@ -141,6 +142,9 @@
     'out float v_core;',
     'out float v_halo;',
     'out float v_size;',
+    'out vec2 v_axis;',
+    'out float v_ratio;',
+    'out float v_nucleus;',
     '',
     'float omegaAt(float r) { return u_vrot / sqrt(r * r + u_rcore2); }',
     '',
@@ -175,6 +179,7 @@
     '  gl_PointSize = 0.0;',
     '  v_col = vec3(0.0); v_haloCol = vec3(0.0);',
     '  v_core = 0.0; v_halo = 0.0; v_size = 1.0;',
+    '  v_axis = vec2(1.0, 0.0); v_ratio = 1.0; v_nucleus = 0.0;',
     '}',
     '',
     'void main() {',
@@ -204,7 +209,7 @@
     '',
     '  vec3 v;',
     '  float near = 1.0;',
-    '  if (u_mode == 2) {',
+    '  if (u_mode == 2 || u_mode == 4) {',
     // The sky is at infinity: it turns with the camera but never gets closer.
     '    v = u_rot * a_orbit.xyz;',
     '    if (v.z >= -0.01) { hide(); return; }',
@@ -224,6 +229,24 @@
     '  vec3 ext = vec3(1.0);',
     '  if (u_mode == 0 || u_mode == 1) { ext = exp(-dustTau(p) * u_extinct); }',
     '',
+    '  if (u_mode == 4) {',
+    // A distant galaxy: an ellipse whose major axis is a direction on the sky, turned
+    // onto the screen the way a short line there would project. It magnifies with the
+    // zoom, as anything with a real angular size does.
+    '    vec3 t = u_rot * a_extra.xyz;',
+    '    vec2 ax = t.xy * -v.z + v.xy * t.z;',
+    '    v_axis = length(ax) > 1e-6 ? normalize(ax) : vec2(1.0, 0.0);',
+    '    v_ratio = a_phys.z;',
+    '    v_nucleus = a_phys.w;',
+    '    v_size = min(a_extra.w * u_dpr * u_zoom, u_maxSize);',
+    '    gl_PointSize = v_size;',
+    '    v_col = colour * u_gain * a_phys.y;',
+    '    v_haloCol = vec3(0.0);',
+    '    v_core = 0.0;',
+    '    v_halo = 0.0;',
+    '    return;',
+    '  }',
+    '',
     '  float grow = u_dpr * near * u_zoomSize;',
     '  float core = clamp(a_extra.w * grow, 0.5 * u_dpr, 7.0 * u_dpr);',
     '  float halo = a_extra.w > 2.0 ? u_haloPx * grow : 0.0;',
@@ -235,6 +258,9 @@
     '  v_core = core;',
     '  v_halo = halo;',
     '  v_size = size;',
+    '  v_axis = vec2(1.0, 0.0);',
+    '  v_ratio = 1.0;',
+    '  v_nucleus = 0.0;',
     '}'
   ].join('\n');
 
@@ -252,8 +278,24 @@
     'in float v_core;',
     'in float v_halo;',
     'in float v_size;',
+    'in vec2 v_axis;',
+    'in float v_ratio;',
+    'in float v_nucleus;',
+    'uniform float u_shape;',
     'out vec4 o;',
     'void main() {',
+    '  if (u_shape > 0.5) {',
+    // A distant galaxy: a soft ellipse, brighter to the middle, some with a nucleus.
+    '    vec2 q = (gl_PointCoord - 0.5) * 2.0;',
+    '    q.y = -q.y;',
+    '    float al = dot(q, v_axis);',
+    '    float pe = dot(q, vec2(-v_axis.y, v_axis.x)) / v_ratio;',
+    '    float d2 = al * al + pe * pe;',
+    '    if (d2 >= 1.0) { discard; }',
+    '    float g = (exp(-5.0 * d2) + v_nucleus * exp(-60.0 * d2)) * (1.0 - d2);',
+    '    o = vec4(v_col * g, 1.0);',
+    '    return;',
+    '  }',
     '  vec2 u = (gl_PointCoord - 0.5) * v_size;',
     '  float hs = 0.5 * v_core;',
     '  float cov;',
@@ -677,6 +719,7 @@
     if (fade < 0.01) { return; }
     var L = pointProg.loc;
     gl.uniform1i(L.u_mode, pop.render.mode);
+    gl.uniform1f(L.u_shape, pop.render.mode === 4 ? 1 : 0);
     gl.uniform1f(L.u_jam, pop.render.jam || 0);
     gl.uniform1f(L.u_gain, weight * rev * fade);
     gl.uniform1f(L.u_useLut, 1);
@@ -698,7 +741,7 @@
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
-  var DRAW_ORDER = ['sky', 'halo', 'globular', 'faint', 'disc', 'bulge', 'young'];
+  var DRAW_ORDER = ['distant', 'sky', 'halo', 'satellites', 'faint', 'disc', 'bulge', 'young'];
 
   function render() {
     applyView();
@@ -749,6 +792,7 @@
     gl.uniform1f(L.u_focal, focal);
     gl.uniform1f(L.u_dpr, dpr);
     gl.uniform1f(L.u_scale, scale);
+    gl.uniform1f(L.u_zoom, zoom);
     gl.uniform1f(L.u_zoomSize, Math.pow(zoom, ZOOM_SIZE));
     gl.uniform1f(L.u_maxSize, maxPointSize);
     gl.uniform2f(L.u_halfView, canvas.width / 2, canvas.height / 2);
@@ -897,6 +941,7 @@
 
     var L = pointProg.loc;
     gl.uniform1i(L.u_mode, 3);
+    gl.uniform1f(L.u_shape, 0);
     gl.uniform1f(L.u_gain, 1);
     gl.uniform1f(L.u_useLut, 0);
     gl.uniform3f(L.u_tint, 1, 0.98, 0.94);
@@ -1054,11 +1099,11 @@
 
   var lastHud = 0;
 
-  // Stars on screen: every population but the sky, the zoom-only ones as far as shown.
+  // Stars on screen: all but the sky's, the zoom-only ones as far as they are shown.
   function starsShown() {
     var n = 0;
     model.populations.forEach(function (pop) {
-      if (pop.render.mode !== 2 && band.layers[pop.name]) {
+      if (pop.render.mode < 2 && band.layers[pop.name]) {
         n += Math.round(pop.count * revealed(pop));
       }
     });

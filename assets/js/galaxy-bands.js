@@ -85,9 +85,10 @@ window.GalaxyBands = (function () {
         core: [[0, WARM, 0.22], [0.18, WARM, 0.1], [0.55, SAGE, 0.06], [1, SAGE, 0]]
       },
       layers: {
+        distant: 1,
         sky: 0.5,
         halo: 0.7,
-        globular: 0.75,
+        satellites: 0.9,
         faint: 0.6,
         disc: 1,
         bulge: 0.8,

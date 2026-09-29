@@ -33,7 +33,10 @@
  *     the old edge instead of a clip at radius 1.
  *   - Depth: a thin disc and a thicker, older one; a disc that flares and bends (a
  *     gentle warp, which most spiral discs have) past the old edge; a round bulge; a
- *     sparse stellar halo and globular clusters on orbits in every plane.
+ *     sparse stellar halo on orbits in every plane.
+ *   - Company: two small satellite galaxies on orbits of their own, and far behind
+ *     everything a field of distant galaxies, for a sense of how far away the rest of
+ *     the universe is.
  *   - Dust, as numbers rather than points: DUST describes a thin layer in the midplane,
  *     densest in lanes on the inner edge of each arm, and the renderer works out how
  *     much of it lies between the camera and each star.
@@ -45,9 +48,11 @@
  *
  *   orbit  disc:  r, theta0, z, phase0      (phase0 = angle against the arm crest)
  *          halo:  r, theta0, incl, node      (r < 0 for a retrograde orbit)
- *          sky:   direction x, y, z, 0
+ *          sky:   direction x, y, z, 0       (stars and distant galaxies alike)
  *   phys   teff (K), brightness (0-1), light-up threshold, floor (brightness off-arm)
- *   extra  offset x, y, z (a star's place in its globular cluster), size (CSS px)
+ *          distant galaxies: teff, brightness, axis ratio, nucleus (0-1)
+ *   extra  offset x, y, z (a star's place in its satellite galaxy), size (CSS px)
+ *          distant galaxies: the major axis as a direction on the sky, size
  */
 window.GalaxyModel = (function () {
   'use strict';
@@ -106,15 +111,34 @@ window.GalaxyModel = (function () {
    * reads on screen is far fewer. The faint population is only drawn zoomed in.
    */
   var COUNTS = {
-    disc: [20000, 9000],
-    faint: [36000, 14000],
-    young: [9000, 4500],
+    disc: [23000, 10200],
+    faint: [40500, 15800],
+    young: [10000, 5100],
     bulge: [1800, 600],
     halo: [900, 450],
-    clusters: [90, 60], // globular clusters, not stars
-    clusterStars: [22, 14], // stars per cluster
-    sky: [900, 500]
+    // Both of these cover the whole sphere, and the view only ever sees a few percent
+    // of it: 3,000 distant galaxies is about a hundred on screen.
+    sky: [2400, 1300],
+    distant: [3000, 1600]
   };
+
+  /*
+   * The two satellites, placed so that both are in the opening view on a desktop,
+   * one either side above the disc (both a little behind it). `at` is where each
+   * starts, in disc radii; `incl` tips its orbit out of the disc's plane, and `dir`
+   * is which way round it goes. Their orbits are at the rotation curve's speed, as
+   * everything else's is, so the outer one takes about ten minutes a lap.
+   *
+   *   dE    a compact dwarf elliptical, as M32 is to Andromeda: old, round and dense.
+   *   dIrr  a dwarf irregular, as the Magellanic Clouds are to the Milky Way: looser,
+   *         lopsided along a short bar, and still forming stars.
+   */
+  var SATELLITES = [
+    { kind: 'dE', stars: [900, 450], at: [1.1, -1.04, -0.14], incl: 0.95, dir: 1,
+      size: [0.04, 0.04, 0.03], turn: [0.4, 0.9, 0.2], young: 0 },
+    { kind: 'dIrr', stars: [1400, 700], at: [-1.08, -1.4, -0.07], incl: 2.1, dir: -1,
+      size: [0.095, 0.036, 0.03], turn: [0.2, 0, 0.35], young: 0.22 }
+  ];
 
   var NAMED_DISC = 110; // catalogue stars that carry a hover card
   var NAMED_YOUNG = 40;
@@ -222,7 +246,8 @@ window.GalaxyModel = (function () {
     this.extra = new Float32Array(n * 4);
     /*
      * How the renderer moves a point of this population, independent of band:
-     *   mode    0 disc orbit, 1 orbit in its own plane (halo), 2 sky at infinity
+     *   mode    0 disc orbit, 1 orbit in its own plane (halo, satellites), 2 a star at
+     *           infinity, 4 a distant galaxy at infinity
      *   jam     how strongly it crowds into the arms (disc orbits only)
      *   reveal  [from, to]: fades in between these zooms, if given
      */
@@ -337,33 +362,54 @@ window.GalaxyModel = (function () {
   }
 
   /*
-   * Globular clusters. Each is a tight Plummer sphere of old stars on an orbit of its
-   * own, at the rotation curve's speed but in a random plane and either direction: the
-   * halo has almost no net rotation. Real clusters are a few parsecs across, far too
-   * small to see at this scale, so they are drawn several times larger than life.
+   * The orbit, in the shader's terms (radius, starting angle, inclination, node), that
+   * passes through the point p at t = 0 with the given inclination.
    */
-  function makeClusters(nClusters, perCluster) {
-    var n = nClusters * perCluster;
-    var pop = new Population('globular', n, { mode: 1 });
+  function orbitThrough(p, incl) {
+    var r = Math.hypot(p[0], p[1], p[2]);
+    var si = Math.sin(incl);
+    var a = Math.asin(Math.max(-1, Math.min(1, p[2] / (r * si))));
+    var node = Math.atan2(p[1], p[0]) - Math.atan2(r * Math.sin(a) * Math.cos(incl), r * Math.cos(a));
+    return { r: r, theta: a, node: node };
+  }
+
+  /*
+   * The satellite galaxies. Each is a cloud of stars moving as one on its orbit round
+   * the host: a squashed Gaussian, turned by `turn` (three angles, about x, y and z)
+   * so the irregular's bar lies across the opening view rather than end-on. Dwarf
+   * galaxies like these hold together by the random motions of their stars rather
+   * than by rotating, so the cloud keeps its shape and only its place changes.
+   */
+  function makeSatellites(small) {
+    var s = small ? 1 : 0;
+    var n = 0;
+    SATELLITES.forEach(function (g) { n += g.stars[s]; });
+    var pop = new Population('satellites', n, { mode: 1 });
     var i = 0;
-    for (var c = 0; c < nClusters; c++) {
-      var r = Math.min(1.7, 0.12 + Math.abs(gauss()) * 0.5);
-      var dir = rand() < 0.5 ? 1 : -1;
-      var theta = rand() * Math.PI * 2;
-      var incl = Math.acos(2 * rand() - 1);
-      var node = rand() * Math.PI * 2;
-      var a = between(0.003, 0.006); // Plummer radius
-      for (var s = 0; s < perCluster; s++, i++) {
-        var u = Math.max(0.02, rand());
-        var d = Math.min(5 * a, a / Math.sqrt(Math.pow(u, -2 / 3) - 1));
-        var ct = 2 * rand() - 1;
-        var st = Math.sqrt(1 - ct * ct);
-        var ph = rand() * Math.PI * 2;
-        var t = TIERS[rand() < 0.85 ? 0 : 1];
-        pop.set(i, r * dir, theta, incl, node, classTeff(rand() < 0.5 ? 'soft' : 'field'),
-          t[1], -1, 1, d * st * Math.cos(ph), d * st * Math.sin(ph), d * ct, t[0]);
+    SATELLITES.forEach(function (g) {
+      var o = orbitThrough(g.at, g.incl);
+      var ax = g.turn[0], ay = g.turn[1], az = g.turn[2];
+      var cx = Math.cos(ax), sx = Math.sin(ax), cy = Math.cos(ay), sy = Math.sin(ay);
+      var cz = Math.cos(az), sz = Math.sin(az);
+      for (var k = 0; k < g.stars[s]; k++, i++) {
+        var x = gauss() * g.size[0], y = gauss() * g.size[1], z = gauss() * g.size[2];
+        if (g.kind === 'dIrr' && rand() < 0.3) {
+          // Lopsided: a second, looser knot off one end of the bar.
+          x = g.size[0] * 1.3 + gauss() * g.size[0] * 0.5;
+          y = g.size[1] * 0.9 + gauss() * g.size[1] * 0.8;
+        }
+        var y1 = y * cx - z * sx, z1 = y * sx + z * cx;
+        var x2 = x * cy + z1 * sy, z2 = -x * sy + z1 * cy;
+        var x3 = x2 * cz - y1 * sz, y3 = x2 * sz + y1 * cz;
+        var hot = rand() < g.young;
+        var t = TIERS[hot ? tier(1) : (rand() < 0.9 ? 0 : 1)];
+        var teff = hot ? classTeff('hot')
+          : classTeff(g.kind === 'dE' ? (rand() < 0.6 ? 'warm' : 'soft')
+            : (rand() < 0.5 ? 'soft' : 'field'));
+        pop.set(i, o.r * g.dir, o.theta, g.incl, o.node, teff,
+          t[1] * (g.kind === 'dE' ? 0.8 : 1), -1, 1, x3, y3, z2, t[0]);
       }
-    }
+    });
     return pop;
   }
 
@@ -377,6 +423,37 @@ window.GalaxyModel = (function () {
       pop.set(i, st * Math.cos(ph), st * Math.sin(ph), ct, 0,
         classTeff(pick(['field', 'soft', 'warm', 'hot'])), between(0.12, 0.34), -1, 1,
         0, 0, 0, 1);
+    }
+    return pop;
+  }
+
+  /*
+   * Distant galaxies: faint smudges at infinity, each a small ellipse at a random
+   * angle, most of them tiny. Reddish ellipticals, and bluer spirals seen at every
+   * tilt. They turn with the sky and never get closer, which is the point: they are
+   * what "far" looks like next to a galaxy you can hold.
+   */
+  function makeDistant(n) {
+    var pop = new Population('distant', n, { mode: 4 });
+    for (var i = 0; i < n; i++) {
+      var ct = 2 * rand() - 1;
+      var st = Math.sqrt(1 - ct * ct);
+      var ph = rand() * Math.PI * 2;
+      var d = [st * Math.cos(ph), st * Math.sin(ph), ct];
+      // A major axis on the sky: any direction at right angles to d.
+      var q = [gauss(), gauss(), gauss()];
+      var k = q[0] * d[0] + q[1] * d[1] + q[2] * d[2];
+      var t = [q[0] - k * d[0], q[1] - k * d[1], q[2] - k * d[2]];
+      var tl = Math.hypot(t[0], t[1], t[2]) || 1;
+      var elliptical = rand() < 0.45;
+      pop.set(i, d[0], d[1], d[2], 0,
+        classTeff(elliptical ? (rand() < 0.6 ? 'warm' : 'soft') : pick(['field', 'soft', 'hot'])),
+        between(0.22, 0.5),
+        elliptical ? between(0.55, 1) : between(0.22, 0.9),
+        elliptical ? between(0.5, 1) : between(0, 0.5),
+        t[0] / tl, t[1] / tl, t[2] / tl,
+        // Mostly tiny, a few larger: sizes fall off steeply, as counts of galaxies do.
+        3.5 + 12 * Math.pow(rand(), 3));
     }
     return pop;
   }
@@ -477,14 +554,17 @@ window.GalaxyModel = (function () {
   function build(small) {
     rand = mulberry32(P.SEED);
     var s = small ? 1 : 0;
+    // The galaxy first and the background last, so the background's counts can change
+    // without reshuffling a single star of the galaxy.
     var pops = [
-      makeSky(COUNTS.sky[s]),
-      makeHalo(COUNTS.halo[s]),
-      makeClusters(COUNTS.clusters[s], COUNTS.clusterStars[s]),
       makeFaint(COUNTS.faint[s]),
       makeDisc(COUNTS.disc[s]),
       makeBulge(COUNTS.bulge[s]),
-      makeYoung(COUNTS.young[s])
+      makeYoung(COUNTS.young[s]),
+      makeHalo(COUNTS.halo[s]),
+      makeSatellites(small),
+      makeSky(COUNTS.sky[s]),
+      makeDistant(COUNTS.distant[s])
     ];
     var byName = {};
     pops.forEach(function (p) { byName[p.name] = p; });
