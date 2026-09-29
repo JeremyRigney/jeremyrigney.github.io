@@ -207,6 +207,46 @@
   white-space: pre;
 }
 
+/* ---------- The sky below the title page ---------- */
+
+/*
+ * Clusters and nearby stars dotted down the chapters, painted once by home-sky.js.
+ * They sit only in the empty band above each chapter heading, or in the side gutters
+ * outside the text column on wide screens, never behind copy. With no JavaScript the
+ * chapters are exactly as they were.
+ */
+.chapter.has-sky {
+  position: relative;
+}
+
+.sky-object {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 900ms var(--ease);
+}
+
+.sky-object.is-seen {
+  opacity: 0.8;
+}
+
+/* Centred in the chapter's padding band, by the same clamp coal.css pads it with. */
+.sky-object.is-band {
+  top: calc(clamp(6rem, 14vh, 11rem) / 2);
+  transform: translateY(-50%);
+}
+
+.sky-object.is-gutter {
+  transform: translateY(-50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky-object {
+    transition: none;
+  }
+}
+
 /* ---------- The shimmer, kept for /404 ---------- */
 
 /*
