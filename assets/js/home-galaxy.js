@@ -443,10 +443,10 @@
      * sitting in a stripe across the middle of it. CSS dims it behind the type.
      */
     if (w >= 900) {
-      cx = w * 0.68; cy = h * 0.52; R = Math.min(w * 0.43, h * 0.72);
+      cx = w * 0.66; cy = h * 0.45; R = Math.min(w * 0.5, h * 0.86);
       baseRoll = 0;
     } else if (!narrow) {
-      cx = w * 0.6; cy = h * 0.55; R = Math.min(w * 0.6, h * 0.6);
+      cx = w * 0.6; cy = h * 0.5; R = Math.min(w * 0.68, h * 0.66);
       baseRoll = -0.2;
     } else {
       // The core goes below the copy: its crowded middle is the one part bright enough

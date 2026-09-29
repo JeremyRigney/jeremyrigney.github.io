@@ -30,8 +30,11 @@
   flex-direction: column;
   justify-content: space-between;
   gap: 4rem;
-  /* The header is fixed and 3.9rem tall; this clears it with ~1.7rem to spare. */
-  padding: 5.6rem 0 2.4rem;
+  /*
+   * No header to clear: home-coal.js holds it off-screen until the page has scrolled
+   * 70% of a viewport, so at the top of the page this is only breathing room.
+   */
+  padding: 3.2rem 0 2.4rem;
 
   /*
    * The dial. Everything about how loud the galaxy is lives here; its shape is set by
@@ -194,8 +197,8 @@
 /* The live plot readout, tucked under the header at the right. */
 .galaxy-hud {
   position: absolute;
-  top: 4.8rem;
-  right: 2rem;
+  top: 3.4rem;
+  right: clamp(1.4rem, 4vw, 4rem);
   margin: 0;
   font-family: var(--font-mono);
   font-size: var(--fs-micro);
@@ -257,10 +260,17 @@
   }
 }
 
-/* The type sits above the galaxy layer. */
+/*
+ * The type sits above the galaxy layer, in a wider column than the body's. The body's
+ * 1180px column, centred, left a wide screen with a third of its width empty to the
+ * left of the headline; the title page instead takes a proportional margin, so the
+ * type sits near the left edge at any width and the galaxy has the rest.
+ */
 .opening > .wrap {
   position: relative;
   z-index: 1;
+  max-width: 1680px;
+  padding: 0 clamp(1.4rem, 6vw, 7rem);
 }
 
 /*
@@ -369,7 +379,7 @@
 
 @media (max-width: 700px) {
   .opening {
-    padding-top: 5rem;
+    padding-top: 2.4rem;
     gap: 3rem;
   }
 
