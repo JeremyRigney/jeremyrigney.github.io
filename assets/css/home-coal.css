@@ -247,6 +247,32 @@
   }
 }
 
+/*
+ * The way into /galaxy, under the readout: the same mono micro type, as a link. It sits
+ * above the galaxy layer (which takes no pointer events) and beside the copy's column.
+ */
+.galaxy-explore {
+  position: absolute;
+  top: 4.7rem;
+  right: clamp(1.4rem, 4vw, 4rem);
+  z-index: 2;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid rgba(var(--accent-rgb), 0.6);
+  transition: color 200ms var(--ease), border-color 200ms var(--ease);
+}
+
+.galaxy-explore:hover,
+.galaxy-explore:focus-visible {
+  color: var(--chalk);
+  border-bottom-color: var(--accent);
+}
+
 /* ---------- The shimmer, kept for /404 ---------- */
 
 /*
@@ -364,6 +390,19 @@
       rgba(0, 0, 0, 0.45) 35%,
       rgba(0, 0, 0, 1) 70%
     );
+  }
+
+  /*
+   * The top right is the recap link's on a phone, so the way into /galaxy drops into
+   * the frame's flow instead, right-aligned under the readout rail. In the flow it can
+   * never land on the copy, however tall the copy runs on a small screen.
+   */
+  .galaxy-explore {
+    position: relative;
+    top: auto;
+    right: auto;
+    align-self: flex-end;
+    margin: -2.4rem 1.4rem 0 0;
   }
 
   /* Narrower than the desktop card, so it fits a 320px screen with a margin. */

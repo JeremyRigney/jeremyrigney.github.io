@@ -55,15 +55,30 @@
   /*
    * The same values as the --flag tokens in f1.css. Duplicated here only for the two things
    * CSS cannot paint: the tab icon and the browser chrome's theme-colour.
+   *
+   * Five of the six are flag colours and are the same on any ground. The chequered flag is
+   * not a colour but a contrast — the strongest mark the page has — so it is left out and
+   * read from --chalk instead: on the printed edition that is near-black, and a #f6f7f8
+   * stroke on a cream plate is invisible.
    */
   var FLAG_COLOUR = {
     green: '#3ecf78',
     yellow: '#f5c518',
     vsc: '#f5c518',
     'safety-car': '#f5c518',
-    red: '#e8112d',
-    chequered: '#f6f7f8'
+    red: '#e8112d'
   };
+
+  /* One custom property, resolved now rather than at load: the page it sits on may have
+     changed palette since. Trimmed because getPropertyValue keeps the declaration's space. */
+  function token(name, fallback) {
+    var value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return value || fallback;
+  }
+
+  function flagColour(slug) {
+    return FLAG_COLOUR[slug] || token('--chalk', '#f6f7f8');
+  }
 
   /*
    * A local API override, for developing against a Flask server on this machine. Restricted
@@ -195,11 +210,15 @@
       // there is only one copy of the icon's path data on the page.
       var icon = el('favicon');
       if (icon && typeof window.f1Favicon === 'function') {
-        icon.href = window.f1Favicon(FLAG_COLOUR[slug]);
+        icon.href = window.f1Favicon(flagColour(slug));
       }
       var theme = document.querySelector('meta[name="theme-color"]');
       if (theme) {
-        theme.setAttribute('content', slug === 'green' ? '#111214' : FLAG_COLOUR[slug]);
+        // Green is the ordinary state, so the chrome goes back to the page's own ground
+        // rather than turning green — read from --coal, because that ground is ivory on
+        // the printed edition and charcoal on the page that ships.
+        theme.setAttribute('content',
+          slug === 'green' ? token('--coal', '#111214') : flagColour(slug));
       }
     }
 

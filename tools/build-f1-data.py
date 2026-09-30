@@ -703,7 +703,50 @@ def align_corners(points, perimeter, lat0, mv):
     transform, residual = _fit_location_transform(
         lambda x, y: place(x, y, flip_x, flip_y, dtheta), mv_ring, repo)
 
+    # Marshalling sectors, placed through that same refined transform.
+    #
+    # These are the sectors race control names in a yellow flag ("YELLOW IN TRACK SECTOR
+    # 15"), and OpenF1 passes the number straight through — but nothing says where on the
+    # track it is, so the flag could only ever be printed as text. MultiViewer carries the
+    # boundaries in the same F1 frame as the telemetry, which means the transform fitted
+    # just above already lands them on our path.
+    #
+    # Deliberately not placed through the corner fit used for `turns`: that one takes its
+    # scale from the ratio of perimeters and is tuned to put numbers on corners, which left
+    # telemetry a median 19.5 m off at Monza. The refined transform is the accurate one, and
+    # a sector boundary in the wrong place would shade the wrong corner yellow.
+    #
+    # Each entry is where its sector *starts*; the sector runs from there to the next one,
+    # and the last wraps to the first. Same {n, s} shape as `turns` and `markers`.
+    marshals = []
+    for sector in (mv.get('marshalSectors') or []):
+        position = sector.get('trackPosition') or {}
+        mx, my = position.get('x'), position.get('y')
+        if mx is None or my is None:
+            continue
+        px = transform['a'] * mx + transform['b'] * my + transform['c']
+        py = transform['d'] * mx + transform['e'] * my + transform['f']
+        idx, dist = nearest_index(px, py)
+        marshals.append({'n': int(sector['number']), 's': round(idx * step, 1),
+                         'index': idx, 'fit': dist})
+    marshals.sort(key=lambda m: m['n'])
+
+    # Two boundaries landing on the same path point would leave a sector with no arc at
+    # all, and the map would shade nothing when race control named it. Nudge them apart,
+    # the same way coincident corners are handled above.
+    for i in range(1, len(marshals)):
+        if marshals[i]['index'] == marshals[i - 1]['index']:
+            marshals[i]['index'] = (marshals[i - 1]['index'] + 1) % count
+            marshals[i]['s'] = round(marshals[i]['index'] * step, 1)
+
+    marshal_fit = max([m['fit'] for m in marshals] or [0.0])
+    for marshal in marshals:
+        del marshal['index']
+        del marshal['fit']
+
     report = {
+        'marshalSectors': marshals,
+        'marshalFit': marshal_fit,
         'fitResidual': residual,
         'corners': len(turns),
         'chamfer': chamfer,
@@ -927,16 +970,25 @@ def resolve_turns(points, perimeter, lat0, geo_id, season):
             # have perfectly placed corner numbers and still be too loosely aligned to draw
             # cars on, so this is gated on the measured residual rather than inherited.
             transform = None
+            # Marshalling sectors are placed with the transform, so they stand or fall
+            # with it: no transform means no trustworthy sector geometry either.
+            marshals = None
             if report['fitResidual'] <= MAP_FIT_MAX_RESIDUAL_M:
                 transform = dict(report['transform'])
                 transform['residual'] = round(report['fitResidual'], 2)
                 transform['source'] = 'multiviewer'
                 print('    map transform fitted, telemetry lands %.1f m from the centreline'
                       % report['fitResidual'])
+                marshals = report['marshalSectors'] or None
+                if marshals:
+                    print('    %d marshalling sectors placed (worst %.1f m from the centreline)'
+                          % (len(marshals), report['marshalFit']))
+                else:
+                    print('    no marshalling sectors published — flagged sectors stay text only')
             else:
                 print('    map transform rejected (%.1f m residual) — the map will draw no cars'
                       % report['fitResidual'])
-            return turns, start_s, 'multiviewer', transform
+            return turns, start_s, 'multiviewer', transform, marshals
         print('    MultiViewer fit rejected (%s) — falling back to curvature'
               % (report.get('error')
                  or '%.0f%% on a corner, %d wraps'
@@ -946,7 +998,7 @@ def resolve_turns(points, perimeter, lat0, geo_id, season):
     # drawing them in the wrong place.
     turns = detect_turns(points, lat0)
     print('    %d provisional turns from curvature' % len(turns))
-    return turns, 0.0, 'curvature', None
+    return turns, 0.0, 'curvature', None, None
 
 
 def build_circuit(feature, round_info, season):
@@ -964,7 +1016,7 @@ def build_circuit(feature, round_info, season):
     print('    elevation %.1f-%.1f m, delta %.1f m'
           % (min(elevations), max(elevations), max(elevations) - min(elevations)))
 
-    turns, start_s, source, transform = resolve_turns(
+    turns, start_s, source, transform, marshals = resolve_turns(
         points, perimeter, lat0, props['id'], season)
     markers = place_markers(start_s)
 
@@ -984,6 +1036,11 @@ def build_circuit(feature, round_info, season):
         'elev': elevations,
         'turns': turns,
         'markers': markers,
+        # Where each marshalling sector begins, in metres round the lap. A sector runs from
+        # its own s to the next one's, and the last wraps back to the first. This is what
+        # lets the map shade the stretch race control actually flagged, rather than only
+        # naming it. Absent when the map transform was rejected or MultiViewer has none.
+        'marshalSectors': marshals,
         'turnSource': source,
         # Maps OpenF1 `location` (F1-frame decimetres) onto this circuit's path, in metres
         # about the path centroid: X = a*x + b*y + c, Y = d*x + e*y + f. Absent when the
@@ -1080,13 +1137,14 @@ def rebuild_corners(season, only=None):
         print('%s (%s)' % (geo_id, circuit['name']))
         points = circuit['path']
         lat0 = centroid(points)[1]
-        turns, start_s, source, transform = resolve_turns(
+        turns, start_s, source, transform, marshals = resolve_turns(
             points, circuit['perimeter'], lat0, geo_id, season)
 
         circuit['turns'] = turns
         circuit['markers'] = place_markers(start_s)
         circuit['turnSource'] = source
         circuit['locationTransform'] = transform
+        circuit['marshalSectors'] = marshals
         with open(path, 'w') as handle:
             json.dump(circuit, handle, separators=(',', ':'))
     return 0

@@ -41,7 +41,7 @@
    * version in the URL, so without this a browser can pair a fresh script with a stale
    * data file for ten minutes after a deploy. Keep in step with f1-lab.js.
    */
-  var DATA_V = '20260907';
+  var DATA_V = '20260911';
 
   /* Beyond this from the centreline a car is not on the racing surface — pit lane. */
   var OFF_TRACK_M = 45;
@@ -68,8 +68,26 @@
   /* A jump bigger than this fraction of a lap is a scrub, not driving — snap instead. */
   var SNAP_FRACTION = 0.25;
 
+  /*
+   * A leap in *race* time this large was not driven, it was scrubbed.
+   *
+   * Judging this on wall-clock silence between frames, as an earlier version did, cannot
+   * tell a person moving the playhead from a page that simply polls slowly — and once the
+   * live poll went to 1.5s every ordinary update looked like a scrub, so the cars snapped
+   * instead of moving. The clock the frame *represents* is the honest signal: live frames
+   * advance a second or two at a time, playback advances by the speed multiplier, and only
+   * a hand on the scrubber jumps minutes or runs backwards.
+   */
+  var SCRUB_JUMP_MS = 20000;
+
   var gapMs = 3000;        // observed interval between position updates
   var lastRender = 0;
+  var flagged = [];        // marshalling sectors currently under a flag
+  var lastData = null;     // the most recent frame, replayed if geometry arrives after it
+  var lastRaceAt = NaN;    // the race instant the last frame represented
+  var lastPositions = '';  // xy signature, to spot the frames that carry new fixes
+  var lastFreshAt = 0;     // when positions last actually changed
+  var emptyReason = '';    // why the track has no cars on it, when it has none
 
   var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -356,6 +374,101 @@
     ctx.textAlign = 'start';
   }
 
+  /*
+   * The stretch of track one marshalling sector covers, as a pair of path indices.
+   *
+   * The build stores where each sector *begins*, in metres round the lap; a sector runs
+   * from its own start to the next number's, and the highest wraps back to the first. The
+   * numbers are not necessarily contiguous or 1-based in the file, so the successor is
+   * found by position in the sorted list rather than by adding one.
+   */
+  function sectorArc(number) {
+    var sectors = circuit && circuit.marshalSectors;
+    if (!sectors || sectors.length < 2 || !local) {
+      return null;
+    }
+    var step = circuit.step || 15;
+    var count = local.length;
+    var at = -1;
+    for (var i = 0; i < sectors.length; i += 1) {
+      if (sectors[i].n === number) {
+        at = i;
+        break;
+      }
+    }
+    if (at < 0) {
+      return null;
+    }
+    var next = sectors[(at + 1) % sectors.length];
+    return {
+      from: Math.round(sectors[at].s / step) % count,
+      to: Math.round(next.s / step) % count
+    };
+  }
+
+  function drawFlaggedSectors(project, styles) {
+    if (!flagged.length || !circuit || !circuit.marshalSectors) {
+      return;
+    }
+    var colour = (styles.getPropertyValue('--flag') || '').trim();
+    if (!colour || colour === 'transparent') {
+      return;
+    }
+
+    var count = local.length;
+    // Wider than the track line and drawn under the cars, so it reads as the piece of
+    // circuit that is under a flag rather than as a second track.
+    ctx.lineWidth = Math.max(5, canvas.width / 130);
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = colour;
+    ctx.globalAlpha = 0.85;
+
+    flagged.forEach(function (number) {
+      var arc = sectorArc(number);
+      if (!arc) {
+        return;
+      }
+      // Walk forward from the start index to the end, the long way round if the sector
+      // straddles the timing line — which the first one usually does.
+      var span = ((arc.to - arc.from) % count + count) % count;
+      if (!span) {
+        return;
+      }
+      ctx.beginPath();
+      for (var k = 0; k <= span; k += 1) {
+        var p = project(local[(arc.from + k) % count][0], local[(arc.from + k) % count][1]);
+        if (k === 0) {
+          ctx.moveTo(p[0], p[1]);
+        } else {
+          ctx.lineTo(p[0], p[1]);
+        }
+      }
+      ctx.stroke();
+    });
+
+    ctx.globalAlpha = 1;
+    ctx.lineCap = 'butt';
+  }
+
+  /*
+   * A footnote under a track that has drawn correctly but has nothing on it.
+   *
+   * Distinct from `notice`, which replaces the map entirely because there is no geometry to
+   * show. Here the circuit is real and worth looking at — the flagged sectors still mean
+   * something — and only the cars are missing, so the map stays and the reason sits under
+   * it. Without this an empty track is indistinguishable from a broken page, which is the
+   * same complaint drawNotice() above was written to answer.
+   */
+  function drawFootnote(text) {
+    var styles = getComputedStyle(document.documentElement);
+    ctx.fillStyle = (styles.getPropertyValue('--ink-faint') || '#6b7178').trim();
+    ctx.font = Math.max(11, Math.round(canvas.width / 130)) + 'px "Chivo Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(text, canvas.width / 2, canvas.height - Math.max(10, canvas.width / 90));
+    ctx.textAlign = 'start';
+  }
+
   function draw() {
     if (!ctx) {
       return;
@@ -373,10 +486,20 @@
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    /*
+     * Every colour from the stylesheet, read on each draw.
+     *
+     * One getComputedStyle for all five, rather than one per use: this runs on every
+     * frame a car is moving. The fallbacks are f1.css's own values, so a stylesheet
+     * that has not arrived leaves the map looking exactly as it always did.
+     */
     var styles = getComputedStyle(document.documentElement);
     var line = (styles.getPropertyValue('--line-strong') || 'rgba(236,238,240,0.28)').trim();
     var accent = (styles.getPropertyValue('--accent') || '#e8112d').trim();
     var ink = (styles.getPropertyValue('--ink-faint') || '#6b7178').trim();
+    var quiet = (styles.getPropertyValue('--ink-soft') || '#9aa0a6').trim();
+    var ground = (styles.getPropertyValue('--coal') || '#111214').trim();
+    var strong = (styles.getPropertyValue('--ink') || '#eceef0').trim();
 
     // The track.
     ctx.beginPath();
@@ -394,6 +517,10 @@
     ctx.lineJoin = 'round';
     ctx.stroke();
 
+    // The sectors race control has flagged, drawn over the track before anything else so
+    // the start/finish dot and the cars still sit on top of it.
+    drawFlaggedSectors(project, styles);
+
     // The start/finish line, from the marker the build placed by arc length.
     var markers = (circuit.markers || []).filter(function (m) {
       return m.type === 'start-finish';
@@ -407,9 +534,22 @@
       ctx.fill();
     }
 
-    // The cars.
-    var radius = Math.max(4, canvas.width / 190);
-    ctx.font = '600 ' + Math.max(9, Math.round(canvas.width / 105)) + 'px "Chivo Mono", monospace';
+    /*
+     * The cars.
+     *
+     * The sizes below are proportional to canvas width and tuned for the strip on /f1 and
+     * the lab. A wall-sized panel therefore keeps the dot and the label at the same
+     * fraction of a much larger map, which leaves a driver code too small to read across a
+     * room, so the full-panel map scales them up.
+     *
+     * Keyed on data-fill rather than on a width threshold, and that is deliberate: these
+     * are device pixels, so any width test would also fire on the 1180px strip the moment
+     * it was drawn on a retina screen — silently restyling /f1 and the lab, which this
+     * change must not touch. The attribute is set by exactly one page.
+     */
+    var big = canvas.hasAttribute('data-fill') ? 1.5 : 1;
+    var radius = Math.max(4, canvas.width / 190) * big;
+    ctx.font = '600 ' + Math.max(9, Math.round(canvas.width / 105 * big)) + 'px "Chivo Mono", monospace';
     ctx.textBaseline = 'middle';
 
     Object.keys(cars).forEach(function (num) {
@@ -440,20 +580,26 @@
 
       ctx.beginPath();
       ctx.arc(pt[0], pt[1], radius, 0, Math.PI * 2);
-      ctx.fillStyle = car.colour || '#9aa0a6';
+      ctx.fillStyle = car.colour || quiet;
       ctx.globalAlpha = car.dnf ? 0.25 : 1;
       ctx.fill();
-      // A dark rim so two cars overlapping still read as two.
+      // A rim in the page's own ground, so two cars overlapping still read as two.
+      // The ground rather than a dark literal: this map is also drawn on the printed
+      // edition, where the page behind it is ivory and a charcoal rim reads as a blob.
       ctx.lineWidth = Math.max(1, radius / 4);
-      ctx.strokeStyle = '#111214';
+      ctx.strokeStyle = ground;
       ctx.stroke();
 
       if (car.code) {
-        ctx.fillStyle = car.dnf ? ink : '#eceef0';
+        ctx.fillStyle = car.dnf ? ink : strong;
         ctx.fillText(car.code, pt[0] + radius + 3, pt[1]);
       }
       ctx.globalAlpha = 1;
     });
+
+    if (emptyReason) {
+      drawFootnote(emptyReason);
+    }
   }
 
   function loop() {
@@ -501,10 +647,18 @@
       return;
     }
 
-    var wanted = preferredHeight(rect.width);
-    if (wanted) {
-      canvas.style.height = wanted + 'px';
-      rect = canvas.getBoundingClientRect();
+    /*
+     * data-fill hands the height back to CSS. On /f1 and the lab the map is a strip in a
+     * document and sizes itself from the circuit's proportions; on the wall it is a cell in
+     * a viewport grid that has already decided how tall it is, and a canvas that re-asserts
+     * its own height there either overflows the cell or fights it every resize.
+     */
+    if (!canvas.hasAttribute('data-fill')) {
+      var wanted = preferredHeight(rect.width);
+      if (wanted) {
+        canvas.style.height = wanted + 'px';
+        rect = canvas.getBoundingClientRect();
+      }
     }
 
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -555,6 +709,11 @@
           if (ready()) {
             resize();
           }
+          // Any frame that arrived while this was in flight was held rather than dropped;
+          // draw it now that there is a track to draw it on.
+          if (lastData) {
+            window.f1Map.render(lastData);
+          }
         })
         .catch(function (error) {
           /*
@@ -575,6 +734,18 @@
     },
 
     render: function (data) {
+      /*
+       * Kept even when this frame cannot be drawn yet.
+       *
+       * The circuit JSON is fetched asynchronously, and on a cold load the first composed
+       * frame routinely arrives before it lands — at which point this used to return and
+       * the frame was gone for good. On /f1 the next poll covered it three seconds later,
+       * but the lab and the wall only request a frame when the playhead moves, so a page
+       * opened at a fixed instant drew the track with no cars and no flagged sector at all
+       * until something was scrubbed. The load path replays this once geometry is ready.
+       */
+      lastData = data;
+
       if (!ready() || !circuit || !local) {
         return;
       }
@@ -585,14 +756,58 @@
       var t = transformOf();
       var now = Date.now();
 
-      // Measure how often positions are actually arriving, and let cars take that long to
-      // cover the ground. Smoothed, so one slow frame does not make every car crawl.
-      if (lastRender) {
-        var seen = Math.max(TRAVEL_MIN, Math.min(TRAVEL_MAX, now - lastRender));
-        gapMs = gapMs * 0.6 + seen * 0.4;
+      /*
+       * Which sectors are under a flag. The payload has carried these all along and the
+       * panel prints them as "Sectors 14, 15"; this is the same list, shown as the piece
+       * of track it actually refers to.
+       *
+       * Held rather than passed into draw() because draw() also runs from the animation
+       * loop and on resize, where there is no payload to hand.
+       */
+      flagged = (data.flag && data.flag.sectors) || [];
+
+      /*
+       * Was the playhead moved by hand? Judged on the clock the frame represents, not on
+       * how long it has been since the last one — see SCRUB_JUMP_MS.
+       */
+      var stamp = (data.replay && data.replay.at) || data.generated;
+      var raceAt = stamp ? Date.parse(stamp) : NaN;
+      var scrubbed = !lastRender;
+      if (!scrubbed && !isNaN(raceAt) && !isNaN(lastRaceAt)) {
+        var jump = raceAt - lastRaceAt;
+        scrubbed = jump < 0 || jump > SCRUB_JUMP_MS;
       }
       lastRender = now;
-      var travel = Math.max(TRAVEL_MIN, Math.min(TRAVEL_MAX, gapMs * TRAVEL_STRETCH));
+      lastRaceAt = raceAt;
+
+      /*
+       * How long a car has to cover the ground, measured between the frames that actually
+       * carry new coordinates rather than between renders.
+       *
+       * These are not the same thing and the difference is the whole problem. The page
+       * polls every 1.5s but `location` only refreshes upstream every 4 — so most frames
+       * repeat the previous positions, and timing the glide off the poll rate sent cars
+       * darting for under two seconds and then sitting still for the rest of the interval.
+       * Timing it off the updates themselves means a car is still moving when its next
+       * position lands, which is what makes it read as driving.
+       */
+      var signature = (data.drivers || []).map(function (d) {
+        return d.xy ? d.xy[0] + ',' + d.xy[1] : '';
+      }).join('|');
+      var fresh = signature !== lastPositions;
+
+      if (fresh) {
+        if (lastFreshAt && !scrubbed) {
+          var seen = Math.max(TRAVEL_MIN, Math.min(TRAVEL_MAX, now - lastFreshAt));
+          gapMs = gapMs * 0.6 + seen * 0.4;
+        }
+        lastFreshAt = now;
+        lastPositions = signature;
+      }
+
+      var travel = scrubbed
+        ? TRAVEL_MIN
+        : Math.max(TRAVEL_MIN, Math.min(TRAVEL_MAX, gapMs * TRAVEL_STRETCH));
 
       (data.drivers || []).forEach(function (driver) {
         // No transform for this circuit, or no fix for this car: nothing to place.
@@ -625,13 +840,38 @@
           // A scrub moves the playhead by minutes; driving it is not. Crossing a quarter of
           // the lap in one update means the clock jumped, so put the car where it belongs
           // instead of sending it on a long glide to catch up.
+          //
+          // Distance alone does not catch all of them: a scrub of a few seconds, or one
+          // that happens to land a car a short way round, looks exactly like driving. The
+          // clock the frame represents is the other half of the signal — see SCRUB_JUMP_MS.
           var leap = Math.abs(ringDelta(at, snap.index, local.length)) / local.length;
-          car.from = leap > SNAP_FRACTION ? snap.index : at;
+          car.from = (scrubbed || leap > SNAP_FRACTION) ? snap.index : at;
           car.to = snap.index;
           car.since = now;
           car.travel = travel;
         }
       });
+
+      /*
+       * Why the track is empty, when it is.
+       *
+       * Tested on `cars` rather than on this frame's coordinates, so a single frame that
+       * happens to carry none — which the replay does whenever a location block fails to
+       * load — does not flash a message over a map that was working a moment ago. Once any
+       * car has been placed this stays quiet for the rest of the session.
+       *
+       * Both cases are real and neither is a bug here: OpenF1 published no `location` for
+       * some past races at all (Monaco, Sakhir and Jeddah in 2026 have none from lights out
+       * to flag), and a circuit whose MultiViewer fit was rejected has no transform to
+       * place cars with.
+       */
+      if (Object.keys(cars).length) {
+        emptyReason = '';
+      } else if (!t) {
+        emptyReason = 'No map fit for this circuit — the track is drawn, the cars cannot be';
+      } else if ((data.drivers || []).length) {
+        emptyReason = 'No car positions in this session’s timing feed';
+      }
 
       wake();
       draw();
@@ -659,7 +899,31 @@
     /* The lab clears the map when the session changes. */
     reset: function () {
       cars = {};
+      // A flag and a held frame both belong to the session that was on screen, not to the
+      // next one — replaying the old one onto a new circuit would put its cars on the
+      // wrong track.
+      flagged = [];
+      lastData = null;
+      emptyReason = '';
+      lastRaceAt = NaN;
+      lastPositions = '';
+      lastFreshAt = 0;
       draw();
+    },
+
+    /*
+     * Redraw in whatever colours the page is in now.
+     *
+     * Every colour this file paints is read out of the stylesheet on each draw, so
+     * nothing here has to be told what changed — but loop() parks itself whenever no
+     * car is moving, and a static map, or the "no geometry" notice, would otherwise
+     * keep the old palette's pixels indefinitely. The printed edition has a palette
+     * switch; this is how it asks. A no-op with nothing to draw.
+     */
+    repaint: function () {
+      if (ready()) {
+        draw();
+      }
     }
   };
 }());
