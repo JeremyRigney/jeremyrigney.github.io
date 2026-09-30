@@ -25,6 +25,8 @@
   --accent-rgb: 110, 138, 120;
   /* The young hot stars' teal, for the card and reticle when one is picked out. */
   --hot-rgb: 72, 190, 176;
+  /* H-alpha red, for the overlay toggle. As GalaxyBands.overlays()' colour, lifted. */
+  --halpha-rgb: 232, 78, 88;
   --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "Chivo Mono", "Courier New", monospace;
   --fs-micro: 0.58rem;
@@ -238,6 +240,29 @@ button.band:hover,
 button.band:focus-visible {
   color: var(--ink);
   border-color: var(--line-strong);
+}
+
+/*
+ * An overlay toggle (H-alpha): the same chip, with a hairline of the emission's own
+ * red down its left edge when it is on, the way the band carries the sage.
+ */
+.band-overlay {
+  border-left: 2px solid transparent;
+}
+
+.band-overlay.is-on {
+  border-color: var(--line-strong);
+  border-left-color: rgb(var(--halpha-rgb));
+  color: var(--ink);
+}
+
+/* Hα, not HA: uppercasing the Greek alpha turns it into a capital A. */
+.band-overlay .band-name {
+  text-transform: none;
+}
+
+.band-overlay.is-on .band-range {
+  color: rgba(var(--halpha-rgb), 0.9);
 }
 
 .band-range {

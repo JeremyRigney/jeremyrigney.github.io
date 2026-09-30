@@ -378,6 +378,173 @@
     '}'
   ].join('\n');
 
+  /*
+   * The H-alpha glow, marched through the gas layer for every pixel. The ionised gas is
+   * a thin sheet in the midplane (a Gaussian of scale height h), and what a pixel sees
+   * is the line integral of its emission along the camera ray: short face-on, long
+   * edge-on. Nothing is drawn as sprites; the glow is a formula (GalaxyModel.halpha)
+   * sampled where the ray is inside the sheet, so it is smooth at any angle.
+   *
+   * The ring is thin, so the samples are split: 12 along the part of the ray inside
+   * the sheet and the disc, for the arms, and 6 in each stretch of it within reach of
+   * the ring and its haze, so an edge-on view still catches it. The nucleus is a 3D
+   * Gaussian and is integrated exactly, from the ray's closest approach.
+   *
+   * A long edge-on path would pile up far past anything seen face-on, and in a real
+   * galaxy the dust in the same layer takes most of that out; so the total is rolled
+   * off toward `u_cap` as an optically thick line would be.
+   */
+  var HALPHA_FS = [
+    '#version 300 es',
+    'precision highp float;',
+    'uniform mat3 u_rot;',
+    'uniform vec3 u_cam;',
+    'uniform vec2 u_halfView;',
+    'uniform float u_px, u_focal, u_time, u_vrot, u_rcore2, u_pattern, u_winding;',
+    'uniform vec4 u_ring;', // radius, width, axis ratio, angle
+    'uniform float u_ringGain, u_clump;',
+    'uniform vec2 u_nucleus;', // gain, radius
+    'uniform vec3 u_arms;', // gain, lag, sharp
+    'uniform float u_h, u_cap, u_gain;',
+    'uniform vec3 u_colour;',
+    'out vec4 o;',
+    '',
+    'float omegaAt(float r) { return u_vrot / sqrt(r * r + u_rcore2); }',
+    'vec2 rot2(vec2 p, float a) { float c = cos(a), s = sin(a); return vec2(c * p.x - s * p.y, s * p.x + c * p.y); }',
+    'float hash(vec2 p) {',
+    '  p = fract(p * vec2(123.34, 456.21));',
+    '  p += dot(p, p + 45.32);',
+    '  return fract(p.x * p.y);',
+    '}',
+    'float vnoise(vec2 p) {',
+    '  vec2 i = floor(p), f = fract(p);',
+    '  vec2 u = f * f * (3.0 - 2.0 * f);',
+    '  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),',
+    '    mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);',
+    '}',
+    'float fbm(vec2 p) {',
+    '  float a = 0.5, s = 0.0;',
+    '  for (int i = 0; i < 3; i++) { s += a * vnoise(p); p = p * 2.03 + vec2(17.1, 9.2); a *= 0.5; }',
+    '  return s / 0.875;',
+    '}',
+    '',
+    // The ring, in the frame of its own gas, which turns at the ring's orbital speed:
+    // a slightly oval band, broken into knots, with fog between them.
+    'float ringAt(vec2 x) {',
+    '  vec2 g = rot2(x, -omegaAt(u_ring.x) * u_time);',
+    '  vec2 q = rot2(g, -u_ring.w);',
+    '  float sq = sqrt(u_ring.z);',
+    '  float rho = length(vec2(q.x * sq, q.y / sq));',
+    '  float d = (rho - u_ring.x) / u_ring.y;',
+    '  float knots = mix(1.0, 2.4 * smoothstep(0.36, 0.82, fbm(g * 40.0)), u_clump);',
+    '  float fog = 0.7 + 0.6 * fbm(g * 9.0 + 3.1);',
+    // The knotted band itself, and a wider, smooth haze of gas it sits in.
+    '  float band = exp(-d * d) * knots + 0.45 * exp(-d * d / 6.25);',
+    '  return u_ringGain * band * fog;',
+    '}',
+    '',
+    // HII regions on the arms: just downstream of the stellar crest (the side gas leaves
+    // the arm by, having formed stars in it), in patches that belong to the pattern, so
+    // they hold their place on the arm instead of winding up.
+    'float armsAt(vec2 x) {',
+    '  float r = length(x);',
+    '  float win = smoothstep(0.17, 0.28, r) * (1.0 - smoothstep(0.85, 1.08, r));',
+    '  if (win <= 0.0) { return 0.0; }',
+    '  float ph = atan(x.y, x.x) + u_winding * log(1.0 + 6.0 * r) - u_pattern * u_time;',
+    '  float crossing = tanh(3.0 * (omegaAt(r) - u_pattern) / u_pattern);',
+    '  float arm = exp(u_arms.z * (cos(2.0 * (ph - u_arms.y * crossing)) - 1.0));',
+    '  vec2 pp = rot2(x, -u_pattern * u_time);',
+    '  float clumps = smoothstep(0.4, 0.8, fbm(pp * 24.0));',
+    '  float fog = 0.6 + 0.8 * fbm(pp * 5.0 + 7.7);',
+    '  return u_arms.x * win * arm * (0.2 + 0.8 * clumps) * fog * exp(-(r - 0.2) / 0.7);',
+    '}',
+    '',
+    // Where along the ray (s) its path over the disc lies within radius q of the centre.
+    'vec2 within(vec3 c, vec3 d, float q) {',
+    '  float A = dot(d.xy, d.xy), B = 2.0 * dot(c.xy, d.xy), C = dot(c.xy, c.xy) - q * q;',
+    '  if (A < 1e-9) { return C < 0.0 ? vec2(-1e9, 1e9) : vec2(1.0, -1.0); }',
+    '  float disc = B * B - 4.0 * A * C;',
+    '  if (disc < 0.0) { return vec2(1.0, -1.0); }',
+    '  float sq = sqrt(disc);',
+    '  return vec2((-B - sq) / (2.0 * A), (-B + sq) / (2.0 * A));',
+    '}',
+    '',
+    'float sheet(float z) { return exp(-0.5 * z * z / (u_h * u_h)) / (2.5066 * u_h); }',
+    '',
+    // March a stretch [a, b] of the ray with n jittered samples of either the ring
+    // (which == 0) or the arms (which == 1).
+    'float march(vec3 c, vec3 d, float a, float b, int n, int which, float jit) {',
+    '  if (b <= a) { return 0.0; }',
+    '  float ds = (b - a) / float(n);',
+    '  float sum = 0.0;',
+    '  for (int i = 0; i < 16; i++) {',
+    '    if (i >= n) { break; }',
+    '    vec3 x = c + d * (a + (float(i) + jit) * ds);',
+    '    float e = which == 0 ? ringAt(x.xy) : armsAt(x.xy);',
+    '    sum += e * sheet(x.z);',
+    '  }',
+    '  return sum * ds;',
+    '}',
+    '',
+    'void main() {',
+    '  vec3 dv = vec3((gl_FragCoord.xy * u_px - u_halfView) / u_focal, -1.0);',
+    '  vec3 d = normalize(transpose(u_rot) * dv);',
+    '  vec3 c = u_cam;',
+    '  float jit = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));',
+    '',
+    // The stretch of the ray inside the sheet (to 3 scale heights) and over the disc.
+    '  float z3 = 3.0 * u_h;',
+    '  vec2 slab;',
+    '  if (abs(d.z) > 1e-6) {',
+    '    float s1 = (-z3 - c.z) / d.z, s2 = (z3 - c.z) / d.z;',
+    '    slab = vec2(min(s1, s2), max(s1, s2));',
+    '  } else {',
+    '    slab = abs(c.z) < z3 ? vec2(0.0, 1e9) : vec2(1.0, -1.0);',
+    '  }',
+    '  slab.x = max(slab.x, 0.0);',
+    '  vec2 disc = within(c, d, 1.1);',
+    '  vec2 seg = vec2(max(slab.x, disc.x), min(slab.y, disc.y));',
+    '',
+    '  float I = 0.0;',
+    '  if (seg.y > seg.x) {',
+    '    I += march(c, d, seg.x, seg.y, 12, 1, jit);',
+    // The ring's reach (its haze runs to about six widths), in up to two pieces:
+    // inside its outer edge but not its inner one.
+    '    vec2 outer = within(c, d, u_ring.x + 6.0 * u_ring.y);',
+    '    vec2 inner = within(c, d, max(u_ring.x - 6.0 * u_ring.y, 0.0));',
+    '    float oa = max(outer.x, seg.x), ob = min(outer.y, seg.y);',
+    '    if (inner.y > inner.x) {',
+    '      I += march(c, d, oa, min(ob, inner.x), 6, 0, jit);',
+    '      I += march(c, d, max(oa, inner.y), ob, 6, 0, jit);',
+    '    } else {',
+    '      I += march(c, d, oa, ob, 12, 0, jit);',
+    '    }',
+    '  }',
+    '',
+    // The nucleus: a 3D Gaussian, integrated along the ray from its closest approach.
+    '  float sc = max(-dot(c, d), 0.0);',
+    '  vec3 closest = c + d * sc;',
+    '  float rn = u_nucleus.y;',
+    '  I += u_nucleus.x * exp(-dot(closest, closest) / (rn * rn));',
+    '',
+    '  I = u_cap * (1.0 - exp(-I / u_cap));',
+    '  vec3 col = u_colour * I + vec3(0.1, 0.22, 0.24) * I * I * 0.05;',
+    '  o = vec4(col * u_gain, 1.0);',
+    '}'
+  ].join('\n');
+
+  // Adds a lower-resolution buffer into the one bound, filtered up to its size.
+  var BLIT_FS = [
+    '#version 300 es',
+    'precision highp float;',
+    'uniform sampler2D u_src;',
+    'uniform vec2 u_size;',
+    'out vec4 o;',
+    'void main() {',
+    '  o = vec4(texture(u_src, gl_FragCoord.xy / u_size).rgb, 1.0);',
+    '}'
+  ].join('\n');
+
   function compile(type, src) {
     var s = gl.createShader(type);
     gl.shaderSource(s, src);
@@ -418,12 +585,14 @@
 
   /* ---------- GL resources ---------- */
 
-  var pointProg, glowProg, toneProg;
+  var pointProg, glowProg, toneProg, halphaProg, blitProg;
   var vaos = {}; // population name -> { vao, buffers }
   var snVao;
   var quadVao, toneVao;
   var lutTex, hazeTex, coreTex;
   var hdr = null, hdrFloat = false;
+  var fog = null; // the H-alpha glow, at FOG_SCALE of the full resolution
+  var FOG_SCALE = 0.5;
   var maxPointSize = 64;
 
   function makeVao(orbit, phys, extra, usage) {
@@ -520,13 +689,15 @@
     gl.deleteFramebuffer(t.fbo);
   }
 
-  function makeTarget(width, height, old) {
+  function makeTarget(width, height, old, filter) {
     var t = old || { tex: null, fbo: gl.createFramebuffer() };
     if (t.tex) { gl.deleteTexture(t.tex); }
     t.tex = gl.createTexture();
+    t.width = width;
+    t.height = height;
     gl.bindTexture(gl.TEXTURE_2D, t.tex);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter || gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter || gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     if (hdrFloat) {
@@ -542,12 +713,16 @@
 
   function buildTarget() {
     hdr = makeTarget(canvas.width, canvas.height, hdr);
+    fog = makeTarget(Math.max(1, Math.ceil(canvas.width * FOG_SCALE)),
+      Math.max(1, Math.ceil(canvas.height * FOG_SCALE)), fog, gl.LINEAR);
   }
 
   function initGL() {
     pointProg = program(POINT_VS, POINT_FS);
     glowProg = program(GLOW_VS, GLOW_FS);
     toneProg = program(TONE_VS, TONE_FS);
+    halphaProg = program(TONE_VS, HALPHA_FS);
+    blitProg = program(TONE_VS, BLIT_FS);
     toneVao = gl.createVertexArray();
     quadVao = makeQuad();
 
@@ -722,7 +897,7 @@
     gl.uniform1i(L.u_mode, pop.render.mode);
     gl.uniform1f(L.u_shape, pop.render.mode === 4 ? 1 : 0);
     gl.uniform1f(L.u_jam, pop.render.jam || 0);
-    gl.uniform1f(L.u_gain, weight * rev * fade);
+    gl.uniform1f(L.u_gain, weight * rev * fade * starDim());
     gl.uniform1f(L.u_useLut, 1);
     gl.uniform3f(L.u_tint, 1, 1, 1);
     gl.uniform1f(L.u_haloPx, HALO_PX);
@@ -800,6 +975,7 @@
 
     for (var i = 0; i < DRAW_ORDER.length; i++) { drawPopulation(DRAW_ORDER[i], rev); }
     drawSupernovaFlash(rev);
+    drawHalpha(scale, rev, focal);
 
     gl.bindVertexArray(null);
     gl.disable(gl.BLEND);
@@ -817,6 +993,106 @@
     gl.bindVertexArray(null);
 
     drawOverlay(scale, rev);
+  }
+
+  /* ---------- Overlays: emission added to the band ---------- */
+
+  /*
+   * Each overlay in GalaxyBands.overlays() is on or off, and fades between the two;
+   * `overlayAmount` is how far each has come. Only H-alpha exists, drawn by drawHalpha.
+   */
+  var OVERLAY_FADE = 1.4; // per second: about 700 ms from off to on
+  var overlayOn = {};
+  var overlayAmount = {};
+  Bands.overlays().forEach(function (ov) { overlayOn[ov.id] = false; overlayAmount[ov.id] = 0; });
+
+  function overlayById(id) {
+    var list = Bands.overlays();
+    for (var i = 0; i < list.length; i++) { if (list[i].id === id) { return list[i]; } }
+    return null;
+  }
+
+  // How much the stars are dimmed while overlays are showing: the strongest one's say.
+  function starDim() {
+    var k = 1;
+    Bands.overlays().forEach(function (ov) {
+      k = Math.min(k, 1 - (1 - ov.dimStars) * overlayAmount[ov.id]);
+    });
+    return k;
+  }
+
+  function toggleOverlay(id) {
+    overlayOn[id] = !overlayOn[id];
+    if (reducedMotion) { overlayAmount[id] = overlayOn[id] ? 1 : 0; }
+    buildBandStrip();
+    lastHud = 0;
+    dirty = true;
+  }
+
+  function stepOverlays(dt) {
+    var moving = false;
+    Object.keys(overlayOn).forEach(function (id) {
+      var target = overlayOn[id] ? 1 : 0;
+      var a = overlayAmount[id];
+      if (a !== target) {
+        a += (target > a ? 1 : -1) * OVERLAY_FADE * dt;
+        overlayAmount[id] = Math.min(1, Math.max(0, a));
+        if (target === 0 ? overlayAmount[id] <= 0 : overlayAmount[id] >= 1) {
+          overlayAmount[id] = target;
+        }
+        moving = true;
+      }
+    });
+    return moving;
+  }
+
+  function drawHalpha(scale, rev, focal) {
+    var amount = overlayAmount.halpha;
+    var ov = overlayById('halpha');
+    if (!ov || !(amount > 0)) { return; }
+    var H = Model.halpha;
+    var eased = amount * amount * (3 - 2 * amount);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fog.fbo);
+    gl.viewport(0, 0, fog.width, fog.height);
+    gl.disable(gl.BLEND);
+    gl.useProgram(halphaProg.prog);
+    var L = halphaProg.loc;
+    gl.uniformMatrix3fv(L.u_rot, false, rotCol);
+    gl.uniform3f(L.u_cam, rot[6] * CAMERA_DIST / scale, rot[7] * CAMERA_DIST / scale,
+      rot[8] * CAMERA_DIST / scale);
+    gl.uniform2f(L.u_halfView, canvas.width / 2, canvas.height / 2);
+    gl.uniform1f(L.u_px, canvas.width / fog.width);
+    gl.uniform1f(L.u_focal, focal);
+    gl.uniform1f(L.u_time, clock);
+    gl.uniform1f(L.u_vrot, P.V_ROT);
+    gl.uniform1f(L.u_rcore2, P.R_CORE * P.R_CORE);
+    gl.uniform1f(L.u_pattern, Model.PATTERN_SPEED);
+    gl.uniform1f(L.u_winding, P.ARM_WINDING);
+    gl.uniform4f(L.u_ring, H.ring.r, H.ring.width, H.ring.axis, H.ring.angle);
+    gl.uniform1f(L.u_ringGain, H.ring.gain);
+    gl.uniform1f(L.u_clump, H.clump);
+    gl.uniform2f(L.u_nucleus, H.nucleus.gain, H.nucleus.r);
+    gl.uniform3f(L.u_arms, H.arms.gain, H.arms.lag, H.arms.sharp);
+    gl.uniform1f(L.u_h, H.thickness);
+    gl.uniform1f(L.u_cap, 3);
+    gl.uniform1f(L.u_gain, ov.gain * eased * rev);
+    gl.uniform3f(L.u_colour, ov.colour[0], ov.colour[1], ov.colour[2]);
+    gl.bindVertexArray(toneVao);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+    // Filtered up into the main buffer, added to the stars.
+    gl.bindFramebuffer(gl.FRAMEBUFFER, hdr.fbo);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
+    gl.useProgram(blitProg.prog);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, fog.tex);
+    gl.uniform1i(blitProg.loc.u_src, 1);
+    gl.uniform2f(blitProg.loc.u_size, canvas.width, canvas.height);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.activeTexture(gl.TEXTURE0);
   }
 
   /* ---------- Overlay: the graticule and the supernova's marks ---------- */
@@ -1120,7 +1396,10 @@
     hud.textContent = 'INCL ' + incl.toFixed(1) + '°'
       + '  ·  PA ' + pa.toFixed(1) + '°'
       + '  ·  ×' + zoom.toFixed(2)
-      + '  ·  N ' + Model.thousands(starsShown());
+      + '  ·  N ' + Model.thousands(starsShown())
+      + Bands.overlays().map(function (ov) {
+        return overlayOn[ov.id] ? '  ·  ' + ov.label : '';
+      }).join('');
   }
 
   /* ---------- Band strip ---------- */
@@ -1144,6 +1423,19 @@
         el.setAttribute('aria-pressed', b.id === band.id ? 'true' : 'false');
         el.addEventListener('click', function () { setBand(b.id); });
       }
+      bandStrip.appendChild(el);
+    });
+    // Then a toggle for each overlay, which adds to the band rather than replacing it.
+    Bands.overlays().forEach(function (ov) {
+      var el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'band band-overlay' + (overlayOn[ov.id] ? ' is-on' : '');
+      el.setAttribute('aria-pressed', overlayOn[ov.id] ? 'true' : 'false');
+      el.title = 'Show ' + ov.label + ' (' + ov.label.charAt(0) + ')';
+      el.innerHTML = '<span class="band-name"></span><span class="band-range"></span>';
+      el.firstChild.textContent = ov.label;
+      el.lastChild.textContent = ov.range;
+      el.addEventListener('click', function () { toggleOverlay(ov.id); });
       bandStrip.appendChild(el);
     });
   }
@@ -1212,6 +1504,8 @@
       zoom = zoomTarget;
       dirty = true;
     }
+
+    if (stepOverlays(dt)) { dirty = true; }
 
     var ringTarget = now - lastInteract < RING_HOLD_MS ? 1 : 0;
     if (Math.abs(ringTarget - ringAlpha) > 0.005) {
@@ -1438,6 +1732,7 @@
       case '+': case '=': zoomTarget = clampZoom(zoomTarget * 1.15); break;
       case '-': case '_': zoomTarget = clampZoom(zoomTarget / 1.15); break;
       case 'r': case 'R': case '0': resetView(); break;
+      case 'h': case 'H': toggleOverlay('halpha'); e.preventDefault(); return;
       default: return;
     }
     e.preventDefault();
@@ -1491,6 +1786,7 @@
     canvas.addEventListener('webglcontextrestored', function () {
       lutTex = hazeTex = coreTex = null;
       hdr = null;
+      fog = null;
       initGL();
       resize();
       start();
