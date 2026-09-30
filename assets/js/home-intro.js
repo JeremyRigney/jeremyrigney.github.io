@@ -11,9 +11,8 @@
  *   2. Runs a progress value p from 0 to 1 and passes it to the galaxy, which switches its
  *      stars on as p rises. p follows a fixed timeline. Until the two waits are over it is
  *      held at a ceiling, and the timeline stops with it.
- *   3. Counts up numbers worked out from the visitor's clock (the DECK below) as p passes a
- *      point set on each row.
- *   4. At p = 1 slides the numbers out and lets the hero's own reveals start.
+ *   3. Fades a line of status text in and out, one phrase after another (PHRASES below).
+ *   4. At p = 1 fades the stage out and lets the hero's own reveals start.
  *
  * It fails open. If this file throws, or the page is left waiting, the watchdogs in the head
  * script remove the stage and unlock the page (jrIntro.end in index.html).
@@ -28,68 +27,23 @@
     return;
   }
 
-  /* ---------- Numbers ---------- */
-
-  var SUN_KMS = 230; // the Sun's speed around the galaxy, km/s (quoted as 220 to 240)
-  var EARTH_KMS = 29.78; // Earth's mean speed around the Sun, km/s
-  var AU_KM = 149597870.7;
-  var LIGHT_KMS = 299792.458;
-  var J2000_MS = Date.UTC(2000, 0, 1, 12, 0, 0);
-  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
   /*
-   * The rows of the stage. To add or change one, edit this list.
-   *
-   *   at      the progress at which the row starts (0 to 1)
-   *   prefix  shown before the number as a separate glyph, so a rounded figure is never
-   *           shown as an exact one (speaking.js does the same with ">")
-   *   sig     the number of significant figures the value is rounded to
-   *   value   the number, from the object returned by context()
-   *   note    a line under the label
-   *
-   * A fixed number is a row whose value function returns a constant.
+   * The status text. Each phrase starts at `at` ms on the timeline and shows for SHOW_MS:
+   * FADE_MS to fade in, the rest held, and the last FADE_MS fading out. The timeline stops
+   * while the sequence waits on fonts or the galaxy, so a slow load holds the current phrase.
    */
-  var DECK = [
-    {
-      at: 0.01,
-      prefix: '~',
-      unit: 'km',
-      sig: 4,
-      label: 'From you to the Sun, today',
-      value: function (c) { return c.sunKm; },
-      note: function (c) { return 'Sunlight left the Sun ' + c.lightTime + ' ago'; }
-    },
-    {
-      at: 0.20,
-      prefix: '~',
-      unit: 'km',
-      sig: 2,
-      label: 'Around the Sun since 1 January',
-      value: function (c) { return EARTH_KMS * c.secs; },
-      note: function (c) { return 'About ' + c.yearPct + '% of one orbit, at 29.8 km/s'; }
-    },
-    {
-      at: 0.45,
-      prefix: '~',
-      unit: 'km',
-      sig: 2,
-      label: 'Around the galaxy since 1 January',
-      value: function (c) { return SUN_KMS * c.secs; },
-      note: function () { return 'At about 230 km/s. One orbit takes about 230 million years'; }
-    }
+  var PHRASES = [
+    { at: 300, text: 'Building universe' },
+    { at: 1700, text: 'Collecting photons' },
+    { at: 3100, text: 'Focusing telescope' }
   ];
-
-  var TICKER_AT = 0.80;
-  var TICKER_LABEL = 'Since you arrived';
-  var CLOSER_AT = 0.86;
-  var CLOSER = '1 unreal website';
+  var SHOW_MS = 1300;
+  var FADE_MS = 400;
 
   /* ---------- Timing ---------- */
 
   var TIMELINE_MS = 4600; // how long p takes to reach 1 when nothing holds it back
   var TIMELINE_POWER = 1.5; // above 1: slow at the start, faster later
-  var ROW_GAP_MS = 900; // the least time between one row starting and the next
-  var COUNT_MS = 1000; // how long a row takes to count up
   var FONT_CAP_MS = 900;
   var GALAXY_CAP_MS = 1500;
   var CEIL_FONTS = 0.05; // p is held here until the fonts are ready
@@ -107,31 +61,12 @@
     return document.getElementById(id);
   }
 
-  function el(tag, cls, text) {
-    var node = document.createElement(tag);
-    if (cls) {
-      node.className = cls;
-    }
-    if (text) {
-      node.textContent = text;
-    }
-    return node;
-  }
-
   function clamp01(x) {
     return Math.min(1, Math.max(0, x));
   }
 
   function thousands(n) {
     return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  }
-
-  function roundSig(n, sig) {
-    if (!(n > 0)) {
-      return 0;
-    }
-    var unit = Math.pow(10, Math.floor(Math.log(n) / Math.LN10) - sig + 1);
-    return Math.round(n / unit) * unit;
   }
 
   // p as a function of time on the timeline, and the inverse.
@@ -142,50 +77,6 @@
   function msAt(p) {
     return TIMELINE_MS * Math.pow(p, 1 / TIMELINE_POWER);
   }
-
-  /*
-   * What the rows are worked out from. The visitor's clock is used as it is between 2024 and
-   * 2050. Outside that range the maths uses the nearest end, and the date label is left out,
-   * because a clock that far off is more likely wrong than right.
-   */
-  function context() {
-    var lo = Date.UTC(2024, 0, 1);
-    var hi = Date.UTC(2050, 11, 31);
-    var now = new Date();
-    var clamped = false;
-    if (now.getTime() < lo) {
-      now = new Date(lo);
-      clamped = true;
-    } else if (now.getTime() > hi) {
-      now = new Date(hi);
-      clamped = true;
-    }
-
-    var ms = now.getTime();
-    var yearStart = new Date(now.getFullYear(), 0, 1).getTime();
-    var yearEnd = new Date(now.getFullYear() + 1, 0, 1).getTime();
-
-    /*
-     * Distance from the Earth to the Sun. A two-term expansion of the orbit in the mean
-     * anomaly g. It matches a full Kepler solution to about 2,000 km (0.001%).
-     */
-    var days = (ms - J2000_MS) / 86400000;
-    var g = (357.528 + 0.9856003 * days) * Math.PI / 180;
-    var au = 1.00014 - 0.01671 * Math.cos(g) - 0.00014 * Math.cos(2 * g);
-    var sunKm = au * AU_KM;
-    var light = Math.round(sunKm / LIGHT_KMS);
-
-    return {
-      clamped: clamped,
-      date: now,
-      secs: (ms - yearStart) / 1000,
-      sunKm: sunKm,
-      lightTime: Math.floor(light / 60) + ' min ' + (light % 60) + ' s',
-      yearPct: Math.round((ms - yearStart) / (yearEnd - yearStart) * 100)
-    };
-  }
-
-  /* ---------- Release ---------- */
 
   /*
    * The head script owns release, so the watchdogs and this file end the sequence the same
@@ -209,22 +100,15 @@
   var stage = byId('preload');
   var bar = byId('intro-bar');
   var plotted = byId('intro-plotted');
-  var ticker = byId('intro-ticker');
-  var tickerValue = ticker && ticker.querySelector('.intro-ticker-value');
-  var closer = byId('intro-closer');
+  var phrase = byId('intro-phrase');
   var skipButton = byId('intro-skip');
-
-  var rows = [];
-  var ctx = null;
 
   var fontsOpen = false;
   var galaxyOpen = false;
   var bootT = performance.now();
-  var visibleT = 0; // the first frame the stage was on screen
   var lastT = 0;
   var tl = 0; // position on the timeline, ms
   var p = 0;
-  var lastRowT = -1e9;
   var finishing = false;
   var finishFrom = 0;
   var finishT = 0;
@@ -232,7 +116,7 @@
   var exiting = false;
   var skipShown = false;
   var plottedText = '';
-  var tickerText = '';
+  var phraseIndex = -1;
 
   /* ---------- Stage ---------- */
 
@@ -248,92 +132,26 @@
     }
   }
 
-  function buildStage() {
-    var today = byId('intro-today');
-    if (today && !ctx.clamped) {
-      today.textContent = 'Today ' + ctx.date.getDate() + ' '
-        + MONTHS[ctx.date.getMonth()] + ' ' + ctx.date.getFullYear();
-    }
-
-    var list = byId('intro-rows');
-    DECK.forEach(function (def) {
-      var li = el('li', 'intro-row');
-      var mask = el('span', 'line-mask');
-      var figure = el('span', 'intro-figure');
-      var value = el('span', 'intro-value', '0');
-
-      figure.appendChild(el('span', 'intro-prefix', def.prefix));
-      figure.appendChild(value);
-      figure.appendChild(el('span', 'intro-unit', def.unit));
-      mask.appendChild(figure);
-      li.appendChild(mask);
-      li.appendChild(el('span', 'intro-label', def.label));
-      li.appendChild(el('span', 'intro-note', def.note(ctx)));
-      list.appendChild(li);
-
-      rows.push({
-        def: def,
-        li: li,
-        mask: mask,
-        value: value,
-        target: roundSig(def.value(ctx), def.sig),
-        state: 0, // 0 waiting, 1 counting, 2 done
-        start: 0,
-        text: '0'
-      });
-    });
-
-    ticker.querySelector('.intro-ticker-label').textContent = TICKER_LABEL;
-    closer.textContent = CLOSER;
-  }
-
-  function startRow(row, now) {
-    row.state = 1;
-    row.start = now;
-    lastRowT = now;
-    row.li.classList.add('is-on');
-    row.mask.classList.add('is-in');
-    var i = rows.indexOf(row);
-    if (i > 0) {
-      rows[i - 1].li.classList.add('is-old');
-    }
-  }
-
   /*
-   * In a monospace face a comma takes a full character cell, which leaves wide gaps at this
-   * size. Each comma goes in an element that CSS makes narrower. The text is only digits and
-   * commas.
+   * The words change while the line is faded out: each phrase starts at least FADE_MS after
+   * the one before it has begun to fade.
    */
-  function setRowText(row, n) {
-    var text = thousands(n);
-    if (text !== row.text) {
-      row.text = text;
-      row.value.innerHTML = text.replace(/,/g, '<i class="intro-comma">,</i>');
+  function showPhrase() {
+    var index = -1;
+    var on = false;
+    if (fontsOpen && !finishing) {
+      for (var i = 0; i < PHRASES.length; i++) {
+        if (tl >= PHRASES[i].at && tl < PHRASES[i].at + SHOW_MS) {
+          index = i;
+          on = tl < PHRASES[i].at + SHOW_MS - FADE_MS;
+        }
+      }
     }
-  }
-
-  /*
-   * The count runs in log space: the number is target^s, with s rising from 0 to 1. The
-   * digit count grows at a steady rate and the leading digits settle near the end. A count
-   * that rose in a straight line would have its leading digits final almost at once.
-   */
-  function countRow(row, now) {
-    var f = clamp01((now - row.start) / COUNT_MS);
-    var s = 1 - Math.pow(1 - f, 3);
-    var v = row.target < 10 ? row.target * s : Math.pow(row.target, s) - 1;
-    setRowText(row, f >= 1 ? row.target : v);
-    if (f >= 1) {
-      row.state = 2;
-      row.li.classList.add('is-locked');
+    if (index !== phraseIndex && index !== -1) {
+      phrase.textContent = PHRASES[index].text;
     }
-  }
-
-  function finishRow(row, now) {
-    if (row.state === 0) {
-      startRow(row, now);
-    }
-    setRowText(row, row.target);
-    row.state = 2;
+    phraseIndex = index;
+    phrase.classList.toggle('is-on', on);
   }
 
   /* ---------- Waiting ---------- */
@@ -454,9 +272,6 @@
 
   function step(now) {
     var galaxy = window.JRGalaxy;
-    if (!visibleT) {
-      visibleT = now;
-    }
     var dt = lastT ? Math.min(50, now - lastT) : 16;
     lastT = now;
 
@@ -485,38 +300,7 @@
       galaxy.setProgress(p);
     }
 
-    var i, row;
-    for (i = 0; i < rows.length; i++) {
-      row = rows[i];
-      if (finishing) {
-        if (row.state < 2) {
-          finishRow(row, now);
-        }
-        continue;
-      }
-      if (row.state === 0) {
-        if (fontsOpen && p >= row.def.at && now - lastRowT >= ROW_GAP_MS) {
-          startRow(row, now);
-        } else {
-          break;
-        }
-      }
-      if (row.state === 1) {
-        countRow(row, now);
-      }
-    }
-
-    var tickerOn = finishing || p >= TICKER_AT;
-    ticker.classList.toggle('is-on', tickerOn && fontsOpen);
-    closer.classList.toggle('is-on', (finishing || p >= CLOSER_AT) && fontsOpen);
-    if (tickerOn) {
-      // Kilometres carried round the galaxy since the stage first showed, to the nearest 10.
-      var kmText = '~' + thousands(Math.round(SUN_KMS * (now - visibleT) / 10000) * 10) + ' km';
-      if (kmText !== tickerText) {
-        tickerText = kmText;
-        tickerValue.textContent = kmText;
-      }
-    }
+    showPhrase();
 
     bar.style.transform = 'scaleX(' + p.toFixed(4) + ')';
     if (galaxy && galaxy.count) {
@@ -533,13 +317,7 @@
     }
 
     if (p >= 1 && !exiting) {
-      var done = true;
-      for (i = 0; i < rows.length; i++) {
-        done = done && rows[i].state === 2;
-      }
-      if (done) {
-        exit();
-      }
+      exit();
     }
   }
 
@@ -563,9 +341,7 @@
     // First, so the head script's check sees it as early as possible.
     root.setAttribute('data-intro-alive', '1');
 
-    ctx = context();
     lockPage();
-    buildStage();
     startWaiting();
 
     stage.addEventListener('click', skip);
@@ -577,7 +353,7 @@
   }
 
   try {
-    if (!stage || !bar || !plotted || !ticker || !closer || !skipButton || !byId('intro-rows')) {
+    if (!stage || !bar || !plotted || !phrase || !skipButton) {
       throw new Error('stage markup is missing');
     }
     boot();

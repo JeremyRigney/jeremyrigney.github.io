@@ -118,7 +118,7 @@
 			second file depends on the first's custom properties.
 		-->
 		<link rel="stylesheet" href="assets/css/coal.css?v=20260929" />
-		<link rel="stylesheet" href="assets/css/home-coal.css?v=20260930a" />
+		<link rel="stylesheet" href="assets/css/home-coal.css?v=20260930b" />
 
 		<!--
 			Without JavaScript nothing ever adds .is-in, so every .reveal would sit at
@@ -150,20 +150,17 @@
 			Loading sequence stage. It is shown only while <html> has the class "intro" (see
 			the script in the head), so a visitor with no JavaScript or with reduced motion
 			never sees it. It has no background: the galaxy behind it is the real hero galaxy,
-			and home-intro.js passes that the progress. The rows are built by home-intro.js
-			from its DECK list. The numbers are hidden from assistive tech and the text
+			and home-intro.js passes that the progress. The status words come from the
+			PHRASES list in home-intro.js. They are hidden from assistive tech and the text
 			"Loading" is read out instead.
 		-->
 		<div class="preload" id="preload" hidden>
 			<p class="visually-hidden" role="status">Loading</p>
 			<div class="intro-top">
-				<span class="intro-today" id="intro-today" aria-hidden="true"></span>
 				<button class="intro-skip" id="intro-skip" type="button" aria-label="Skip the loading animation">Skip</button>
 			</div>
 			<div class="intro-stage" aria-hidden="true">
-				<ol class="intro-rows" id="intro-rows"></ol>
-				<p class="intro-ticker" id="intro-ticker"><span class="intro-ticker-label"></span> <span class="intro-ticker-value"></span></p>
-				<p class="intro-closer" id="intro-closer"></p>
+				<p class="intro-phrase" id="intro-phrase"></p>
 			</div>
 			<div class="intro-rail" aria-hidden="true">
 				<div class="intro-bar"><span id="intro-bar"></span></div>
@@ -520,7 +517,7 @@
 		</footer>
 
 		<script src="assets/js/home-coal.js?v=20260930a"></script>
-		<script src="assets/js/home-intro.js?v=20260930a"></script>
+		<script src="assets/js/home-intro.js?v=20260930b"></script>
 		<script src="assets/js/home-galaxy.js?v=20260930a"></script>
 		<script src="assets/js/home-sky.js?v=20260929"></script>
 	</body>

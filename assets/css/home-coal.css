@@ -542,7 +542,7 @@ html.intro .preload[hidden] {
 
 /* Not reachable by keyboard until it is shown. */
 .intro-skip {
-  margin: 0;
+  margin: 0 0 0 auto;
   padding: 0 0 0.2rem;
   font: inherit;
   letter-spacing: inherit;
@@ -573,150 +573,25 @@ html.intro .preload[hidden] {
   outline-offset: 4px;
 }
 
+/*
+ * One line of status text, in the place the headline takes afterwards. home-intro.js changes
+ * its words and turns .is-on on and off, and the opacity transition does the fading.
+ */
 .intro-stage {
-  margin-top: clamp(1.4rem, 5svh, 3rem);
+  margin-top: clamp(3rem, 12svh, 7rem);
 }
 
-/*
- * The rows stay in the left column. Their rules are the width of the column, so they do not
- * run across the galaxy.
- */
-.intro-rows {
-  max-width: min(40rem, 100%);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.intro-row {
-  padding: 0.9rem 0 1rem;
-  border-top: 1px solid var(--line);
-  opacity: 0;
-}
-
-.intro-row.is-on {
-  opacity: 1;
-  transition: opacity 400ms var(--ease);
-}
-
-/* The figure rises through the .line-mask from coal.css. The colour change is for the row
-   that has been passed by the next one. */
-.preload .line-mask > span {
-  transition: transform 600ms var(--ease), color 500ms var(--ease);
-}
-
-/*
- * The widest row is about 15 characters with the ~ and the unit, at 0.6em a character in a
- * monospace face. 9vw keeps it inside a 360px phone, 8svh stops five rows overflowing a
- * short window, and 4.4rem is the cap on a large screen.
- */
-.intro-figure {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: min(9vw, 4.4rem, 8svh);
-  line-height: 1.05;
-  letter-spacing: -0.01em;
-  color: var(--chalk);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.intro-row.is-old .intro-figure {
-  color: var(--ink-soft);
-}
-
-/* The comma keeps its own character cell. The margins pull the digits either side closer. */
-.intro-comma {
-  margin: 0 -0.15em;
-  font-style: normal;
-}
-
-.intro-prefix,
-.intro-unit {
-  color: var(--accent-soft);
-}
-
-.intro-prefix {
-  margin-right: 0.12em;
-  font-size: 0.6em;
-  vertical-align: 0.12em;
-}
-
-.intro-unit {
-  margin-left: 0.9em;
-  font-size: 0.3em;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.intro-label,
-.intro-note {
-  display: block;
-  font-family: var(--font-mono);
-}
-
-.intro-label {
-  margin-top: 0.5rem;
-  font-size: var(--fs-micro);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-.intro-note {
-  margin-top: 0.3rem;
-  font-size: 0.66rem;
-  letter-spacing: 0.06em;
-  color: var(--ink-soft);
-}
-
-/* The rule above a row flashes the accent colour when its count reaches its final value. */
-@keyframes intro-lock {
-  from {
-    border-top-color: var(--accent);
-  }
-  to {
-    border-top-color: var(--line);
-  }
-}
-
-.intro-row.is-locked {
-  animation: intro-lock 900ms var(--ease);
-}
-
-.intro-ticker,
-.intro-closer {
+.intro-phrase {
   margin: 0;
   font-family: var(--font-mono);
+  font-size: clamp(1.1rem, 3vw, 1.8rem);
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
   opacity: 0;
   transition: opacity 400ms var(--ease);
 }
 
-.intro-ticker {
-  margin-top: 1.1rem;
-  font-size: 0.72rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  font-variant-numeric: tabular-nums;
-}
-
-.intro-ticker-value {
-  color: var(--chalk);
-}
-
-.intro-closer {
-  margin-top: 0.6rem;
-  font-size: clamp(0.9rem, 2.4vw, 1.3rem);
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--accent-soft);
-}
-
-.intro-ticker.is-on,
-.intro-closer.is-on {
+.intro-phrase.is-on {
   opacity: 1;
 }
 
@@ -755,15 +630,8 @@ html.intro .preload[hidden] {
   font-variant-numeric: tabular-nums;
 }
 
-/* The exit: the figures sink back through their masks and the rest fades. */
-html.intro-out .preload .line-mask > span {
-  transform: translateY(105%);
-  transition-duration: 500ms;
-}
-
-html.intro-out .preload .intro-row,
-html.intro-out .preload .intro-ticker,
-html.intro-out .preload .intro-closer,
+/* The exit: everything on the stage fades. */
+html.intro-out .preload .intro-phrase,
 html.intro-out .preload .intro-top,
 html.intro-out .preload .intro-rail {
   opacity: 0;
@@ -806,48 +674,4 @@ html.intro.intro-out .galaxy-hud {
 /* Focus is moved here when the sequence ends, if it was on Skip. It is not a control. */
 .opening-title:focus {
   outline: none;
-}
-
-/*
- * Five rows do not fit a window this short with the notes and the usual spacing, which
- * pushes the rail off the bottom. The notes go and the spacing tightens.
- */
-@media (max-height: 560px) {
-  .intro-note {
-    display: none;
-  }
-
-  .intro-top {
-    padding-top: max(1.2rem, calc(env(safe-area-inset-top) + 0.6rem));
-  }
-
-  .intro-stage {
-    margin-top: 0.8rem;
-  }
-
-  .intro-row {
-    padding: 0.5rem 0 0.6rem;
-  }
-
-  .intro-label {
-    margin-top: 0.3rem;
-  }
-
-  .intro-ticker {
-    margin-top: 0.7rem;
-  }
-
-  .intro-closer {
-    margin-top: 0.4rem;
-  }
-
-  .intro-rail {
-    padding-bottom: max(1rem, calc(env(safe-area-inset-bottom) + 0.6rem));
-  }
-}
-
-@media (max-width: 700px) {
-  .intro-row {
-    padding: 0.7rem 0 0.8rem;
-  }
 }
