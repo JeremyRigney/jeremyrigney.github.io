@@ -9,8 +9,8 @@
  *
  * setupNav, setupReveals and setupCounters are lifted from speaking.js unchanged, so
  * the two internal pages reveal identically. Deliberately not home-coal.js: that file
- * also runs the intro overlay and the hide-the-header-over-the-hero behaviour, neither
- * of which belongs on a page you arrive at from a link.
+ * also runs the hide-the-header-over-the-hero behaviour, which does not belong on a
+ * page you arrive at from a link.
  *
  * Everything is gated on prefers-reduced-motion, read once below.
  */

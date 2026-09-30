@@ -5,6 +5,88 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Jeremy Rigney | Home</title>
 
+		<!--
+			Loading sequence switch. It adds the class "intro" to <html>, so the stage can be on
+			screen from the first paint and the page can be locked while it runs. The class is
+			left off under prefers-reduced-motion, with ?intro=0, and on back and forward
+			navigation. ?intro=1 forces the sequence, but not under reduced motion.
+
+			Two constants, both off:
+			  ONCE                       play once per tab session
+			  SKIP_ON_INTERNAL_REFERRER  skip when the visitor came from another page here
+
+			Watchdogs. home-intro.js sets data-intro-alive on <html> as soon as it runs. If that
+			is missing 2.5 s after DOMContentLoaded, or 4 s after this script, the stage is
+			removed. After 13 s it is removed whatever is happening. jrIntro.end also undoes
+			everything the sequence sets (inert, aria-busy, scroll restoration), so a failure
+			part way through cannot leave the page locked.
+		-->
+		<script>
+		(function () {
+			var root = document.documentElement;
+			var ONCE = false;
+			var SKIP_ON_INTERNAL_REFERRER = false;
+			var reduced = false;
+			var backForward = false;
+			var seen = false;
+			var internal = false;
+			var restoration = null;
+			var revealed = false;
+
+			try {
+				reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+				var nav = window.performance && performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+				backForward = !!(nav && nav.type === 'back_forward');
+				if (ONCE) { seen = sessionStorage.getItem('jr-intro') === '1'; }
+				if (SKIP_ON_INTERNAL_REFERRER && document.referrer) {
+					internal = new URL(document.referrer).origin === location.origin;
+				}
+			} catch (e) {}
+
+			var forced = /[?&]intro=1(&|$)/.test(location.search);
+			var off = /[?&]intro=0(&|$)/.test(location.search);
+			if (reduced || off || (!forced && (backForward || seen || internal))) { return; }
+
+			root.classList.add('intro');
+			try {
+				restoration = history.scrollRestoration;
+				history.scrollRestoration = 'manual';
+			} catch (e) {}
+
+			// Starts the hero's own reveals. Runs once.
+			function reveal() {
+				if (revealed) { return; }
+				revealed = true;
+				root.setAttribute('data-intro-revealed', '1');
+				try { document.dispatchEvent(new CustomEvent('intro:release')); } catch (e) {}
+			}
+
+			// Removes the stage and everything the sequence set. Safe to call more than once.
+			function end() {
+				reveal();
+				root.classList.remove('intro');
+				root.classList.remove('intro-out');
+				var marked = document.querySelectorAll('[data-intro-inert]');
+				for (var i = 0; i < marked.length; i++) {
+					marked[i].removeAttribute('inert');
+					marked[i].removeAttribute('aria-busy');
+					marked[i].removeAttribute('data-intro-inert');
+				}
+				try { if (restoration) { history.scrollRestoration = restoration; } } catch (e) {}
+				if (ONCE) { try { sessionStorage.setItem('jr-intro', '1'); } catch (e) {} }
+			}
+
+			window.jrIntro = { reveal: reveal, end: end };
+
+			function check() {
+				if (root.classList.contains('intro') && !root.hasAttribute('data-intro-alive')) { end(); }
+			}
+			document.addEventListener('DOMContentLoaded', function () { setTimeout(check, 2500); });
+			setTimeout(check, 4000);
+			setTimeout(function () { if (root.classList.contains('intro')) { end(); } }, 13000);
+		})();
+		</script>
+
 		<script type="application/ld+json">
 		{
 		  "@context": "https://schema.org",
@@ -36,7 +118,7 @@
 			second file depends on the first's custom properties.
 		-->
 		<link rel="stylesheet" href="assets/css/coal.css?v=20260929" />
-		<link rel="stylesheet" href="assets/css/home-coal.css?v=20260929f" />
+		<link rel="stylesheet" href="assets/css/home-coal.css?v=20260930d" />
 
 		<!--
 			Without JavaScript nothing ever adds .is-in, so every .reveal would sit at
@@ -65,35 +147,25 @@
 	<body>
 
 		<!--
-			Intro overlay. Ships hidden and is only unhidden by home-coal.js, so a
-			visitor with no JavaScript — or with prefers-reduced-motion set — never sees
-			it and lands straight on the page.
-
-			The glyph is a lunar disc with its crater rims, in the coordinate space the
-			Dunsink plate was annotated in: 1 unit = 1 lunar radius, disc centred at the
-			origin. Every rim is its own path so home-coal.js can draw the limb first and
-			then let the craters land one after another; a single path would draw all of
-			them at once, and the whole thing would read as scribble.
-
-			Two rings on the lower left are one crater, rim and floor, which is what
-			makes the set read as craters rather than as dots.
+			Loading sequence stage. It is shown only while <html> has the class "intro" (see
+			the script in the head), so a visitor with no JavaScript or with reduced motion
+			never sees it. It has no background: the galaxy behind it is the real hero galaxy,
+			and home-intro.js passes that the progress. The status words come from the
+			PHRASES list in home-intro.js. They are hidden from assistive tech and the text
+			"Loading" is read out instead.
 		-->
 		<div class="preload" id="preload" hidden>
-			<svg class="preload-glyph" viewBox="-1.12 -1.12 2.24 2.24" aria-hidden="true" focusable="false">
-				<path class="glyph-draw glyph-limb" d="M 1 0 A 1 1 0 0 1 -1 0 A 1 1 0 0 1 1 0" />
-				<path class="glyph-draw" d="M -0.04 0.42 A 0.26 0.26 0 0 1 -0.56 0.42 A 0.26 0.26 0 0 1 -0.04 0.42" />
-				<path class="glyph-draw" d="M 0.05 -0.1 A 0.17 0.17 0 0 1 -0.29 -0.1 A 0.17 0.17 0 0 1 0.05 -0.1" />
-				<path class="glyph-draw" d="M 0.46 -0.44 A 0.12 0.12 0 0 1 0.22 -0.44 A 0.12 0.12 0 0 1 0.46 -0.44" />
-				<path class="glyph-draw" d="M -0.17 0.42 A 0.13 0.13 0 0 1 -0.43 0.42 A 0.13 0.13 0 0 1 -0.17 0.42" />
-				<path class="glyph-draw" d="M 0.59 0.1 A 0.09 0.09 0 0 1 0.41 0.1 A 0.09 0.09 0 0 1 0.59 0.1" />
-				<path class="glyph-draw" d="M -0.43 -0.34 A 0.07 0.07 0 0 1 -0.57 -0.34 A 0.07 0.07 0 0 1 -0.43 -0.34" />
-				<path class="glyph-draw" d="M 0.3 0.56 A 0.06 0.06 0 0 1 0.18 0.56 A 0.06 0.06 0 0 1 0.3 0.56" />
-			</svg>
-			<div class="preload-bar" id="preload-bar"><span></span></div>
-			<p class="preload-meta">
-				<span>Jeremy Rigney</span>
-				<span class="preload-count" id="preload-count">0%</span>
-			</p>
+			<p class="visually-hidden" role="status">Loading</p>
+			<div class="intro-top">
+				<button class="intro-skip" id="intro-skip" type="button" aria-label="Skip the loading animation">Skip</button>
+			</div>
+			<div class="intro-stage" aria-hidden="true">
+				<ol class="intro-phrases" id="intro-phrases"></ol>
+			</div>
+			<div class="intro-rail" aria-hidden="true">
+				<div class="intro-bar"><span id="intro-bar"></span></div>
+				<p class="intro-plotted" id="intro-plotted"></p>
+			</div>
 		</div>
 
 		<!-- Header -->
@@ -444,8 +516,9 @@
 			</div>
 		</footer>
 
-		<script src="assets/js/home-coal.js?v=20260830"></script>
-		<script src="assets/js/home-galaxy.js?v=20260929e"></script>
+		<script src="assets/js/home-coal.js?v=20260930a"></script>
+		<script src="assets/js/home-intro.js?v=20260930d"></script>
+		<script src="assets/js/home-galaxy.js?v=20260930a"></script>
 		<script src="assets/js/home-sky.js?v=20260929"></script>
 	</body>
 </html>

@@ -29,8 +29,14 @@
  * its own if it turns out not to be (see FRAME_BUDGET_MS).
  *
  * Loaded separately from home-coal.js on purpose, as its predecessor was: this is
- * decoration, and if it throws, the header, the nav, the reveals and the intro overlay
- * all have to carry on without it. All of it is hidden from assistive tech.
+ * decoration, and if it throws, the header, the nav, the reveals and the loading
+ * sequence all have to carry on without it. All of it is hidden from assistive tech.
+ *
+ * While the loading sequence runs (class "intro" on <html>, see home-intro.js) the disc is
+ * drawn at its final size and angle from the first frame, and its stars switch on one by
+ * one as the sequence's progress rises. Nothing else about the galaxy changes and the
+ * seeded star data is not touched. window.JRGalaxy is how home-intro.js reads the star
+ * count and passes the progress in.
  */
 (function () {
   'use strict';
@@ -100,6 +106,19 @@
   // The build-up on load: the disc swells from 70% of its size and fades in.
   var REVEAL_MS = 2200;
 
+  /*
+   * The loading sequence. Each star has a birth value between 0 and BIRTH_END. It switches
+   * on when the sequence's progress passes that value, then spends ARRIVE_W of the progress
+   * twinkling (off for part of the time, on for more and more of it) before it stays on.
+   * Bright stars get low birth values and faint ones high values, so the count rises slowly
+   * at first and faster later. BIRTH_END + ARRIVE_W is 1, so every star is steady by the end.
+   * A twinkling star changes state TWINKLE_HZ times a second, at a phase of its own.
+   */
+  var ARRIVE_W = 0.08;
+  var BIRTH_END = 0.92;
+  var BIRTH_BINS = 512;
+  var TWINKLE_HZ = 9;
+
   // How close the pointer has to be to a catalogue star to pick it out, in CSS pixels.
   var HOVER_RADIUS = 22;
 
@@ -155,6 +174,42 @@
     return;
   }
 
+  /* ---------- Loading sequence ---------- */
+
+  var root = document.documentElement;
+  var introP = 0; // the sequence's progress, 0 to 1, set by home-intro.js
+  var readyFired = false;
+
+  function introOn() {
+    return root.classList.contains('intro');
+  }
+
+  function smoothstep(a, b, x) {
+    var t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+  }
+
+  window.JRGalaxy = {
+    ready: false,
+    count: 0,
+    setProgress: function (p) {
+      introP = Math.min(1, Math.max(0, p));
+    },
+    // Stars born so far. Some of them are between the arms and not drawn at a given moment.
+    lit: function () {
+      return litCount(introP);
+    }
+  };
+
+  // Set from the first frame the loop draws. The first render in build() has nothing in it.
+  function signalReady() {
+    readyFired = true;
+    window.JRGalaxy.ready = true;
+    try {
+      document.dispatchEvent(new CustomEvent('galaxy:ready'));
+    } catch (e) { /* no CustomEvent: the intro polls JRGalaxy.ready */ }
+  }
+
   var card = frame.querySelector('.galaxy-card');
   var reticle = frame.querySelector('.galaxy-reticle');
   var hud = frame.querySelector('.galaxy-hud');
@@ -183,12 +238,29 @@
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
   }
 
+  /*
+   * A number in [0, 1) that depends only on its two arguments. The loading sequence uses it
+   * for birth times and for twinkling. It must not draw from rand() above: that would shift
+   * the seeded sequence and change every star and every catalogue card.
+   */
+  function hash01(i, salt) {
+    var z = Math.imul(i + 1, 0x9E3779B1) ^ Math.imul(salt + 0x7F4A7C15, 0x85EBCA6B);
+    z ^= z >>> 15;
+    z = Math.imul(z, 0x2C1B3C6D);
+    z ^= z >>> 12;
+    z = Math.imul(z, 0x297A2D39);
+    z ^= z >>> 15;
+    return (z >>> 0) / 4294967296;
+  }
+
   /* ---------- The galaxy ---------- */
 
   var count = 0;
   var rad, th0, zed, omega, colour, tier; // per-star, typed arrays
   var phase0, dOmega, thr, lvl; // density-wave phase, drift, light-up threshold, level
   var dead; // stars that have gone supernova, and are no longer drawn
+  var birth; // loading sequence: the progress at which each star switches on
+  var birthCum; // cumulative count of birth values, in BIRTH_BINS bins over 0 to 1
   var px, py; // projected positions this frame, CSS pixels
   var buckets = []; // [colour * 3 + tier] -> Int32Array of star indices
   var named = []; // indices of catalogue stars
@@ -378,6 +450,62 @@
       tier[idx] = Math.max(tier[idx], 1);
       thr[idx] = Math.min(thr[idx], rand() * 0.25);
     });
+
+    computeBirths();
+  }
+
+  /*
+   * When each star switches on during the loading sequence. Catalogue stars come first
+   * because they are lit most of the time and so are the ones that show. Then the other
+   * bright stars, then the faint field, which is most of them. Runs after the catalogue is
+   * chosen, because it reads catalogue and tier.
+   */
+  function computeBirths() {
+    var n = count;
+    var bins = new Uint32Array(BIRTH_BINS + 1);
+    var i, u, b;
+
+    birth = new Float32Array(n);
+    for (i = 0; i < n; i++) {
+      u = hash01(i, 11);
+      if (catalogue[i]) {
+        b = u * 0.12;
+      } else if (tier[i] === 2) {
+        b = u * 0.45;
+      } else if (tier[i] === 1) {
+        b = 0.10 + u * 0.65;
+      } else {
+        b = 0.25 + u * (BIRTH_END - 0.25);
+      }
+      birth[i] = b;
+      bins[Math.min(BIRTH_BINS - 1, (b * BIRTH_BINS) | 0) + 1]++;
+    }
+
+    // bins[k] becomes the number of stars born before bin k.
+    for (i = 1; i <= BIRTH_BINS; i++) {
+      bins[i] += bins[i - 1];
+    }
+    birthCum = bins;
+    window.JRGalaxy.count = n;
+  }
+
+  /*
+   * Stars born at a given progress. A star counts from the middle of its twinkling, so the
+   * number never falls and equals the total once the progress reaches 1.
+   */
+  function litCount(p) {
+    if (!birthCum) {
+      return 0;
+    }
+    var x = (p - ARRIVE_W / 2) * BIRTH_BINS;
+    if (x <= 0) {
+      return 0;
+    }
+    if (x >= BIRTH_BINS) {
+      return count;
+    }
+    var k = x | 0;
+    return Math.round(birthCum[k] + (birthCum[k + 1] - birthCum[k]) * (x - k));
   }
 
   /* ---------- Sprites ---------- */
@@ -520,7 +648,21 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
-    var rev = reducedMotion ? 1 : easeOut(revealMs / REVEAL_MS);
+    /*
+     * During the loading sequence the disc does not fade or swell: rev stays at 1, so it is
+     * at its final size and angle from the first frame. What grows is the number of stars
+     * switched on. The haze and the core are the light of the stars too faint to see one
+     * by one, so they follow the share of stars that are on. The distance rings come in
+     * over the last third.
+     */
+    var intro = introOn();
+    var rev = (reducedMotion || intro) ? 1 : easeOut(revealMs / REVEAL_MS);
+    var glow = rev;
+    var rings = rev;
+    if (intro) {
+      glow = count ? Math.sqrt(litCount(introP) / count) : 0;
+      rings = smoothstep(0.7, 1, introP);
+    }
     var tilt = BASE_TILT + tiltOff;
     setView(tilt, baseRoll + roll, R * (0.7 + 0.3 * rev));
 
@@ -531,14 +673,14 @@
     ctx.translate(cx, cy);
     ctx.rotate(baseRoll + roll);
     ctx.scale(1, cT);
-    ctx.globalAlpha = rev;
+    ctx.globalAlpha = glow;
     var hz = scale * 2.3;
     ctx.drawImage(hazeSprite, -hz / 2, -hz / 2, hz, hz);
     var cs = scale * 0.95;
     ctx.drawImage(coreSprite, -cs / 2, -cs / 2, cs, cs);
     ctx.restore();
 
-    drawGraticule(rev);
+    drawGraticule(rings);
 
     /*
      * One pass over every star: work out how strongly the arm wave lights it, and if it
@@ -553,23 +695,48 @@
      * they are still there, just faint (level 2). Only the young hot stars go dark
      * (level 3), because they genuinely live and die within one arm crossing.
      */
-    var a0 = clock, i, a, r, x, y, crest, d;
+    var a0 = clock, i, a, r, x, y, crest, d, lv, u = 1;
     for (i = 0; i < count; i++) {
       if (dead[i]) {
         lvl[i] = 3;
         continue;
       }
+
+      // Loading sequence: a star that is not born yet costs nothing this frame.
+      if (intro) {
+        u = (introP - birth[i]) / ARRIVE_W;
+        if (u <= 0) {
+          lvl[i] = 3;
+          continue;
+        }
+      }
+
       crest = INTERARM + (1 - INTERARM)
         * Math.exp(ARM_SHARP * (Math.cos(2 * (phase0[i] + dOmega[i] * a0)) - 1));
       d = crest - thr[i];
       if (d < -0.16) {
-        if (colour[i] === C_TEAL) {
-          lvl[i] = 3;
-          continue;
-        }
-        lvl[i] = 2;
+        lv = colour[i] === C_TEAL ? 3 : 2;
       } else {
-        lvl[i] = d >= 0 ? 0 : 1;
+        lv = d >= 0 ? 0 : 1;
+      }
+
+      /*
+       * A star that is still arriving (u below 1) is off for part of the time. The share of
+       * time it is on rises with u. For the first half of its arrival it shows dim at most.
+       * A star never shows brighter than the arm wave lets it, and the faint level is left
+       * alone because it is nearly invisible anyway.
+       */
+      if (intro && u < 1 && lv < 3) {
+        if (hash01(i, (a0 * TWINKLE_HZ + i * 0.6180339887) | 0) > 0.15 + 0.85 * u) {
+          lv = 3;
+        } else if (u < 0.5 && lv < 1) {
+          lv = 1;
+        }
+      }
+
+      lvl[i] = lv;
+      if (lv === 3) {
+        continue;
       }
 
       r = rad[i];
@@ -728,7 +895,7 @@
         sn = -1;
         snNext = clock + SN_MIN_GAP - Math.log(1 - Math.random()) * SN_MEAN_GAP;
       }
-    } else if (clock >= snNext && revealMs > REVEAL_MS) {
+    } else if (clock >= snNext && revealMs > REVEAL_MS && !introOn()) {
       igniteSupernova();
     }
   }
@@ -921,11 +1088,14 @@
     var dt = lastTime ? Math.min(0.05, (now - lastTime) / 1000) : 1 / 60;
     lastTime = now;
 
+    var intro = introOn();
+
     clock += dt;
     revealMs += dt * 1000;
     stepSupernova(dt);
 
-    if (coarse) {
+    // The view stays put during the loading sequence. The sway starts when it ends.
+    if (coarse && !intro) {
       // A slow Lissajous sway in place of the pointer: one turn every ~40 s, one tip
       // every ~55 s, a third of the range the mouse gets. Enough to read as 3D.
       spinTarget = Math.sin(clock * 0.157) * SPIN_RANGE * 0.35;
@@ -941,11 +1111,21 @@
     var t0 = performance.now();
     render(now);
 
-    // Warm up before judging, then drop the faintest half once if it is struggling.
+    if (!readyFired) {
+      signalReady();
+    }
+
+    // Warm up before judging, then drop the faintest half once if it is struggling. The
+    // loading sequence is not judged: it has its own cost, and the warm-up starts again
+    // when it ends.
     smoothed += ((performance.now() - t0) - smoothed) * 0.05;
-    frames++;
-    if (!skipFaint && frames > 90 && smoothed > FRAME_BUDGET_MS) {
-      skipFaint = true;
+    if (intro) {
+      frames = 0;
+    } else {
+      frames++;
+      if (!skipFaint && frames > 90 && smoothed > FRAME_BUDGET_MS) {
+        skipFaint = true;
+      }
     }
 
     requestAnimationFrame(tick);
@@ -977,6 +1157,9 @@
   var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
 
   function onPointer(event) {
+    // The view stays put during the loading sequence.
+    if (introOn()) { return; }
+
     // The listener is on the window, so ignore it while the frame is scrolled away.
     if (!visible) { return; }
 
@@ -1058,6 +1241,11 @@
         start();
       }
 
+      // The loading sequence is waiting on the first frame, so do not wait for the observer.
+      if (introOn()) {
+        start();
+      }
+
       window.addEventListener('pointermove', onPointer, { passive: true });
       window.addEventListener('pointerdown', onPointer, { passive: true });
       document.documentElement.addEventListener('mouseleave', onLeave);
@@ -1086,9 +1274,17 @@
     });
   }
 
-  // Deferred past first paint: nothing is waiting for it and the intro overlay is up.
+  /*
+   * Deferred past first paint. Normally nothing is waiting for it, so it runs when the
+   * browser is idle. The loading sequence does wait for it, so then it runs after the next
+   * frame instead. A frame is still left for the first paint.
+   */
   function defer() {
-    if (window.requestIdleCallback) {
+    if (introOn()) {
+      window.requestAnimationFrame(function () {
+        window.setTimeout(build, 0);
+      });
+    } else if (window.requestIdleCallback) {
       window.requestIdleCallback(build, { timeout: 1200 });
     } else {
       window.setTimeout(build, 0);

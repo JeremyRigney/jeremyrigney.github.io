@@ -6,9 +6,9 @@
  *
  * setupNav, setupReveals and setupCounters are lifted from speaking.js unchanged — the
  * same lift dashboard-coal.js makes, and for the same reason: the three internal pages
- * must reveal identically. Deliberately not home-coal.js, which also runs the intro
- * overlay and the hide-the-header-over-the-hero behaviour, neither of which belongs on
- * a page you arrive at from a link.
+ * must reveal identically. Deliberately not home-coal.js, which also runs the
+ * hide-the-header-over-the-hero behaviour, which does not belong on a page you arrive
+ * at from a link.
  *
  * Everything is gated on prefers-reduced-motion, read once below: reveals fire
  * immediately instead of on intersection, and the counters snap to their final values.

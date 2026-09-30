@@ -5,7 +5,7 @@
  * the motion primitives, the header, the opening type, and the row grids that hang off
  * the margin spine — the record board among them, which moved there when /cv became
  * the second page to set one. Everything in this file is something only the homepage
- * has: the opening frame and its galaxy, the readout foot, and the intro overlay. It
+ * has: the opening frame and its galaxy, the readout foot, and the loading sequence. It
  * cannot be loaded on its own; every var() below is defined there.
  *
  * The constraints coal.css states hold here too: no card, no rounded corner (bar the
@@ -468,106 +468,255 @@
   }
 }
 
-/* ---------- Intro sequence ---------- */
+/* ---------- Loading sequence ---------- */
 
 /*
- * The overlay ships hidden and is only revealed by JS, so a visitor with no
- * JavaScript — or with prefers-reduced-motion set — never sees it at all and lands
- * straight on the page. home-coal.js tears it down on a hard 2.2s timeout regardless
- * of what the fonts are doing; a stalled webfont must never leave a blank screen.
+ * The stage for home-intro.js. It is on screen only while <html> has the class "intro",
+ * which the script in the head of index.html sets before first paint. Without that class
+ * (no JavaScript, reduced motion, ?intro=0, back and forward navigation) it never shows.
+ * The hidden attribute stays on it, so if this file fails to load the stage is not in the
+ * page either.
  *
- * The glyph is the lunar limb with the transit chord: the geometry of the photograph
- * this page used to open on, in the coordinate space that photograph was annotated in
- * (1 unit = 1 lunar radius, disc centred at the origin, the 737 at +0.364, -0.532).
- * It is the one thing the redesign keeps of it.
+ * It has no background. Behind it is the real hero galaxy, which home-galaxy.js lights star
+ * by star while the class is set. The rows sit in the left column, in the space the headline
+ * uses once the sequence is over.
  *
- * Only the homepage runs this. /speaking is entered from a link rather than as the
- * front door, and replaying a front-door sequence on an internal navigation is
- * friction, not atmosphere.
+ * Only the homepage has a loading sequence. The other pages are entered from a link.
  */
 .preload {
+  --intro-pad: clamp(1.4rem, 6vw, 7rem);
   position: fixed;
   inset: 0;
   z-index: 60;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2.4rem;
-  padding: 2rem;
-  background: var(--coal);
-  transition: opacity 700ms var(--ease), visibility 700ms;
+  overflow: hidden;
 }
 
+/*
+ * .preload sets display, which wins over the browser's rule for [hidden]. So the hidden
+ * state is restated here, and the class turns it back on.
+ */
 .preload[hidden] {
   display: none;
 }
 
-.preload.is-out {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.preload-glyph {
-  width: min(42vw, 30vh);
-  height: min(42vw, 30vh);
-  overflow: visible;
+html.intro .preload[hidden] {
+  display: flex;
 }
 
 /*
- * No vector-effect: non-scaling-stroke here, unlike the circuit glyphs on /f1. That
- * property moves the stroke into screen space — and the dash pattern with it — while
- * getTotalLength() keeps returning user units, so the draw-on that home-coal.js sets
- * up renders as a ring of dashes instead of one advancing line. The widths below are
- * in user units instead: the viewBox is 2.24 across, so these land at roughly a
- * hairline and thin with the glyph on a small screen, which is the right behaviour
- * for something this size anyway.
+ * The same side margins as the opening frame's copy (.opening > .wrap), so the rows start
+ * where the headline starts.
  */
-.preload-glyph path {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 0.011;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.preload > :not(.visually-hidden) {
+  width: 100%;
+  max-width: 1680px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: max(var(--intro-pad), env(safe-area-inset-left));
+  padding-right: max(var(--intro-pad), env(safe-area-inset-right));
 }
 
-/* The limb carries the shape, so it is drawn a step heavier than the rims inside it. */
-.glyph-limb {
-  stroke-width: 0.016;
-}
-
-.preload-meta {
+/*
+ * Text is kept hidden until the fonts are in (the stage gets .fonts-ready), so the numbers
+ * are never drawn in the fallback face and then change width.
+ */
+.intro-top {
   display: flex;
   align-items: baseline;
-  gap: 1.4rem;
-  margin: 0;
+  justify-content: space-between;
+  padding-top: max(3.2rem, calc(env(safe-area-inset-top) + 1.6rem));
   font-family: var(--font-mono);
   font-size: var(--fs-micro);
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--ink-faint);
+  opacity: 0;
+  transition: opacity 400ms var(--ease);
 }
 
-.preload-count {
-  min-width: 4ch;
-  font-size: 1.05rem;
-  letter-spacing: 0.04em;
+.preload.fonts-ready .intro-top {
+  opacity: 1;
+}
+
+/* Not reachable by keyboard until it is shown. */
+.intro-skip {
+  margin: 0 0 0 auto;
+  padding: 0 0 0.2rem;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: var(--ink-soft);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid rgba(var(--accent-rgb), 0.6);
+  cursor: pointer;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 300ms var(--ease), color 200ms var(--ease), border-color 200ms var(--ease);
+}
+
+.intro-skip.is-on {
+  visibility: visible;
+  opacity: 1;
+}
+
+.intro-skip:hover,
+.intro-skip:focus-visible {
   color: var(--chalk);
-  font-variant-numeric: tabular-nums;
+  border-bottom-color: var(--accent);
 }
 
-/* A hairline that fills with the same fraction the counter is showing. */
-.preload-bar {
-  width: min(42vw, 30vh);
+.intro-skip:focus-visible {
+  outline: 1px solid var(--accent-soft);
+  outline-offset: 4px;
+}
+
+/*
+ * The status lines, in the place the headline takes afterwards. They are set like the rows of
+ * .index-list: a hairline, a small mono number and a serif line. Fraunces is otherwise only
+ * for chapter titles. This is the one other place it is used, and it uses the same settings.
+ * home-intro.js adds each line in turn below the last and turns .is-on on when its time
+ * comes. The newest is brightest.
+ */
+.intro-stage {
+  margin-top: clamp(3rem, 12svh, 7rem);
+}
+
+.intro-phrases {
+  max-width: min(34rem, 100%);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.intro-phrase {
+  display: grid;
+  grid-template-columns: 3.2rem minmax(0, 1fr);
+  align-items: baseline;
+  padding: 1.1rem 0 1.2rem;
+  border-top: 1px solid transparent;
+  opacity: 0;
+  transition: opacity 600ms var(--ease), border-color 600ms var(--ease);
+}
+
+.intro-phrase.is-on {
+  opacity: 1;
+  border-top-color: var(--line);
+}
+
+.intro-phrase-index {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: var(--accent-soft);
+}
+
+.intro-phrase-text {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(1.7rem, 4.6vw, 3.2rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--ink-faint);
+  transition: color 600ms var(--ease);
+}
+
+.intro-phrase.is-new .intro-phrase-text {
+  color: var(--chalk);
+}
+
+@media (max-width: 700px) {
+  .intro-phrase {
+    grid-template-columns: 1fr;
+    row-gap: 0.5rem;
+  }
+
+  .intro-phrase-text {
+    font-size: clamp(1.6rem, 8vw, 2.2rem);
+  }
+}
+
+.intro-rail {
+  margin-top: auto;
+  padding-bottom: max(2.4rem, calc(env(safe-area-inset-bottom) + 1.2rem));
+  opacity: 0;
+  transition: opacity 400ms var(--ease);
+}
+
+.preload.fonts-ready .intro-rail {
+  opacity: 1;
+}
+
+.intro-bar {
   height: 1px;
   background: var(--line);
 }
 
-.preload-bar span {
+.intro-bar span {
   display: block;
   height: 100%;
   background: var(--accent);
-  transform: scaleX(var(--p, 0));
+  transform: scaleX(0);
   transform-origin: left center;
+}
+
+.intro-plotted {
+  margin: 0.9rem 0 0;
+  min-height: 1em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The exit: everything on the stage fades. */
+html.intro-out .preload .intro-phrase,
+html.intro-out .preload .intro-phrase.is-on,
+html.intro-out .preload .intro-top,
+html.intro-out .preload .intro-rail {
+  opacity: 0;
+  transition: opacity 350ms var(--ease);
+}
+
+/*
+ * The page while the sequence runs. It cannot scroll. The scrollbar gutter is kept, because
+ * without it a 15px scrollbar would go and come back, which moves the headline column and
+ * stretches the galaxy's canvas by about 1%. The galaxy layer is shown at once, because the
+ * stars fade in one by one and a fade on the layer would hide that.
+ *
+ * .scroll-hint, .galaxy-explore and .galaxy-hud are not .reveal, so nothing else holds them
+ * back. They come in as the numbers leave.
+ */
+html.intro {
+  overflow: hidden;
+  overscroll-behavior: none;
+  scrollbar-gutter: stable;
+}
+
+html.intro .galaxy {
+  opacity: var(--galaxy-strength);
+  transition: none;
+}
+
+html.intro .scroll-hint,
+html.intro .galaxy-explore,
+html.intro .galaxy-hud {
+  opacity: 0;
+}
+
+html.intro.intro-out .scroll-hint,
+html.intro.intro-out .galaxy-explore,
+html.intro.intro-out .galaxy-hud {
+  opacity: 1;
+  transition: opacity 700ms var(--ease) 300ms;
+}
+
+/* Focus is moved here when the sequence ends, if it was on Skip. It is not a control. */
+.opening-title:focus {
+  outline: none;
 }
