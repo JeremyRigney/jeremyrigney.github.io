@@ -22,6 +22,14 @@
  *                      or 0, is not drawn in this band at all.
  *
  * Only the optical band exists for now.
+ *
+ * Overlays are different: they add to whichever band is showing rather than replace
+ * it, and each can be switched on or off on its own. An overlay has:
+ *   id, label, range   what its toggle shows
+ *   colour             RGB (0-1) of the emission
+ *   gain               its brightness
+ *   dimStars           how far the stars are dimmed while it is on, so a faint
+ *                      emission reads over them, as in a narrowband composite
  */
 window.GalaxyBands = (function () {
   'use strict';
@@ -98,11 +106,27 @@ window.GalaxyBands = (function () {
     }
   ];
 
+  /* ---------- Overlays ---------- */
+
+  var OVERLAYS = [
+    {
+      // The Balmer line at 656.3 nm: hydrogen recombining around young hot stars.
+      // Where it lies is the model's (GalaxyModel.halpha); this is how it is drawn.
+      id: 'halpha',
+      label: 'Hα',
+      range: '656 nm',
+      colour: [1, 0.16, 0.2],
+      gain: 0.9,
+      dimStars: 0.7
+    }
+  ];
+
   var byId = {};
   BANDS.forEach(function (b) { byId[b.id] = b; });
 
   return {
     list: function () { return BANDS.slice(); },
-    get: function (id) { return byId[id] || BANDS[0]; }
+    get: function (id) { return byId[id] || BANDS[0]; },
+    overlays: function () { return OVERLAYS.slice(); }
   };
 })();

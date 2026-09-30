@@ -31,7 +31,8 @@ DESIGN SYSTEM ("coal")
 
   eclipse, f1 and galaxy keep their own stylesheets on purpose. galaxy is three
   scripts: galaxy-model.js (the physics, shared constants with home-galaxy.js),
-  galaxy-bands.js (what each viewing wavelength shows) and galaxy-view.js (WebGL2).
+  galaxy-bands.js (what each viewing wavelength shows, and overlays such as H-alpha)
+  and galaxy-view.js (WebGL2).
 
 LEGACY
 

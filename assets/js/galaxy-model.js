@@ -42,6 +42,8 @@
  *     much of it lies between the camera and each star.
  *   - Faint stars that only come out as the view zooms in, as a longer exposure would
  *     show them.
+ *   - Ionised hydrogen, as numbers like the dust: HALPHA lays out where the gas glows
+ *     at 656 nm, for the H-alpha overlay (see galaxy-bands.js).
  *
  * Every point carries three vec4s, the same layout for every population, so one shader
  * program draws them all:
@@ -98,6 +100,34 @@ window.GalaxyModel = (function () {
    * than the arms. scale is its exponential radius; inner and outer where it ends.
    */
   var DUST = { tau: 1.2, lead: 0.2, sharp: 6, scale: 0.45, inner: 0.07, outer: 1.3 };
+
+  /*
+   * Where hydrogen is ionised by young stars and glows in H-alpha, modelled on M94
+   * (NGC 4736): most of it in a bright, clumpy starburst ring just outside the bulge,
+   * a faint glow on the nucleus, and fainter HII regions along the arms.
+   *
+   * Rings like M94's gather at an inner Lindblad resonance, where gas driven inward by
+   * a bar or oval stalls. This model's arm pattern turns too slowly to have one (the
+   * rotation curve's Omega - kappa/2 is below the pattern speed at every radius), so the
+   * ring is placed by hand, as if set by an inner oval too weak to show in the stars:
+   * which is M94's picture, where the oval is hard to see and the ring is not.
+   *
+   *   ring        radius (disc radii; 0.1 is 1.5 kpc), width of the knotted band (a
+   *               smooth haze runs about 2.5 times wider), axis ratio of the oval, the
+   *               oval's angle, and its strength
+   *   clump       how much of the ring is broken into knots (0 smooth, 1 all knots)
+   *   nucleus     strength and radius of the glow on the centre
+   *   arms        strength of the arm HII regions, how far downstream of the stellar
+   *               crest they sit (phase), and how narrow they are
+   *   thickness   scale height of the glowing layer
+   */
+  var HALPHA = {
+    ring: { r: 0.1, width: 0.016, axis: 0.85, angle: 0.6, gain: 0.42 },
+    clump: 0.75,
+    nucleus: { gain: 0.3, r: 0.045 },
+    arms: { gain: 0.14, lag: 0.09, sharp: 6 },
+    thickness: 0.009
+  };
 
   /*
    * The stellar disc: the hero's exponential (scale 0.55 from 0.05), but tapering off
@@ -617,6 +647,7 @@ window.GalaxyModel = (function () {
     params: P,
     warp: WARP,
     dust: DUST,
+    halpha: HALPHA,
     PATTERN_SPEED: PATTERN_SPEED,
     build: build,
     evaluate: evaluate,
