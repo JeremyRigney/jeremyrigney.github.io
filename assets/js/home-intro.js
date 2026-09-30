@@ -134,7 +134,14 @@
     PHRASES.forEach(function (def) {
       var li = document.createElement('li');
       li.className = 'intro-phrase';
-      li.textContent = def.text;
+      var index = document.createElement('span');
+      index.className = 'intro-phrase-index';
+      index.textContent = '0' + (phraseLines.length + 1);
+      var text = document.createElement('span');
+      text.className = 'intro-phrase-text';
+      text.textContent = def.text;
+      li.appendChild(index);
+      li.appendChild(text);
       phraseList.appendChild(li);
       phraseLines.push(li);
     });
@@ -173,7 +180,7 @@
     try {
       var faces = [
         '400 1em "Chivo Mono"', '500 1em "Chivo Mono"', '600 1em "Chivo Mono"',
-        '700 1em "Chivo Mono"', '400 1em "Inter"'
+        '700 1em "Chivo Mono"', '400 1em "Inter"', '300 1em "Fraunces"'
       ];
       Promise.all(faces.map(function (face) {
         return document.fonts.load(face);

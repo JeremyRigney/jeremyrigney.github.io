@@ -574,35 +574,69 @@ html.intro .preload[hidden] {
 }
 
 /*
- * The status lines, in the place the headline takes afterwards. home-intro.js adds each one in
- * turn below the last and turns .is-on on when its time comes. The newest is brightest.
+ * The status lines, in the place the headline takes afterwards. They are set like the rows of
+ * .index-list: a hairline, a small mono number and a serif line. Fraunces is otherwise only
+ * for chapter titles. This is the one other place it is used, and it uses the same settings.
+ * home-intro.js adds each line in turn below the last and turns .is-on on when its time
+ * comes. The newest is brightest.
  */
 .intro-stage {
   margin-top: clamp(3rem, 12svh, 7rem);
 }
 
 .intro-phrases {
+  max-width: min(34rem, 100%);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .intro-phrase {
-  margin: 0 0 0.9rem;
-  font-family: var(--font-mono);
-  font-size: clamp(1.1rem, 3vw, 1.8rem);
-  letter-spacing: 0.02em;
-  color: var(--ink-faint);
+  display: grid;
+  grid-template-columns: 3.2rem minmax(0, 1fr);
+  align-items: baseline;
+  padding: 1.1rem 0 1.2rem;
+  border-top: 1px solid transparent;
   opacity: 0;
-  transition: opacity 600ms var(--ease), color 600ms var(--ease);
+  transition: opacity 600ms var(--ease), border-color 600ms var(--ease);
 }
 
 .intro-phrase.is-on {
   opacity: 1;
+  border-top-color: var(--line);
 }
 
-.intro-phrase.is-new {
-  color: var(--ink-soft);
+.intro-phrase-index {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: var(--accent-soft);
+}
+
+.intro-phrase-text {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(1.7rem, 4.6vw, 3.2rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--ink-faint);
+  transition: color 600ms var(--ease);
+}
+
+.intro-phrase.is-new .intro-phrase-text {
+  color: var(--chalk);
+}
+
+@media (max-width: 700px) {
+  .intro-phrase {
+    grid-template-columns: 1fr;
+    row-gap: 0.5rem;
+  }
+
+  .intro-phrase-text {
+    font-size: clamp(1.6rem, 8vw, 2.2rem);
+  }
 }
 
 .intro-rail {
