@@ -11,7 +11,7 @@
  *   2. Runs a progress value p from 0 to 1 and passes it to the galaxy, which switches its
  *      stars on as p rises. p follows a fixed timeline. Until the two waits are over it is
  *      held at a ceiling, and the timeline stops with it.
- *   3. Fades a line of status text in and out, one phrase after another (PHRASES below).
+ *   3. Adds lines of status text one below the other (PHRASES below).
  *   4. At p = 1 fades the stage out and lets the hero's own reveals start.
  *
  * It fails open. If this file throws, or the page is left waiting, the watchdogs in the head
@@ -28,27 +28,25 @@
   }
 
   /*
-   * The status text. Each phrase starts at `at` ms on the timeline and shows for SHOW_MS:
-   * FADE_MS to fade in, the rest held, and the last FADE_MS fading out. The timeline stops
-   * while the sequence waits on fonts or the galaxy, so a slow load holds the current phrase.
+   * The status text. Each phrase is added below the last when the timeline reaches `at` (ms),
+   * fades in, and stays until the stage ends. The timeline stops while the sequence waits on
+   * fonts or the galaxy, so a slow load holds the lines already shown.
    */
   var PHRASES = [
-    { at: 300, text: 'Building universe' },
-    { at: 1700, text: 'Collecting photons' },
-    { at: 3100, text: 'Focusing telescope' }
+    { at: 500, text: 'Building universe' },
+    { at: 2900, text: 'Collecting photons' },
+    { at: 5300, text: 'Focusing telescope' }
   ];
-  var SHOW_MS = 1300;
-  var FADE_MS = 400;
 
   /* ---------- Timing ---------- */
 
-  var TIMELINE_MS = 4600; // how long p takes to reach 1 when nothing holds it back
+  var TIMELINE_MS = 7400; // how long p takes to reach 1 when nothing holds it back
   var TIMELINE_POWER = 1.5; // above 1: slow at the start, faster later
   var FONT_CAP_MS = 900;
   var GALAXY_CAP_MS = 1500;
   var CEIL_FONTS = 0.05; // p is held here until the fonts are ready
   var CEIL_GALAXY = 0.5; // and here until the galaxy has drawn a frame
-  var HARD_CAP_MS = 6000; // after this the sequence finishes whatever it is waiting for
+  var HARD_CAP_MS = 9500; // after this the sequence finishes whatever it is waiting for
   var CAP_FINISH_MS = 400;
   var SKIP_FINISH_MS = 250;
   var REVEAL_AT_MS = 250; // into the exit, the hero's own reveals start
@@ -100,7 +98,7 @@
   var stage = byId('preload');
   var bar = byId('intro-bar');
   var plotted = byId('intro-plotted');
-  var phrase = byId('intro-phrase');
+  var phraseList = byId('intro-phrases');
   var skipButton = byId('intro-skip');
 
   var fontsOpen = false;
@@ -116,7 +114,7 @@
   var exiting = false;
   var skipShown = false;
   var plottedText = '';
-  var phraseIndex = -1;
+  var phraseLines = [];
 
   /* ---------- Stage ---------- */
 
@@ -132,26 +130,29 @@
     }
   }
 
-  /*
-   * The words change while the line is faded out: each phrase starts at least FADE_MS after
-   * the one before it has begun to fade.
-   */
-  function showPhrase() {
-    var index = -1;
-    var on = false;
-    if (fontsOpen && !finishing) {
-      for (var i = 0; i < PHRASES.length; i++) {
-        if (tl >= PHRASES[i].at && tl < PHRASES[i].at + SHOW_MS) {
-          index = i;
-          on = tl < PHRASES[i].at + SHOW_MS - FADE_MS;
+  function buildPhrases() {
+    PHRASES.forEach(function (def) {
+      var li = document.createElement('li');
+      li.className = 'intro-phrase';
+      li.textContent = def.text;
+      phraseList.appendChild(li);
+      phraseLines.push(li);
+    });
+  }
+
+  // A line fades in when its time comes. The one before it dims.
+  function showPhrases() {
+    if (!fontsOpen || finishing) {
+      return;
+    }
+    for (var i = 0; i < PHRASES.length; i++) {
+      if (tl >= PHRASES[i].at && !phraseLines[i].classList.contains('is-on')) {
+        phraseLines[i].classList.add('is-on', 'is-new');
+        if (i > 0) {
+          phraseLines[i - 1].classList.remove('is-new');
         }
       }
     }
-    if (index !== phraseIndex && index !== -1) {
-      phrase.textContent = PHRASES[index].text;
-    }
-    phraseIndex = index;
-    phrase.classList.toggle('is-on', on);
   }
 
   /* ---------- Waiting ---------- */
@@ -300,7 +301,7 @@
       galaxy.setProgress(p);
     }
 
-    showPhrase();
+    showPhrases();
 
     bar.style.transform = 'scaleX(' + p.toFixed(4) + ')';
     if (galaxy && galaxy.count) {
@@ -342,6 +343,7 @@
     root.setAttribute('data-intro-alive', '1');
 
     lockPage();
+    buildPhrases();
     startWaiting();
 
     stage.addEventListener('click', skip);
@@ -353,7 +355,7 @@
   }
 
   try {
-    if (!stage || !bar || !plotted || !phrase || !skipButton) {
+    if (!stage || !bar || !plotted || !phraseList || !skipButton) {
       throw new Error('stage markup is missing');
     }
     boot();

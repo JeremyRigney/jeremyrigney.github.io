@@ -574,25 +574,35 @@ html.intro .preload[hidden] {
 }
 
 /*
- * One line of status text, in the place the headline takes afterwards. home-intro.js changes
- * its words and turns .is-on on and off, and the opacity transition does the fading.
+ * The status lines, in the place the headline takes afterwards. home-intro.js adds each one in
+ * turn below the last and turns .is-on on when its time comes. The newest is brightest.
  */
 .intro-stage {
   margin-top: clamp(3rem, 12svh, 7rem);
 }
 
-.intro-phrase {
+.intro-phrases {
   margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.intro-phrase {
+  margin: 0 0 0.9rem;
   font-family: var(--font-mono);
   font-size: clamp(1.1rem, 3vw, 1.8rem);
   letter-spacing: 0.02em;
-  color: var(--ink-soft);
+  color: var(--ink-faint);
   opacity: 0;
-  transition: opacity 400ms var(--ease);
+  transition: opacity 600ms var(--ease), color 600ms var(--ease);
 }
 
 .intro-phrase.is-on {
   opacity: 1;
+}
+
+.intro-phrase.is-new {
+  color: var(--ink-soft);
 }
 
 .intro-rail {
@@ -632,6 +642,7 @@ html.intro .preload[hidden] {
 
 /* The exit: everything on the stage fades. */
 html.intro-out .preload .intro-phrase,
+html.intro-out .preload .intro-phrase.is-on,
 html.intro-out .preload .intro-top,
 html.intro-out .preload .intro-rail {
   opacity: 0;

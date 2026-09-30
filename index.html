@@ -17,7 +17,7 @@
 
 			Watchdogs. home-intro.js sets data-intro-alive on <html> as soon as it runs. If that
 			is missing 2.5 s after DOMContentLoaded, or 4 s after this script, the stage is
-			removed. After 9 s it is removed whatever is happening. jrIntro.end also undoes
+			removed. After 13 s it is removed whatever is happening. jrIntro.end also undoes
 			everything the sequence sets (inert, aria-busy, scroll restoration), so a failure
 			part way through cannot leave the page locked.
 		-->
@@ -83,7 +83,7 @@
 			}
 			document.addEventListener('DOMContentLoaded', function () { setTimeout(check, 2500); });
 			setTimeout(check, 4000);
-			setTimeout(function () { if (root.classList.contains('intro')) { end(); } }, 9000);
+			setTimeout(function () { if (root.classList.contains('intro')) { end(); } }, 13000);
 		})();
 		</script>
 
@@ -118,7 +118,7 @@
 			second file depends on the first's custom properties.
 		-->
 		<link rel="stylesheet" href="assets/css/coal.css?v=20260929" />
-		<link rel="stylesheet" href="assets/css/home-coal.css?v=20260930b" />
+		<link rel="stylesheet" href="assets/css/home-coal.css?v=20260930c" />
 
 		<!--
 			Without JavaScript nothing ever adds .is-in, so every .reveal would sit at
@@ -160,7 +160,7 @@
 				<button class="intro-skip" id="intro-skip" type="button" aria-label="Skip the loading animation">Skip</button>
 			</div>
 			<div class="intro-stage" aria-hidden="true">
-				<p class="intro-phrase" id="intro-phrase"></p>
+				<ol class="intro-phrases" id="intro-phrases"></ol>
 			</div>
 			<div class="intro-rail" aria-hidden="true">
 				<div class="intro-bar"><span id="intro-bar"></span></div>
@@ -517,7 +517,7 @@
 		</footer>
 
 		<script src="assets/js/home-coal.js?v=20260930a"></script>
-		<script src="assets/js/home-intro.js?v=20260930b"></script>
+		<script src="assets/js/home-intro.js?v=20260930c"></script>
 		<script src="assets/js/home-galaxy.js?v=20260930a"></script>
 		<script src="assets/js/home-sky.js?v=20260929"></script>
 	</body>
