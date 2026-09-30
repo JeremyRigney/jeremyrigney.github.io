@@ -24,6 +24,12 @@ DESIGN SYSTEM ("coal")
   assets/css/{cv,speaking,dashboard-coal,blog,notfound}.css   per-page additions
   assets/css/noscript-coal.css  no-JavaScript fallback for every coal page
   assets/js/site-nav.js         shared mobile nav, scroll reveals, footer year
+  assets/js/home-intro.js       homepage loading sequence: stars light up over the hero galaxy
+                                while numbers worked out from the visitor's clock count up.
+                                The numbers are the DECK list at the top of the file. The
+                                switches (ONCE, SKIP_ON_INTERNAL_REFERRER) are in the script
+                                in the head of index.html. ?intro=0 skips it and ?intro=1
+                                forces it. Reduced motion never plays it.
 
   Dark only. Chivo Mono for UI, Fraunces for chapter titles, Inter for prose. One sage
   accent. No cards, no rounded corners, no shadows. The token values are listed at the

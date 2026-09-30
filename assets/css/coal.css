@@ -21,7 +21,7 @@
  * This file holds only what more than one page uses: the tokens, the motion
  * primitives, the header, the opening type, and the row grids that hang off the
  * margin spine. Anything a single page owns lives beside it — home-coal.css has the
- * homepage's opening frame, shimmer and intro overlay; speaking.css has the talk map
+ * homepage's opening frame, shimmer and loading sequence; speaking.css has the talk map
  * and the filter rail; dashboard-coal.css has the X-ray trace behind the opening, the
  * panel rows the widgets sit in and the Leaflet overrides; cv.css has the career
  * timeline, the bullets under a record row and the publication rows. Load this file
@@ -55,12 +55,12 @@
   /*
    * Spa's colour in three tones, the same contract f1.css:31-37 sets out. Ratios are
    * measured against the coal ground (relative luminance 0.00602):
-   *   --accent-deep  #5A7566  3.7:1  large fills, the intro glyph
+   *   --accent-deep  #5A7566  3.7:1  large fills
    *   --accent       #6E8A78  5.0:1  rules, borders, hover
    *   --accent-soft  #7E9C89  6.2:1  accent text — figures, the brand dot, numbers
    * Anything that carries words uses --accent-soft. Anything that is a line uses
-   * --accent. Nothing on these pages is large enough to need --accent-deep except the
-   * overlay glyph, which is one stroke on an otherwise empty screen.
+   * --accent. Nothing on these pages is large enough to need --accent-deep at the moment.
+   * It is kept as the token for large fills.
    */
   --accent-deep: #5a7566;
   --accent: #6e8a78;

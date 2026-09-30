@@ -5,8 +5,8 @@
  * the counting rail, and the filter on the full record. The map is a separate concern
  * and lives in speaking-map.js.
  *
- * Deliberately not home-coal.js. That file also runs the intro overlay and the
- * hide-the-header-over-the-hero behaviour, neither of which belongs on an internal
+ * Deliberately not home-coal.js. That file also runs the
+ * hide-the-header-over-the-hero behaviour, which does not belong on an internal
  * page; setupNav and setupReveals below are lifted from it unchanged so the two pages
  * reveal identically.
  *
