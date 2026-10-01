@@ -36,7 +36,7 @@
  * drawn at its final size and angle from the first frame, and its stars switch on one by
  * one as the sequence's progress rises. Nothing else about the galaxy changes and the
  * seeded star data is not touched. window.JRGalaxy is how home-intro.js reads the star
- * count and passes the progress in.
+ * count and passes the progress in, and how home-ship.js finds the core.
  */
 (function () {
   'use strict';
@@ -198,6 +198,11 @@
     // Stars born so far. Some of them are between the arms and not drawn at a given moment.
     lit: function () {
       return litCount(introP);
+    },
+    // Where the core is drawn, in CSS pixels from the top left of the opening frame.
+    // home-ship.js flies its ship into it. ready is false until the first resize().
+    core: function () {
+      return { x: cx, y: cy, ready: count > 0 };
     }
   };
 

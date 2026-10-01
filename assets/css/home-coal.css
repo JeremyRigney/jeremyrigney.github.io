@@ -273,6 +273,56 @@
   border-bottom-color: var(--accent);
 }
 
+/* ---------- The ship ---------- */
+
+/*
+ * A one-off fly-by, a few seconds after load: home-ship.js adds this layer, flies a small
+ * ship across the headline into the galaxy's core, and removes it again. It sits above
+ * the copy (z-index 1) on purpose, since crossing the headline is the point, and takes
+ * no pointer events, so nothing under it stops being clickable. The canvas carries the
+ * engine trail and the glint at the end; the ship is SVG, moved by transform only.
+ */
+.ship-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ship-layer canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.ship {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  will-change: transform, opacity;
+  filter: drop-shadow(0 0 3px rgba(var(--galaxy-teal-rgb), 0.55));
+}
+
+.ship .ship-teal { fill: rgb(var(--galaxy-teal-rgb)); }
+.ship .ship-teal-stop { stop-color: rgb(var(--galaxy-teal-rgb)); }
+.ship .ship-teal-line { stroke: rgba(var(--galaxy-teal-rgb), 0.8); }
+.ship .ship-edge { stroke: rgba(17, 18, 20, 0.7); stroke-width: 0.7; stroke-linejoin: round; }
+
+/* The exhaust flickers, anchored at the engines so only its length changes. */
+.ship-flames {
+  transform-box: fill-box;
+  transform-origin: 100% 50%;
+  animation: ship-flicker 90ms steps(2) infinite alternate;
+}
+
+@keyframes ship-flicker {
+  from { transform: scaleX(0.78); opacity: 0.85; }
+  to { transform: scaleX(1.08); opacity: 1; }
+}
+
 /* ---------- The shimmer, kept for /404 ---------- */
 
 /*
@@ -349,6 +399,11 @@
   .galaxy-reticle,
   .galaxy-card {
     transition: none;
+  }
+
+  /* home-ship.js never adds it under reduced motion; this is belt and braces. */
+  .ship-layer {
+    display: none;
   }
 }
 
