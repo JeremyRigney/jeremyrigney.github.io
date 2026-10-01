@@ -1,0 +1,108 @@
+/*
+ * jeremy.ie — the cookie consent card (see assets/js/consent.js).
+ *
+ * Loaded on every page, and those pages do not share a stylesheet, so this cannot lean
+ * on coal.css custom properties: the coal palette and easing are written out here.
+ * Everything is scoped under #jr-consent so none of it reaches the page.
+ */
+
+#jr-consent {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 1000; /* above the home intro stage */
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: min(440px, calc(100vw - 32px));
+  margin: 0;
+  padding: 10px 12px 10px 14px;
+  background: rgba(17, 18, 20, 0.94);
+  border: 1px solid rgba(236, 238, 240, 0.14);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: #eceef0;
+  font: 400 13px/1.4 "Inter", "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0;
+  text-align: left;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 300ms cubic-bezier(0.22, 1, 0.36, 1),
+              transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+#jr-consent.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+#jr-consent .jr-consent-text {
+  margin: 0;
+  padding: 0;
+  color: #9aa0a6;
+  font: inherit;
+}
+
+#jr-consent .jr-consent-text a {
+  color: #eceef0;
+  text-decoration: underline;
+  text-decoration-color: rgba(236, 238, 240, 0.28);
+  text-underline-offset: 3px;
+  border: 0;
+  white-space: nowrap;
+  transition: text-decoration-color 150ms ease;
+}
+
+#jr-consent .jr-consent-text a:hover,
+#jr-consent .jr-consent-text a:focus-visible {
+  text-decoration-color: #6e8a78;
+}
+
+#jr-consent .jr-consent-actions {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
+#jr-consent button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+  padding: 4px 8px;
+  height: auto;
+  line-height: inherit;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  box-shadow: none;
+  color: #eceef0;
+  font: 500 13px/1.4 "Inter", "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: text-decoration-color 150ms ease, color 150ms ease;
+}
+
+#jr-consent button:hover,
+#jr-consent button[aria-pressed="true"] {
+  text-decoration-color: #6e8a78;
+}
+
+#jr-consent button:focus-visible,
+#jr-consent .jr-consent-text a:focus-visible {
+  outline: 2px solid #6e8a78;
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #jr-consent {
+    transform: none;
+    transition: none;
+  }
+}
