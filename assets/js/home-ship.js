@@ -2,16 +2,16 @@
  * jeremy.ie — a ship heading for the galaxy.
  *
  * Once per page load, a few seconds after the opening frame has settled, a small ship
- * comes in from the left edge at the height of the headline, flies across it and dwindles
+ * comes up from the bottom of the screen beneath the View CV button, climbs, and dwindles
  * into the core of the galaxy. Then it is gone and nothing here runs again.
  *
  * The ship is a little inline SVG seen from above: a needle hull, swept wings, a teal
  * canopy and two engines with flickering exhaust. Its engine trail and the glint where it
  * vanishes are drawn on a canvas the size of the frame, which exists only for the flight.
- * Both sit above the copy (z-index 2) on purpose: it is meant to cross the headline. It
- * takes no pointer events, so nothing under it stops being clickable.
+ * Both sit above the copy (z-index 2), so it flies over anything in its way. It takes no
+ * pointer events, so nothing under it stops being clickable.
  *
- * The flight is a quadratic Bézier from the left edge to the galaxy's core, which is read
+ * The flight is a quadratic Bézier from the bottom edge to the galaxy's core, which is read
  * from home-galaxy.js (window.JRGalaxy.core) on every frame, so it lands in the right place
  * at every breakpoint. The ship moves fast at first and slows as it shrinks, which is what
  * makes it read as going away from the viewer rather than just getting smaller.
@@ -161,23 +161,28 @@
     frame.appendChild(layer);
 
     /*
-     * Start just off the left edge, level with the headline's first line, so the first
-     * thing it does is fly through it. The control point keeps it near that height for most of
-     * the way across before it turns down into the core. On a phone the core is low in the
-     * frame and the copy fills the width, so it swings out to the right first.
+     * Enter from the bottom of the screen, directly beneath the View CV button, and climb
+     * toward the galaxy. The control point sits a little under the button, so the ship
+     * rises almost straight up at first, then bends over and heads up and right into the
+     * core. On a phone the core is lower than the button, so the climb is shorter and the
+     * turn comes sooner; the control point is kept below the core so it never overshoots
+     * and drops back down into it.
      */
-    var title = frame.querySelector('.opening-title .line-mask') || frame.querySelector('.opening-title');
-    var ty = h * 0.35;
-    if (title) {
-      var tr = title.getBoundingClientRect();
-      if (tr.height > 0) {
-        ty = tr.top + tr.height / 2 - rect.top;
+    var core0 = window.JRGalaxy.core();
+    var cta = frame.querySelector('.cta-lead');
+    var bx = w * 0.12;
+    var by = h * 0.6;
+    if (cta) {
+      var br = cta.getBoundingClientRect();
+      if (br.width > 0) {
+        bx = br.left + br.width / 2 - rect.left;
+        by = br.bottom - rect.top;
       }
     }
-    var x0 = -shipW;
-    var y0 = ty;
-    var x1 = narrow ? w * 0.9 : w * 0.42;
-    var y1 = narrow ? ty + h * 0.04 : ty - h * 0.08;
+    var x0 = Math.max(shipW / 2, bx);
+    var y0 = Math.min(h, window.innerHeight - rect.top) + shipW * 0.6;
+    var x1 = x0 + (core0.x - x0) * 0.1;
+    var y1 = Math.max(by + 30, core0.y + (y0 - core0.y) * 0.15);
 
     var trail = [];
     var start = 0;
