@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="J.">
+  <!-- The masthead in miniature: a J in ink and the sage dot from "Jeremy." (--accent-soft). -->
+  <rect width="32" height="32" rx="7" fill="#111214" />
+  <path d="M17.5 7.5 V19.5 C17.5 23.2 15.4 25 12.4 25 C10.6 25 9.3 24.4 8.3 23.4" fill="none" stroke="#eceef0" stroke-width="3.6" stroke-linecap="square" />
+  <path d="M12.5 7.5 H20" stroke="#eceef0" stroke-width="3.6" />
+  <circle cx="24" cy="23.2" r="2.6" fill="#7e9c89" />
+</svg>
