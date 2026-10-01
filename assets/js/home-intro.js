@@ -34,23 +34,23 @@
    * fades in, and stays until the stage ends. The timeline stops while the sequence waits on
    * fonts or the galaxy, so a slow load holds the lines already shown.
    */
-  var FOCUS_AT_MS = 5300; // the focus pull starts with this line
+  var FOCUS_AT_MS = 3950; // the focus pull starts with this line
 
   var PHRASES = [
-    { at: 500, text: 'Building universe' },
-    { at: 2900, text: 'Collecting photons' },
+    { at: 400, text: 'Building universe' },
+    { at: 2150, text: 'Collecting photons' },
     { at: FOCUS_AT_MS, text: 'Focusing telescope' }
   ];
 
   /* ---------- Timing ---------- */
 
-  var TIMELINE_MS = 7400; // how long p takes to reach 1 when nothing holds it back
+  var TIMELINE_MS = 5500; // how long p takes to reach 1 when nothing holds it back
   var TIMELINE_POWER = 1.5; // above 1: slow at the start, faster later
   var FONT_CAP_MS = 900;
   var GALAXY_CAP_MS = 1500;
   var CEIL_FONTS = 0.05; // p is held here until the fonts are ready
   var CEIL_GALAXY = 0.5; // and here until the galaxy has drawn a frame
-  var HARD_CAP_MS = 9500; // after this the sequence finishes whatever it is waiting for
+  var HARD_CAP_MS = 7500; // after this the sequence finishes whatever it is waiting for
   var CAP_FINISH_MS = 400;
   var SKIP_FINISH_MS = 250;
   var REVEAL_AT_MS = 250; // into the exit, the hero's own reveals start
@@ -65,7 +65,7 @@
    * to sharp over its short finish. The width scales with the frame, between BLUR_MIN_PX and
    * BLUR_MAX_PX, so a phone is not smeared to nothing.
    */
-  var FOCUS_MS = 1700;
+  var FOCUS_MS = 1250; // FOCUS_AT_MS + FOCUS_MS stays under TIMELINE_MS, so it settles first
   var FOCUS_OVERSHOOT = 0.3; // how far past focus, as a share of the starting blur
   var FOCUS_PASS = 0.6; // share of FOCUS_MS spent running past focus; the rest comes back
   var BLUR_PER_PX = 0.0035;
