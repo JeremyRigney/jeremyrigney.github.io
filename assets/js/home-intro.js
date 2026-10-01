@@ -12,8 +12,8 @@
  *      stars on as p rises. p follows a fixed timeline. Until the two waits are over it is
  *      held at a ceiling, and the timeline stops with it.
  *   3. Adds lines of status text one below the other (PHRASES below).
- *   4. Keeps the galaxy out of focus (a CSS blur on its canvas) until "Focusing telescope",
- *      then racks it into focus as p runs from there to 1.
+ *   4. Keeps the galaxy out of focus (a CSS blur on its canvas) until "Focusing telescope"
+ *      appears, then racks it into focus, a little past, and back.
  *   5. At p = 1 fades the stage out and lets the hero's own reveals start.
  *
  * It fails open. If this file throws, or the page is left waiting, the watchdogs in the head
@@ -58,11 +58,16 @@
   var SKIP_SHOW_MS = 700;
 
   /*
-   * Focus. The blur is at its widest until the timeline reaches FOCUS_AT_MS and is gone at
-   * p = 1. It follows p, not the clock, so a held timeline holds the blur and Skip snaps the
-   * galaxy into focus over its short finish. The width scales with the frame, between
-   * BLUR_MIN_PX and BLUR_MAX_PX, so a phone is not smeared to nothing.
+   * Focus. The blur is at its widest until the timeline reaches FOCUS_AT_MS. Over the next
+   * FOCUS_MS the focuser runs through focus to FOCUS_OVERSHOOT on the far side (the stars
+   * soften again a little), then eases back to sharp, before the stage leaves at p = 1. It
+   * runs on the timeline, so a held timeline holds it, and Skip takes whatever blur is left
+   * to sharp over its short finish. The width scales with the frame, between BLUR_MIN_PX and
+   * BLUR_MAX_PX, so a phone is not smeared to nothing.
    */
+  var FOCUS_MS = 1700;
+  var FOCUS_OVERSHOOT = 0.3; // how far past focus, as a share of the starting blur
+  var FOCUS_PASS = 0.6; // share of FOCUS_MS spent running past focus; the rest comes back
   var BLUR_PER_PX = 0.0035;
   var BLUR_MIN_PX = 2.5;
   var BLUR_MAX_PX = 6;
@@ -78,8 +83,8 @@
     return Math.min(1, Math.max(0, x));
   }
 
-  function smoothstep(a, b, x) {
-    var t = clamp01((x - a) / (b - a));
+  function easeInOut(t) {
+    t = clamp01(t);
     return t * t * (3 - 2 * t);
   }
 
@@ -136,7 +141,6 @@
   var skipShown = false;
   var plottedText = '';
   var phraseLines = [];
-  var focusFrom = 0; // p at FOCUS_AT_MS, set in boot()
   var blurPx = 0;
   var focusText = '';
 
@@ -188,11 +192,29 @@
 
   /* ---------- Focus ---------- */
 
-  function setFocus() {
+  /*
+   * The focuser's position at a point u (0 to 1) through the pull: 1 is the starting blur, 0
+   * sharp, and below 0 past focus. It slows to a stop at the far side before it comes back.
+   */
+  function focuser(u) {
+    if (u <= 0) {
+      return 1;
+    }
+    if (u < FOCUS_PASS) {
+      return 1 - (1 + FOCUS_OVERSHOOT) * easeInOut(u / FOCUS_PASS);
+    }
+    return -FOCUS_OVERSHOOT * (1 - easeInOut((u - FOCUS_PASS) / (1 - FOCUS_PASS)));
+  }
+
+  function setFocus(now) {
     if (!canvas) {
       return;
     }
-    var defocus = 1 - smoothstep(focusFrom, 1, p);
+    // Either side of focus blurs the same way.
+    var defocus = Math.abs(focuser((tl - FOCUS_AT_MS) / FOCUS_MS));
+    if (finishing) {
+      defocus *= 1 - clamp01((now - finishT) / finishMs);
+    }
     var blur = (defocus * blurPx).toFixed(2);
     if (blur === focusText) {
       return;
@@ -349,7 +371,7 @@
       galaxy.setProgress(p);
     }
 
-    setFocus();
+    setFocus(now);
     showPhrases();
 
     bar.style.transform = 'scaleX(' + p.toFixed(4) + ')';
@@ -395,10 +417,9 @@
     buildPhrases();
 
     // Out of focus from the first frame, so the galaxy never shows sharp first.
-    focusFrom = pAt(FOCUS_AT_MS);
     var frameWidth = canvas ? canvas.getBoundingClientRect().width : 0;
     blurPx = Math.min(BLUR_MAX_PX, Math.max(BLUR_MIN_PX, frameWidth * BLUR_PER_PX));
-    setFocus();
+    setFocus(bootT);
 
     startWaiting();
 
