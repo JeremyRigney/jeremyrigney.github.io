@@ -703,6 +703,15 @@ html.intro .galaxy {
   transition: none;
 }
 
+/*
+ * The telescope is out of focus until "Focusing telescope", then racks into focus by the
+ * end. home-intro.js sets both properties on the canvas. The lift stops the blurred stars
+ * reading as merely dimmer. Only while the sequence runs: when the class goes, so does this.
+ */
+html.intro .galaxy canvas {
+  filter: blur(var(--galaxy-defocus, 0px)) brightness(var(--galaxy-defocus-lift, 1));
+}
+
 html.intro .scroll-hint,
 html.intro .galaxy-explore,
 html.intro .galaxy-hud {

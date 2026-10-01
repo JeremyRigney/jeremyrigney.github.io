@@ -12,7 +12,9 @@
  *      stars on as p rises. p follows a fixed timeline. Until the two waits are over it is
  *      held at a ceiling, and the timeline stops with it.
  *   3. Adds lines of status text one below the other (PHRASES below).
- *   4. At p = 1 fades the stage out and lets the hero's own reveals start.
+ *   4. Keeps the galaxy out of focus (a CSS blur on its canvas) until "Focusing telescope",
+ *      then racks it into focus as p runs from there to 1.
+ *   5. At p = 1 fades the stage out and lets the hero's own reveals start.
  *
  * It fails open. If this file throws, or the page is left waiting, the watchdogs in the head
  * script remove the stage and unlock the page (jrIntro.end in index.html).
@@ -32,10 +34,12 @@
    * fades in, and stays until the stage ends. The timeline stops while the sequence waits on
    * fonts or the galaxy, so a slow load holds the lines already shown.
    */
+  var FOCUS_AT_MS = 5300; // the focus pull starts with this line
+
   var PHRASES = [
     { at: 500, text: 'Building universe' },
     { at: 2900, text: 'Collecting photons' },
-    { at: 5300, text: 'Focusing telescope' }
+    { at: FOCUS_AT_MS, text: 'Focusing telescope' }
   ];
 
   /* ---------- Timing ---------- */
@@ -53,6 +57,17 @@
   var EXIT_MS = 700;
   var SKIP_SHOW_MS = 700;
 
+  /*
+   * Focus. The blur is at its widest until the timeline reaches FOCUS_AT_MS and is gone at
+   * p = 1. It follows p, not the clock, so a held timeline holds the blur and Skip snaps the
+   * galaxy into focus over its short finish. The width scales with the frame, between
+   * BLUR_MIN_PX and BLUR_MAX_PX, so a phone is not smeared to nothing.
+   */
+  var BLUR_PER_PX = 0.006;
+  var BLUR_MIN_PX = 4;
+  var BLUR_MAX_PX = 9;
+  var DEFOCUS_LIFT = 0.5; // extra brightness at full blur
+
   /* ---------- Helpers ---------- */
 
   function byId(id) {
@@ -61,6 +76,11 @@
 
   function clamp01(x) {
     return Math.min(1, Math.max(0, x));
+  }
+
+  function smoothstep(a, b, x) {
+    var t = clamp01((x - a) / (b - a));
+    return t * t * (3 - 2 * t);
   }
 
   function thousands(n) {
@@ -100,6 +120,7 @@
   var plotted = byId('intro-plotted');
   var phraseList = byId('intro-phrases');
   var skipButton = byId('intro-skip');
+  var canvas = byId('galaxy-canvas');
 
   var fontsOpen = false;
   var galaxyOpen = false;
@@ -115,6 +136,9 @@
   var skipShown = false;
   var plottedText = '';
   var phraseLines = [];
+  var focusFrom = 0; // p at FOCUS_AT_MS, set in boot()
+  var blurPx = 0;
+  var focusText = '';
 
   /* ---------- Stage ---------- */
 
@@ -160,6 +184,22 @@
         }
       }
     }
+  }
+
+  /* ---------- Focus ---------- */
+
+  function setFocus() {
+    if (!canvas) {
+      return;
+    }
+    var defocus = 1 - smoothstep(focusFrom, 1, p);
+    var blur = (defocus * blurPx).toFixed(2);
+    if (blur === focusText) {
+      return;
+    }
+    focusText = blur;
+    canvas.style.setProperty('--galaxy-defocus', blur + 'px');
+    canvas.style.setProperty('--galaxy-defocus-lift', (1 + DEFOCUS_LIFT * defocus).toFixed(3));
   }
 
   /* ---------- Waiting ---------- */
@@ -309,6 +349,7 @@
       galaxy.setProgress(p);
     }
 
+    setFocus();
     showPhrases();
 
     bar.style.transform = 'scaleX(' + p.toFixed(4) + ')';
@@ -352,6 +393,13 @@
 
     lockPage();
     buildPhrases();
+
+    // Out of focus from the first frame, so the galaxy never shows sharp first.
+    focusFrom = pAt(FOCUS_AT_MS);
+    var frameWidth = canvas ? canvas.getBoundingClientRect().width : 0;
+    blurPx = Math.min(BLUR_MAX_PX, Math.max(BLUR_MIN_PX, frameWidth * BLUR_PER_PX));
+    setFocus();
+
     startWaiting();
 
     stage.addEventListener('click', skip);
