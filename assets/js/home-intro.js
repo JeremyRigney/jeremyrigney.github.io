@@ -214,13 +214,14 @@
   }
 
   /*
-   * The cookie banner is in its own root. Clicks there never reach the stage. Keys do reach
-   * the document, so a key press that started inside the banner is ignored.
+   * The cookie card is a sibling of the stage, not inside it, so clicks there never reach
+   * the stage. Keys do reach the document, so a key press that started inside the card is
+   * ignored.
    */
   function fromConsent(event) {
     var path = event.composedPath ? event.composedPath() : [event.target];
     for (var i = 0; i < path.length; i++) {
-      if (path[i] && path[i].id && /usercentrics/i.test(path[i].id)) {
+      if (path[i] && path[i].id === 'jr-consent') {
         return true;
       }
     }
