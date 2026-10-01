@@ -63,10 +63,10 @@
    * galaxy into focus over its short finish. The width scales with the frame, between
    * BLUR_MIN_PX and BLUR_MAX_PX, so a phone is not smeared to nothing.
    */
-  var BLUR_PER_PX = 0.006;
-  var BLUR_MIN_PX = 4;
-  var BLUR_MAX_PX = 9;
-  var DEFOCUS_LIFT = 0.5; // extra brightness at full blur
+  var BLUR_PER_PX = 0.0035;
+  var BLUR_MIN_PX = 2.5;
+  var BLUR_MAX_PX = 6;
+  var DEFOCUS_LIFT = 0.35; // extra brightness at full blur
 
   /* ---------- Helpers ---------- */
 
