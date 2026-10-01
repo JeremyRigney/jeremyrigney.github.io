@@ -15,7 +15,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  max-width: min(400px, calc(100vw - 32px));
+  max-width: min(440px, calc(100vw - 32px));
   margin: 0;
   padding: 10px 12px 10px 14px;
   background: rgba(17, 18, 20, 0.94);
@@ -44,6 +44,21 @@
   padding: 0;
   color: #9aa0a6;
   font: inherit;
+}
+
+#jr-consent .jr-consent-text a {
+  color: #eceef0;
+  text-decoration: underline;
+  text-decoration-color: rgba(236, 238, 240, 0.28);
+  text-underline-offset: 3px;
+  border: 0;
+  white-space: nowrap;
+  transition: text-decoration-color 150ms ease;
+}
+
+#jr-consent .jr-consent-text a:hover,
+#jr-consent .jr-consent-text a:focus-visible {
+  text-decoration-color: #6e8a78;
 }
 
 #jr-consent .jr-consent-actions {
@@ -79,7 +94,8 @@
   text-decoration-color: #6e8a78;
 }
 
-#jr-consent button:focus-visible {
+#jr-consent button:focus-visible,
+#jr-consent .jr-consent-text a:focus-visible {
   outline: 2px solid #6e8a78;
   outline-offset: 1px;
 }

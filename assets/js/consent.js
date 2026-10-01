@@ -13,17 +13,19 @@
  *
  * The choice lives in localStorage. Storing it needs no consent of its own, since it is
  * the record of the answer. If storage is unavailable the defaults hold, and the card
- * asks again on the next page.
+ * asks again on the next page. An answer is kept for six months, then asked for again,
+ * in line with the Irish DPC's cookie guidance.
  *
  * The card waits a moment so it does not fight the first paint or the home intro, sits
  * small in the corner, and leaves as soon as it is answered. Ignoring it is the same as
- * no. Any element with data-consent-open (the footer's "Cookie settings") brings it back.
+ * no. Its "Details" link goes to /privacy, which says who gets what. Any element with data-consent-open (the footer's "Cookie settings") brings it back.
  */
 (function () {
   'use strict';
 
   var KEY = 'jr-consent';
   var VERSION = 1; // bump to ask everyone again if what is being asked for changes
+  var MAX_AGE = 183 * 24 * 60 * 60 * 1000; // six months
   var DELAY = 1200;
   var LEAVE_MS = 300;
 
@@ -41,7 +43,7 @@
   function read() {
     try {
       var saved = JSON.parse(window.localStorage.getItem(KEY));
-      if (saved && saved.v === VERSION &&
+      if (saved && saved.v === VERSION && Date.now() - saved.t < MAX_AGE &&
           (saved.analytics === 'granted' || saved.analytics === 'denied')) {
         return saved.analytics;
       }
@@ -91,7 +93,8 @@
     el.setAttribute('role', 'region');
     el.setAttribute('aria-label', 'Cookie consent');
     el.innerHTML =
-      '<p class="jr-consent-text">Analytics cookies, to see what gets read?</p>' +
+      '<p class="jr-consent-text">Google Analytics cookies, to see what gets read? ' +
+        '<a href="/privacy">Details</a></p>' +
       '<div class="jr-consent-actions">' +
         '<button type="button" data-value="granted">Yes</button>' +
         '<button type="button" data-value="denied">No</button>' +
