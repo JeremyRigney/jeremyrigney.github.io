@@ -66,7 +66,7 @@
    * BLUR_MAX_PX, so a phone is not smeared to nothing.
    */
   var FOCUS_MS = 1250; // FOCUS_AT_MS + FOCUS_MS stays under TIMELINE_MS, so it settles first
-  var FOCUS_OVERSHOOT = 0.3; // how far past focus, as a share of the starting blur
+  var FOCUS_OVERSHOOT = 0.1; // how far past focus, as a share of the starting blur
   var FOCUS_PASS = 0.6; // share of FOCUS_MS spent running past focus; the rest comes back
   var BLUR_PER_PX = 0.0035;
   var BLUR_MIN_PX = 2.5;
