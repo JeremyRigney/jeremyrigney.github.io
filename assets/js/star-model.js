@@ -104,19 +104,18 @@ window.StarModel = (function () {
   var FLARE = {
     first: [16, 24], // s after load
     gap: [25, 50], // minimum, then an exponential with this mean
-    life: [34, 44],
-    arcade: [56, 26], // strands
+    life: [55, 70],
+    arcade: [64, 28], // strands
     pool: [72, 32]
   };
 
   var FILAMENT = {
     count: [3, 2],
-    threads: [64, 34],
+    threads: [110, 50],
     height: [0.028, 0.06],
     life: [220, 340]
   };
 
-  var SPICULES = [16000, 6000];
 
   // The polar field: a buried pair, |q| giving about 12 G at the poles.
   var POLAR_Q = 2.65;
@@ -191,8 +190,6 @@ window.StarModel = (function () {
     return norm([c[0] + a[0] * da + b[0] * db, c[1] + a[1] * da + b[1] * db,
       c[2] + a[2] * da + b[2] * db]);
   }
-  function latOf(v) { return Math.asin(clamp(v[2], -1, 1)); }
-  function lonOf(v) { return Math.atan2(v[1], v[0]); }
 
   /* ---------- The field ---------- */
 
@@ -956,7 +953,7 @@ window.StarModel = (function () {
       if (s < 0) { return; }
       fil.slots.push(s);
       var m = meta[s];
-      var kindOf = i < n * 0.72 ? 'post' : i < n * 0.9 ? 'rail' : 'barb';
+      var kindOf = i < n * 0.55 ? 'post' : i < n * 0.92 ? 'rail' : 'barb';
       var u = rand();
       var at = Math.min(spine.length - 2, Math.floor(u * (spine.length - 1)));
       var p = spine[at], q = spine[at + 1];
@@ -977,7 +974,7 @@ window.StarModel = (function () {
           r = 1.002 + H * t;
           pos = offset(p, side, along, across + lean * H * t + 0.0015 * Math.sin(9 * t + i), drift * t);
         } else if (kindOf === 'rail') {
-          var j = clamp(u + (t - 0.5) * 0.3, 0, 0.999);
+          var j = clamp(u + (t - 0.5) * 0.5, 0, 0.999);
           var idx = Math.min(spine.length - 2, Math.floor(j * (spine.length - 1)));
           var fr = j * (spine.length - 1) - idx;
           var a0 = spine[idx], a1 = spine[idx + 1];
@@ -1004,6 +1001,17 @@ window.StarModel = (function () {
     }
   }
 
+  // Brings a filament's end forward, threads and all, so it fades rather than vanishes.
+  function endFilament(fil, at) {
+    if (at >= fil.end) { return; }
+    fil.end = at;
+    fil.slots.forEach(function (s) {
+      var m = meta[s];
+      m.end = Math.min(m.end, at);
+      writeParams(s);
+    });
+  }
+
   /* ---------- Flares ---------- */
 
   var flare = null;
@@ -1016,11 +1024,12 @@ window.StarModel = (function () {
     return letter + (flux / base).toFixed(1);
   }
 
-  function pickFlareRegion() {
+  // prefer(region) weights the choice further: the page uses it to favour the near side.
+  function pickFlareRegion(prefer) {
     var total = 0;
     var w = regions.map(function (r) {
       var x = (r.complexity === 'bgd' ? 8 : r.complexity === 'bg' ? 2.5 : 1)
-        * (0.4 + r.size) * (r.e < 0.98 ? 0.5 : 1) * (1 - 0.7 * r.k);
+        * (0.4 + r.size) * (r.e < 0.98 ? 0.5 : 1) * (1 - 0.7 * r.k) * (prefer ? prefer(r) : 1);
       total += x;
       return x;
     });
@@ -1035,8 +1044,8 @@ window.StarModel = (function () {
    * from the frame given here; the arcade over them is traced here, a few strands a
    * second as the ribbons move apart, each one heated to 10-20 MK and left to cool.
    */
-  function startFlare(now, reg) {
-    reg = reg || pickFlareRegion();
+  function startFlare(now, reg, forceFlux, prefer) {
+    reg = reg || pickFlareRegion(prefer);
     if (!reg) { return null; }
     var pos = null, neg = null;
     reg.eff.forEach(function (p) {
@@ -1054,7 +1063,7 @@ window.StarModel = (function () {
     var across = norm([d[0] - c[0] * dot(d, c), d[1] - c[1] * dot(d, c), d[2] - c[2] * dot(d, c)]);
     var along = cross(c, across);
     var u = Math.max(1e-6, rand());
-    var flux = Math.min(2.2e-4, 1e-6 * Math.pow(u, -1 / 0.9));
+    var flux = forceFlux || Math.min(2.2e-4, 1e-6 * Math.pow(u, -1 / 0.9));
     flare = {
       region: reg,
       t0: now,
@@ -1063,9 +1072,9 @@ window.StarModel = (function () {
       cls: goesClass(flux),
       strength: Math.pow(flux / 1e-5, 0.35),
       c: c, across: across, along: along,
-      half: clamp(dist * (0.6 + 0.25 * Math.log10(flux / 1e-6)), 0.012, 0.06),
-      sep0: Math.min(0.006, dist * 0.18),
-      spread: 0.00045 + 0.0002 * Math.log10(flux / 1e-6),
+      half: clamp(dist * (0.9 + 0.3 * Math.log10(flux / 1e-6)), 0.025, 0.075),
+      sep0: Math.max(0.005, Math.min(0.009, dist * 0.2)),
+      spread: 0.0006 + 0.00025 * Math.log10(flux / 1e-6),
       laid: 0
     };
     reg.flares++;
@@ -1082,7 +1091,7 @@ window.StarModel = (function () {
     var t = now - flare.t0;
     var want = FLARE.arcade[small ? 1 : 0];
     // The arcade grows over the first 22 s, a strand at the ribbons' current spread.
-    var due = Math.min(want, Math.floor(want * smooth(0.6, 22, t) + (t > 0.6 ? 1 : 0)));
+    var due = Math.min(want, Math.floor(want * smooth(0.6, 34, t) + (t > 0.6 ? 1 : 0)));
     while (flare.laid < due) {
       flare.laid++;
       var s = allocSlot(flareOwner);
@@ -1105,7 +1114,7 @@ window.StarModel = (function () {
       m.width = 0.0026 * Math.exp(0.25 * gauss());
       m.length = geo.length; m.apex = geo.apex;
       m.born = now;
-      m.end = now + between(24, 32);
+      m.end = now + between(34, 44);
       m.rain = 1;
       writeParams(s);
     }
@@ -1121,25 +1130,6 @@ window.StarModel = (function () {
       if (meta[s].end + 1 < now) { freeSlot(s); return false; }
       return true;
     });
-  }
-
-  /* ---------- Spicules ---------- */
-
-  // Root direction and length, then a lean (a tangent vector) and a phase. They are
-  // drawn only close up, at the limb; see the renderer.
-  function makeSpicules(n) {
-    var a = new Float32Array(n * 8);
-    for (var i = 0; i < n; i++) {
-      var d = randomDir();
-      var t = norm(cross(d, randomDir()));
-      var lean = Math.abs(gauss()) * 0.28;
-      var o = i * 8;
-      a[o] = d[0]; a[o + 1] = d[1]; a[o + 2] = d[2];
-      a[o + 3] = between(0.006, 0.016) * (rand() < 0.15 ? 1.5 : 1);
-      a[o + 4] = t[0] * lean; a[o + 5] = t[1] * lean; a[o + 6] = t[2] * lean;
-      a[o + 7] = rand();
-    }
-    return a;
   }
 
   /* ---------- Region descriptions for the cards ---------- */
@@ -1195,7 +1185,6 @@ window.StarModel = (function () {
   /* ---------- Build and step ---------- */
 
   var small = false;
-  var timeAcc = 0;
   var lastSourceRebuild = -1;
 
   function build(isSmall, seed) {
@@ -1223,14 +1212,15 @@ window.StarModel = (function () {
       groups: new Float32Array(12 * 64),
       groupCount: 0,
       sourcesVersion: 0,
-      spicules: makeSpicules(SPICULES[small ? 1 : 0]),
-      spiculeCount: SPICULES[small ? 1 : 0],
       time: 0,
       regions: regions,
       filaments: filaments,
       flare: null,
       step: step,
-      triggerFlare: function () { if (!flare) { startFlare(model.time); model.flare = flare; } },
+      // F on the page; the debug hook can name the region and the flux.
+      triggerFlare: function (reg, flux, prefer) {
+        if (!flare) { startFlare(model.time, reg, flux, prefer); model.flare = flare; }
+      },
       describe: describe,
       ribbonSep: ribbonSep,
       dirtyFlagClear: function (s) { dirtyFlag[s] = 0; },
@@ -1295,7 +1285,6 @@ window.StarModel = (function () {
   function step(dt, budget, opts) {
     var now = model.time + dt;
     model.time = now;
-    timeAcc += dt;
     var changed = false;
 
     // Regions age; the dead are replaced.
@@ -1305,9 +1294,7 @@ window.StarModel = (function () {
       var total = reg.emerge + reg.mature + reg.decay;
       if (reg.age >= total) {
         reg.slots.forEach(function (s) { retire(s, now); });
-        if (reg.filament && reg.filament.slots) {
-          reg.filament.end = Math.min(reg.filament.end, now + 3);
-        }
+        if (reg.filament && reg.filament.slots) { endFilament(reg.filament, now + 3); }
         regions.splice(i, 1);
         changed = true;
         continue;
@@ -1379,7 +1366,7 @@ window.StarModel = (function () {
 
     // Flares.
     if (opts && opts.flares && !flare && now >= nextFlare) {
-      startFlare(now);
+      startFlare(now, null, 0, opts.prefer);
       nextFlare = now + between(FLARE.gap[0], FLARE.gap[0] + 10) - Math.log(1 - rand() * 0.999) * FLARE.gap[1];
     }
     stepFlare(now);

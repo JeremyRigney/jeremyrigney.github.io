@@ -208,10 +208,11 @@ a {
  * colour table's colour (set from star-view.js as --chip-rgb), lit when chosen.
  */
 .bands {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
-  max-width: 44rem;
+  max-width: 34rem;
 }
 
 .band {
@@ -257,6 +258,11 @@ a {
 .band-range {
   color: var(--ink-faint);
   letter-spacing: 0.06em;
+}
+
+/* Eleven chips: the temperature only on the one chosen, so they fit in two rows. */
+.band:not(.is-on) .band-range {
+  display: none;
 }
 
 .hint {

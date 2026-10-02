@@ -56,6 +56,7 @@
   var START_T = parseFloat(query.get('t')) || 0;
   // ?debug&skip=corona,strands,surface leaves passes out, for checking each alone.
   var SKIP = DEBUG ? (query.get('skip') || '').split(',') : [];
+  var NOSPIN = DEBUG && query.has('nospin'); // the star held still under the camera
 
   /* ---------- Tunables ---------- */
 
@@ -131,7 +132,6 @@
   var small = window.innerWidth < 700
     || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
   var model = Model.build(small, DEBUG ? parseInt(query.get('seed'), 10) || 0 : 0);
-  var KIND = Model.KIND;
   var TH = Model.THERMAL;
   var POINTS = model.POINTS;
   var SPR = 16; // strands per texture row
@@ -403,7 +403,8 @@
     '  vec3 d = p - u_rib0.xyz;',
     '  float u = dot(d, u_rib2.xyz), v = dot(d, u_rib1.xyz);',
     // Ribbons are not straight: they wander with the inversion line and fray at the ends.
-    '  v += 0.0045 * (vnoise(vec3(u * 90.0, 3.1, 0.0)) - 0.5) + 0.002 * (vnoise(vec3(u * 400.0, 7.7, 0.0)) - 0.5);',
+    '  v += 0.014 * (vnoise(vec3(u * 38.0, 3.1, 0.0)) - 0.5) + 0.004 * (vnoise(vec3(u * 160.0, 7.7, 0.0)) - 0.5)',
+    '    + sign(v) * 0.003 * (vnoise(vec3(u * 70.0, 5.3, 1.0)) - 0.5);',
     '  float along = 1.0 - sstep(0.45 * u_rib2.w, u_rib2.w * (0.85 + 0.3 * vnoise(vec3(v * 300.0, 1.0, 2.0))), abs(u));',
     '  float a = (v - u_rib1.w) / u_ribW, b = (v + u_rib1.w) / u_ribW;',
     '  float strips = exp(-0.5 * a * a) + exp(-0.5 * b * b);',
@@ -492,7 +493,7 @@
     '    float hot = volSample(u_vol, volCoord(p, 1.0)).x;',
     '    float moss = plage * (1.0 - strong) * sstep(1.8, 3.2, hot) * (0.5 + 0.9 * vnoise(p * 700.0));',
     // The magnetogram: the field along the line of sight, and the network\'s mixed polarity.
-    '    float sgn = hash13(floor(p * 160.0)) > 0.5 ? 1.0 : -1.0;',
+    '    float sgn = vnoise(p * 55.0 + 9.0) > 0.5 ? 1.0 : -1.0;',
     '    float mag = dot(B, toward) + sgn * network * 160.0 * (1.0 - plage) * mu',
     '      + (vnoise(p * 900.0) - 0.5) * 16.0;',
     '    float rib = ribbon(p);',
@@ -595,10 +596,9 @@
     'out float v_len;',
     'out float v_rain;',
     'out float v_seed;',
-    // A strip vertex: the point, widened on screen at right angles to the tangent.
-    'void place(vec3 P, vec3 T, float side, float widthR, out float flux) {',
-    '  vec3 V = u_rot * P;',
-    '  vec3 TV = u_rot * T;',
+    // A strip vertex: the point (in view space), widened on screen at right angles to
+    // the tangent.
+    'void place(vec3 V, vec3 TV, float side, float widthR, out float flux) {',
     '  vec2 dir = TV.xy;',
     '  float dl = length(dir);',
     '  dir = dl > 1e-5 ? dir / dl : vec2(1.0, 0.0);',
@@ -651,7 +651,7 @@
     '  if (kind == 3) {',
     // A flare loop: heated once, then cooling and draining for the rest of its life.
     '    float tau = clamp((t - born) / max(end - born, 1.0), 0.0, 1.0);',
-    '    lt = tau < 0.04 ? mix(6.2, peak, tau / 0.04) : mix(peak, floorT, pow((tau - 0.04) / 0.96, 0.85));',
+    '    lt = tau < 0.04 ? mix(6.2, peak, tau / 0.04) : mix(peak, floorT, pow((tau - 0.04) / 0.96, 1.25));',
     '    nrel = 0.4 + 0.6 * pow(sin(3.14159 * pow(tau, 0.55)), 1.2);',
     '    if (tau > 0.72) { v_rain = (tau - 0.72) * (end - born); }',
     '  } else if (kind == 4 || kind == 5) {',
@@ -671,7 +671,7 @@
     '    vec3 sideways = normalize(cross(pos, T.xyz) + 1e-6);',
     '    pos += sideways * (0.0007 * P.w * sin(u_time * 0.35 + float(slot) * 1.7 + P.w * 3.0));',
     '  }',
-    '  place(pos, T.xyz, side, widthR, flux);',
+    '  place(u_rot * pos, u_rot * T.xyz, side, widthR, flux);',
     '  v_s = P.w;',
     '  v_len = b.z;',
     '  v_seed = float(slot);',
@@ -689,7 +689,7 @@
     '  v_cool = u_coolS * life;',
     '  if (kind == 4 || kind == 5) {',
     '    v_emit = vec3(0.0);',
-    '    v_alpha = u_absorb * (kind == 4 ? 1.6 : 1.0) * los * life * min(1.0, flux * 1.5);',
+    '    v_alpha = u_absorb * (kind == 4 ? 0.9 : 1.0) * min(los, 2.0) * life * min(1.0, flux * 1.5);',
     '  } else {',
     '    float Tm = pow(10.0, lt - 6.0);',
     '    float strat = exp(-h / (' + f(HFAC) + ' * 0.064 * max(Tm, 0.05)));',
@@ -736,44 +736,52 @@
     '    }',
     '  }',
     '  float a = (1.0 - exp(-tau)) * vis;',
-    '  o = vec4(e * vis + v_cool * a, a);',
+    // Against the disc, cool material shows its own faint light over less of the
+    // chromosphere's: a dark filament. Against the sky, the long path through it is all
+    // there is: a bright prominence.
+    '  float onDisc = 1.0 - sstep(0.985, 1.0, length(v_view.xy));',
+    '  o = vec4(e * vis + v_cool * mix(1.4, 0.3, onDisc) * a, a);',
     '}'
   ].join('\n');
 
-  /* Spicules: short jets from the network, drawn only close up and only at the limb. */
+  /*
+   * Spicules: short-lived jets of chromospheric gas, a few thousand km tall, too many
+   * and too small to model one by one over the whole star. They only show close up and
+   * at the limb, so that is where they are drawn: a forest of them standing round the
+   * limb, some in front of it and some behind, each rising and falling on its own clock.
+   */
   var SPIC_VS = [
     HEAD, COMMON, RESP, STRAND_COMMON,
-    'uniform sampler2D u_spicTex;',
-    'uniform float u_fade;',
+    'uniform float u_fade, u_count;',
     'const int PTS = 6;',
     'void main() {',
-    '  int per = (PTS - 1) * 6;',
     '  int seg = gl_VertexID / 6;',
     '  int c = gl_VertexID - seg * 6;',
     '  int endI = (c == 1 || c == 4 || c == 5) ? 1 : 0;',
     '  float side = (c == 2 || c == 3 || c == 5) ? 1.0 : -1.0;',
     '  float s = float(seg + endI) / float(PTS - 1);',
-    '  int id = gl_InstanceID;',
-    '  int col = id - (id / 512) * 512, row = id / 512;',
-    '  vec4 A = texelFetch(u_spicTex, ivec2(col * 2, row), 0);',
-    '  vec4 Bv = texelFetch(u_spicTex, ivec2(col * 2 + 1, row), 0);',
-    '  vec3 root = A.xyz;',
-    '  vec3 V0 = u_rot * root;',
-    '  float limb = sstep(0.9, 0.99, length(V0.xy));',
-    '  if (limb <= 0.0 || u_fade <= 0.0) { hide(); return; }',
-    '  float period = 7.0 + 7.0 * fract(Bv.w * 13.7);',
-    '  float ph = fract(u_time / period + Bv.w);',
+    '  float id = float(gl_InstanceID);',
+    '  vec3 h1 = hash33(vec3(id, 3.7, 11.0));',
+    '  vec3 h2 = hash33(vec3(id, 8.1, 2.0));',
+    '  float th = (id + h1.x * 0.9) / u_count * 6.2831853;',
+    '  float z0 = (h1.y - 0.5) * 0.09;',
+    '  float rz = sqrt(1.0 - z0 * z0);',
+    '  vec3 root = vec3(cos(th) * rz, sin(th) * rz, z0);',
+    '  vec2 sp = u_center + root.xy * u_scale;',
+    '  if (u_fade <= 0.0 || sp.x < -60.0 || sp.y < -60.0 || sp.x > u_res.x + 60.0 || sp.y > u_res.y + 60.0) { hide(); return; }',
+    '  vec3 along = vec3(-sin(th), cos(th), 0.0);',
+    '  vec3 dirv = normalize(root + along * (h1.z - 0.5) * 0.7 + vec3(0.0, 0.0, 1.0) * (h2.x - 0.5) * 0.5);',
+    '  float len = mix(0.005, 0.015, h2.y) * (h2.z < 0.15 ? 1.5 : 1.0);',
+    '  float period = 6.0 + 8.0 * fract(h2.z * 13.7);',
+    '  float ph = fract(u_time / period + h1.z * 3.1);',
     '  float ext = pow(sin(3.14159 * ph), 0.7);',
-    '  vec3 up = root + Bv.xyz;',
-    '  vec3 P = root * 1.0005 + (root + Bv.xyz) * (A.w * ext * s);',
-    '  vec3 T = normalize(up);',
     '  float flux;',
-    '  place(P, T, side, 0.0007, flux);',
+    '  place(root * 1.0005 + dirv * (len * ext * s), dirv, side, 0.0007, flux);',
     '  v_s = s; v_len = 0.0; v_rain = -1.0; v_seed = 0.0;',
-    '  float fade = u_fade * limb * (1.0 - 0.6 * s) * sstep(0.0, 0.15, ext);',
+    '  float fade = u_fade * (1.0 - 0.5 * s) * sstep(0.0, 0.15, ext);',
     '  v_emit = vec3(0.0);',
-    '  v_cool = u_coolS * 1.4;',
-    '  v_alpha = u_absorb * 0.8 * fade * min(1.0, flux * 1.5);',
+    '  v_cool = u_coolS * 1.8;',
+    '  v_alpha = u_absorb * 1.2 * fade * min(1.0, flux * 1.5);',
     '}'
   ].join('\n');
 
@@ -850,12 +858,12 @@
 
   var cubeProg, volProg, surfProg, coronaProg, blitProg, strandProg, spicProg, toneProg;
   var emptyVao;
-  var srcTex, cubeTex, volTex, geomTex, parTex, spicTex, lutTex;
+  var srcTex, cubeTex, volTex, geomTex, parTex, lutTex;
   var cubeFbo, volFbo;
   var hdr = null, corona = null;
   var CORONA_RES = 0.5;
   var rows = Math.ceil(model.slots / SPR);
-  var spicRows = Math.ceil(model.spiculeCount / 512);
+  var SPICULES = small ? 2000 : 5000; // round the whole limb
   var srcData = new Float32Array(512 * 2 * 4);
 
   function floatTex(w, h, data) {
@@ -907,9 +915,6 @@
     srcTex = floatTex(512, 2, null);
     geomTex = floatTex(SPR * POINTS * 2, rows, null);
     parTex = floatTex(SPR * 3, rows, null);
-    var spic = new Float32Array(512 * 2 * 4 * spicRows);
-    spic.set(model.spicules);
-    spicTex = floatTex(1024, spicRows, spic);
 
     cubeTex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, cubeTex);
@@ -1207,7 +1212,7 @@
 
   function applyView() {
     qmat(view, Rv);
-    var a = Model.SPIN * model.time;
+    var a = NOSPIN ? 0 : Model.SPIN * model.time;
     var c = Math.cos(a), s = Math.sin(a);
     // M = Rv * Rz(a)
     for (var r = 0; r < 3; r++) {
@@ -1338,7 +1343,7 @@
     gl.uniform4fv(L.u_rib0, rib0);
     gl.uniform4fv(L.u_rib1, rib1);
     gl.uniform4fv(L.u_rib2, rib2);
-    gl.uniform1f(L.u_ribW, 0.0022);
+    gl.uniform1f(L.u_ribW, 0.003);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
 
     // 2. The diffuse corona, at half resolution, then added in.
@@ -1397,11 +1402,9 @@
         gl.useProgram(spicProg.prog);
         L = spicProg.loc;
         strandUniforms(L, cd, sc);
-        gl.activeTexture(gl.TEXTURE5);
-        gl.bindTexture(gl.TEXTURE_2D, spicTex);
-        gl.uniform1i(L.u_spicTex, 5);
         gl.uniform1f(L.u_fade, sf);
-        gl.drawArraysInstanced(gl.TRIANGLES, 0, 5 * 6, model.spiculeCount);
+        gl.uniform1f(L.u_count, SPICULES);
+        gl.drawArraysInstanced(gl.TRIANGLES, 0, 5 * 6, SPICULES);
       }
     }
 
@@ -1503,12 +1506,11 @@
   // N and S where the star's axis points, E and W along its equator: east on the left
   // when north is up, as on a solar image.
   function drawLimbMarks(rev) {
-    var nx = M[1 * 3 + 2], ny = M[2], l;
-    // The axis on screen: view x is M row 0, view y row 1; screen y is down.
+    // The north pole on screen: M's third column is the star's axis in view space,
+    // and screen y runs down.
     var ax = M[2], ay = -M[5];
-    l = Math.hypot(ax, ay);
+    var l = Math.hypot(ax, ay);
     if (l < 0.05) { ax = 0; ay = -1; } else { ax /= l; ay /= l; }
-    void nx; void ny;
     var r = 1.1 * scalePx() + 8;
     var ox = cx + panX, oy = cy + panY;
     ctx2.save();
@@ -1675,19 +1677,26 @@
     var l0 = (Math.atan2(M[7], M[6]) * 180 / Math.PI + 360) % 360;
     var name = channel.id === 'rgb' ? 'Composite'
       : channel.unit ? channel.label + ' ' + channel.unit : channel.label;
+    var flare = model.flare ? '  ·  GOES ' + model.flare.cls : '';
+    if (w < 700) {
+      // A phone: what fits on one line.
+      hud.textContent = 'B0 ' + (b0 >= 0 ? '+' : '−') + Math.abs(b0).toFixed(0) + '°'
+        + '  ·  L0 ' + l0.toFixed(0) + '°  ·  ×' + zoom.toFixed(1) + '  ·  ' + name + flare;
+      return;
+    }
     hud.textContent = 'B0 ' + (b0 >= 0 ? '+' : '−') + Math.abs(b0).toFixed(1) + '°'
       + '  ·  L0 ' + l0.toFixed(1) + '°'
       + '  ·  ×' + zoom.toFixed(2)
       + '  ·  ' + model.regions.length + ' regions'
       + '  ·  ' + Model.thousands(strandsShown) + ' strands'
-      + '  ·  ' + name
-      + (model.flare ? '  ·  GOES ' + model.flare.cls : '');
+      + '  ·  ' + name + flare;
   }
 
   /* ---------- Channel strip ---------- */
 
   function buildBandStrip() {
     if (!bandStrip) { return; }
+    var active = null;
     bandStrip.textContent = '';
     Bands.list().forEach(function (c) {
       var el = document.createElement('button');
@@ -1704,7 +1713,12 @@
       el.lastChild.textContent = c.id === 'rgb' ? '211·193·171' : c.temp;
       el.addEventListener('click', function () { setChannel(c.id); });
       bandStrip.appendChild(el);
+      if (c.id === channel.id) { active = el; }
     });
+    // On a phone the strip scrolls sideways: keep the chosen chip in sight.
+    if (active && bandStrip.scrollWidth > bandStrip.clientWidth) {
+      bandStrip.scrollLeft = active.offsetLeft - (bandStrip.clientWidth - active.offsetWidth) / 2;
+    }
   }
 
   /* ---------- Loop ---------- */
@@ -1731,7 +1745,7 @@
 
     // While the strands are first being traced, trace harder.
     var budget = model.pending() > 200 ? 12 : TRACE_BUDGET;
-    model.step(animating ? dt : 0, budget, { flares: animating });
+    model.step(animating ? dt : 0, budget, { flares: animating, prefer: nearSide });
     if (model.dirty.length) { uploadStrands(); dirty = true; }
     refreshFieldMaps(now, false);
     if (animating) {
@@ -1781,6 +1795,13 @@
       updateHud(now);
     }
     requestAnimationFrame(tick);
+  }
+
+  // Flares anywhere, but mostly where they can be seen.
+  function nearSide(reg) {
+    var c = reg.frame.c;
+    project(c[0], c[1], c[2]);
+    return projZ > 0.2 ? 1 : 0.06;
   }
 
   // Zooms, keeping the point under the anchor (the pointer) where it is.
@@ -2037,7 +2058,7 @@
       case '+': case '=': zoomAnchor = [cx, cy]; zoomTarget = clampZoom(zoomTarget * 1.2); break;
       case '-': case '_': zoomAnchor = [cx, cy]; zoomTarget = clampZoom(zoomTarget / 1.2); break;
       case 'r': resetView(); break;
-      case 'f': model.triggerFlare(); break;
+      case 'f': model.triggerFlare(null, 0, function (reg) { return nearSide(reg) > 0.5 ? 1 : 0.001; }); break;
       default: return;
     }
     e.preventDefault();
@@ -2061,18 +2082,18 @@
         var cd = centerDevice();
         return { w: canvas.width, h: canvas.height, cx: cd[0], cy: cd[1], r: scalePx() * dpr, data: Array.from(px) };
       },
-      view: function (q) { view = qnorm(q); dirty = true; render(); },
-      turn: function (ax, ay, az, a) { turn(ax, ay, az, a); dirty = true; render(); },
+      view: function (q) { view = qnorm(q); applyView(); dirty = true; },
+      turn: function (ax, ay, az, a) { turn(ax, ay, az, a); applyView(); dirty = true; },
       zoom: function (z, ax, ay) { zoomAnchor = ax === undefined ? [cx, cy] : [ax, ay]; setZoom(z); zoomTarget = z; render(); },
       pan: function (x, y) { panX = x; panY = y; render(); },
-      advance: function (s) {
+      advance: function (s, flares) {
         var end = model.time + s;
-        while (model.time < end - 1e-6) { model.step(Math.min(0.1, end - model.time), 1e9, { flares: true }); }
+        while (model.time < end - 1e-6) { model.step(Math.min(0.1, end - model.time), 1e9, { flares: !!flares }); }
         uploadStrands();
         refreshFieldMaps(performance.now(), true);
         render();
       },
-      flare: function () { model.triggerFlare(); },
+      flare: function (i, flux) { model.triggerFlare(i === undefined ? null : model.regions[i], flux); },
       readShell: function (k) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, volFbo);
         gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, volTex, 0, k);
