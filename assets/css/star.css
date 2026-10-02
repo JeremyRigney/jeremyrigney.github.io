@@ -1,0 +1,468 @@
+/*
+ * /star — a young Sun in ultraviolet.
+ *
+ * /galaxy's chrome on the same coal ground: the hairline card, the mono readout, the
+ * chip strip. The star itself is drawn in SDO's own colour tables, so the only colour
+ * here beyond the site's sage is each channel chip's hairline, taken from its table.
+ * Values are coal.css's and home-coal.css's, repeated because this page loads
+ * neither.
+ *
+ * One screen, no scroll. The stage fills the viewport and takes every pointer and
+ * touch itself (touch-action: none), so the browser never pans or zooms the page; the
+ * header and foot sit above it and let pointers through everywhere but their links.
+ */
+
+:root {
+  --ground: #111214;
+  --ink: #eceef0;
+  --ink-soft: #9aa0a6;
+  --ink-faint: #6b7178;
+  --chalk: #f6f7f8;
+  --line: rgba(236, 238, 240, 0.14);
+  --line-strong: rgba(236, 238, 240, 0.28);
+  --accent: #6e8a78;
+  --accent-soft: #7e9c89;
+  --accent-rgb: 110, 138, 120;
+  /* AIA 171's gold, for the card and reticle on a region that is flaring or emerging. */
+  --hot-rgb: 255, 176, 64;
+  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Chivo Mono", "Courier New", monospace;
+  --fs-micro: 0.58rem;
+  --gutter: clamp(1rem, 3.2vw, 2.6rem);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+}
+
+a {
+  color: inherit;
+}
+
+/* ---------- The stage ---------- */
+
+.stage {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: grab;
+}
+
+.stage.is-grabbing {
+  cursor: grabbing;
+}
+
+.stage canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  outline: none;
+}
+
+#star-gl {
+  opacity: 0;
+  transition: opacity 700ms var(--ease);
+}
+
+.is-ready #star-gl {
+  opacity: 1;
+}
+
+#star-overlay {
+  pointer-events: none;
+}
+
+/* ---------- Header ---------- */
+
+.site-header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: calc(1.1rem + env(safe-area-inset-top, 0px)) var(--gutter) 0;
+  pointer-events: none;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.masthead,
+.byline a {
+  pointer-events: auto;
+}
+
+.masthead {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.02rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.masthead-dot {
+  color: var(--accent-soft);
+}
+
+.byline {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.byline a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.byline a:hover,
+.byline a:focus-visible {
+  color: var(--ink);
+}
+
+/* The live readout: inclination, position angle, zoom and the star count. */
+.hud {
+  margin: 0.35rem 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+  white-space: pre;
+  text-align: right;
+}
+
+/* ---------- Foot ---------- */
+
+.foot {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 0 var(--gutter) calc(1.1rem + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+}
+
+.foot-left {
+  max-width: 44rem;
+}
+
+.caption {
+  max-width: 28rem;
+}
+
+.caption {
+  margin: 0 0 0.8rem;
+  font-size: 0.74rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+/*
+ * The channels: a row of chips, each with a hairline down its left edge in its own
+ * colour table's colour (set from star-view.js as --chip-rgb), lit when chosen.
+ */
+.bands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-width: 44rem;
+}
+
+.band {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.36rem 0.55rem 0.38rem;
+  border: 1px solid var(--line);
+  border-left: 2px solid rgba(var(--chip-rgb, 110, 138, 120), 0.35);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.band:hover,
+.band:focus-visible {
+  color: var(--ink);
+  border-color: var(--line-strong);
+  border-left-color: rgba(var(--chip-rgb, 110, 138, 120), 0.7);
+}
+
+.band.is-on {
+  border-color: var(--line-strong);
+  border-left-color: rgb(var(--chip-rgb, 110, 138, 120));
+  color: var(--ink);
+}
+
+/* Å and "Composite" read better as set. */
+.band-name {
+  text-transform: none;
+}
+
+.band.is-on .band-range {
+  color: rgba(var(--chip-rgb, 110, 138, 120), 0.95);
+}
+
+.band-range {
+  color: var(--ink-faint);
+  letter-spacing: 0.06em;
+}
+
+.hint {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  text-align: right;
+  transition: opacity 1200ms var(--ease), color 1200ms var(--ease);
+}
+
+.hint.is-quiet {
+  color: var(--ink-faint);
+  opacity: 0.6;
+}
+
+.hint-coarse {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .hint-fine {
+    display: none;
+  }
+
+  .hint-coarse {
+    display: inline;
+  }
+}
+
+/* ---------- Region card (as /galaxy's catalogue card) ---------- */
+
+.star-reticle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(var(--accent-rgb), 0.9);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms var(--ease);
+  will-change: transform;
+}
+
+.star-reticle.is-hot {
+  border-color: rgba(var(--hot-rgb), 0.95);
+}
+
+.star-reticle.is-on {
+  opacity: 1;
+}
+
+.star-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-width: 13rem;
+  padding: 0.7rem 0.85rem 0.75rem;
+  background: rgba(17, 18, 20, 0.86);
+  border: 1px solid var(--line-strong);
+  border-left: 2px solid var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  line-height: 1.55;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms var(--ease);
+  will-change: transform;
+}
+
+.star-card.is-hot {
+  border-left-color: rgb(var(--hot-rgb));
+}
+
+.star-card.is-on {
+  opacity: 1;
+}
+
+.star-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.2rem;
+  margin-bottom: 0.3rem;
+}
+
+.star-card-id {
+  color: var(--ink);
+  letter-spacing: 0.08em;
+}
+
+.star-card-tag {
+  font-size: var(--fs-micro);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+.star-card.is-hot .star-card-tag {
+  color: rgb(var(--hot-rgb));
+}
+
+/* ---------- Without WebGL2, or without JavaScript ---------- */
+
+.fallback {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 var(--gutter);
+  max-width: 34rem;
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.fallback[hidden] {
+  display: none;
+}
+
+.fallback-title {
+  margin: 0 0 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.fallback a {
+  color: var(--ink);
+  border-bottom: 1px solid var(--line-strong);
+  text-decoration: none;
+}
+
+.no-webgl .foot,
+.no-webgl .hud {
+  display: none;
+}
+
+/* ---------- Small screens ---------- */
+
+@media (max-width: 700px) {
+  .site-header {
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .hud {
+    text-align: left;
+    margin-top: 0.1rem;
+  }
+
+  .foot {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.7rem;
+  }
+
+  .caption {
+    display: none;
+  }
+
+  .foot-left {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  /* Eleven chips: one row that scrolls sideways rather than four that cover the star. */
+  .bands {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    pointer-events: auto;
+    scrollbar-width: none;
+    margin: 0 calc(-1 * var(--gutter));
+    padding: 0 var(--gutter);
+  }
+
+  .bands::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hint {
+    text-align: left;
+  }
+
+  .star-card {
+    min-width: 0;
+    max-width: calc(100vw - 24px);
+    font-size: 0.62rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #star-gl,
+  .hint,
+  .star-reticle,
+  .star-card {
+    transition: none;
+  }
+}

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Star — a young Sun in ultraviolet</title>
+  <!--
+    In development and unlinked: kept out of search until it goes live. When it does,
+    take the canonical, og and twitter tags, the consent card and the Google tag from
+    galaxy.html's head, and drop the robots line.
+  -->
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="description" content="A young Sun-like star in the channels of NASA's Solar Dynamics Observatory: turn it, zoom into its active regions, and watch loops heat and cool along its magnetic field." />
+  <link rel="icon" href="assets/favicon-star.svg" type="image/svg+xml" />
+  <meta name="theme-color" content="#111214" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/star.css?v=20261002" />
+</head>
+<body>
+  <!--
+    One screen and no scroll, as /galaxy. The stage takes every pointer: drag turns the
+    star, the wheel or a pinch zooms toward the pointer, a right-drag, shift-drag or two
+    fingers pan, a double-click or double-tap sets it back. Everything drawn is from
+    star-view.js; the physics is star-model.js and the channels are star-bands.js. The
+    regions on the hover cards are the model's own, not real ones.
+  -->
+  <main class="stage" id="stage">
+    <canvas id="star-gl" role="img" aria-label="A simulated young Sun-like star seen in ultraviolet. Drag to turn it; scroll, pinch or use plus and minus to zoom; number keys change the channel, arrow keys turn it, and R resets the view."></canvas>
+    <canvas id="star-overlay" aria-hidden="true"></canvas>
+    <span class="star-reticle" aria-hidden="true"></span>
+    <div class="star-card" aria-hidden="true">
+      <div class="star-card-head">
+        <span class="star-card-id"></span>
+        <span class="star-card-tag"></span>
+      </div>
+      <div class="star-card-row"></div>
+      <div class="star-card-row"></div>
+      <div class="star-card-row"></div>
+    </div>
+  </main>
+
+  <header class="site-header">
+    <div class="brand">
+      <a class="masthead" href="star">Star<span class="masthead-dot">.</span></a>
+      <span class="byline">a page by <a href="https://jeremy.ie">Jeremy</a> &middot; <a href="privacy">privacy</a></span>
+    </div>
+    <p class="hud" id="star-hud" aria-hidden="true"></p>
+  </header>
+
+  <footer class="foot">
+    <div class="foot-left">
+      <p class="caption">A young Sun, 0.9 times its size and spinning three times as fast, in the channels of NASA&rsquo;s Solar Dynamics Observatory. Its loops are traced along the magnetic field of its active regions; each is heated in bursts and cools from channel to channel.</p>
+      <div class="bands" id="star-bands" aria-label="Channel"></div>
+    </div>
+    <p class="hint" id="star-hint">
+      <span class="hint-fine">Drag to turn &middot; Scroll to zoom &middot; Right-drag to pan &middot; 1&ndash;9, 0, C for channels</span>
+      <span class="hint-coarse">Drag to turn &middot; Pinch to zoom &middot; Two fingers to pan &middot; Double-tap to reset</span>
+    </p>
+  </footer>
+
+  <div class="fallback" id="star-fallback" hidden>
+    <p class="fallback-title">This star needs WebGL2.</p>
+    <p>Your browser or device doesn&rsquo;t offer it, or can&rsquo;t render to floating-point buffers. The real Sun, fifteen minutes ago, is on the <a href="dashboard">dashboard</a>.</p>
+  </div>
+  <noscript>
+    <div class="fallback">
+      <p class="fallback-title">This star is drawn with JavaScript.</p>
+      <p>With it turned off there is nothing to show here. <a href="/">Back to the homepage</a>.</p>
+    </div>
+  </noscript>
+
+  <script src="assets/js/star-model.js?v=20261002"></script>
+  <script src="assets/js/star-bands.js?v=20261002"></script>
+  <script src="assets/js/star-view.js?v=20261002"></script>
+</body>
+</html>
