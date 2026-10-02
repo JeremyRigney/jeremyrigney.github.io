@@ -47,6 +47,23 @@
  * the disc over the quiet-Sun median, and a puts the quiet Sun 42% of the way up
  * the colour table, as those images look. For 94, 131 and 335 the 99.9th percentile
  * that morning was an M2.5 flare, so their vmax is set lower by hand.
+ *
+ * The star itself was then tuned (scale heights, loop and corona brightness, the
+ * layer weights here) until the page, read back raw with ?debug at t = 30 s and a
+ * radius of 396 px, measured like those images. All relative to the quiet star at
+ * disc centre; the Sun's numbers first, then the star's:
+ *
+ *            limb (0.97-1 R)   1.04 R        1.125 R       99th pct      10th pct
+ *   171      2.14  1.78        1.51  1.85    0.26  0.22    8.0   6.5     0.67  0.69
+ *   193      1.72  1.68        2.41  2.91    0.67  0.99    8.8   6.7     0.67  0.76
+ *   211      1.89  1.68        2.67  2.59    1.00  0.96    15.7  11.3    0.65  0.70
+ *   335      2.01  1.82        2.44  1.90    0.70  0.72    29.4  13.4    0.62  0.74
+ *   304      1.08  1.07        0.29  0.27    0.10  0.08    7.0   4.2     0.61  0.55
+ *   1600     0.56  0.54        0.02  0.01    0.01  0.00    2.2   2.3     0.56  0.59
+ *
+ * 94 and 131 are left out: that morning both were dominated by the flare and by
+ * photon noise. The star's corona fades faster than the Sun's beyond about 1.2 R,
+ * where AIA's own scattered light and the streamers this model lacks take over.
  */
 window.StarBands = (function () {
   'use strict';
@@ -127,14 +144,14 @@ window.StarBands = (function () {
       tone: 'asinh', stretch: { vmax: 60, a: 0.00339 },
       resp: [[6.85, 0.13, 1], [6.05, 0.12, 0.09]],
       layers: layers({ net: 0.03, moss: 0.25, ribbon: 0.6 }),
-      absorb: 0.9, gain: 4.88, noise: 3
+      absorb: 0.9, gain: 6.18, noise: 8
     },
     {
       id: '131', label: '131', unit: 'Å', ion: 'Fe VIII · XXI', temp: '0.4 · 10 MK', key: '2', table: '131',
       tone: 'asinh', stretch: { vmax: 80, a: 0.00172 },
       resp: [[5.6, 0.12, 0.55], [7.05, 0.12, 1]],
       layers: layers({ net: 1, moss: 0.3, ribbon: 3 }),
-      absorb: 0.9, coolS: 0.05, gain: 1.03, noise: 10
+      absorb: 0.9, coolS: 0.05, gain: 1.05, noise: 30
     },
     {
       // 171: vmax 22.09, a 0.00982 measured.
@@ -142,7 +159,7 @@ window.StarBands = (function () {
       tone: 'asinh', stretch: { vmax: 22.09, a: 0.00982 },
       resp: [[5.85, 0.13, 1]],
       layers: layers({ net: 0.6, moss: 0.6, ribbon: 1.2 }),
-      absorb: 0.9, coolS: 0.04, gain: 0.803
+      absorb: 0.9, coolS: 0.04, gain: 0.863
     },
     {
       // 193: vmax 53.21, a 0.00213 measured.
@@ -150,7 +167,7 @@ window.StarBands = (function () {
       tone: 'asinh', stretch: { vmax: 53.21, a: 0.00213 },
       resp: [[6.2, 0.11, 1], [7.25, 0.12, 0.12]],
       layers: layers({ net: 0.15, moss: 1, ribbon: 1 }),
-      absorb: 0.9, gain: 0.906
+      absorb: 0.9, gain: 1.11
     },
     {
       // 211: vmax 44.09, a 0.00294 measured.
@@ -158,14 +175,14 @@ window.StarBands = (function () {
       tone: 'asinh', stretch: { vmax: 44.09, a: 0.00294 },
       resp: [[6.3, 0.11, 1]],
       layers: layers({ net: 0.1, moss: 0.8, ribbon: 0.8 }),
-      absorb: 0.9, gain: 1.67
+      absorb: 0.9, gain: 2.06
     },
     {
       id: '335', label: '335', unit: 'Å', ion: 'Fe XVI', temp: '2.5 MK', key: '6', table: '335',
       tone: 'asinh', stretch: { vmax: 60, a: 0.00339 },
       resp: [[6.45, 0.15, 1], [5.5, 0.12, 0.15]],
       layers: layers({ net: 0.15, moss: 0.5, ribbon: 0.8 }),
-      absorb: 0.9, gain: 2.49, noise: 12
+      absorb: 0.9, gain: 2.93, noise: 25
     },
     {
       // 304: vmax 54.04, a 0.00207 measured.
@@ -173,7 +190,7 @@ window.StarBands = (function () {
       tone: 'asinh', stretch: { vmax: 54.04, a: 0.00207 },
       resp: [[4.9, 0.2, 1], [6.25, 0.12, 0.09]],
       layers: layers({ chrom: 1, ribbon: 6, limb: 1 }),
-      absorb: 1.1, coolS: 0.55, gain: 1.084
+      absorb: 1.1, coolS: 0.55, gain: 1.14
     },
     {
       // 1600: vmax 7.23, a 0.0737 measured.
@@ -181,7 +198,7 @@ window.StarBands = (function () {
       tone: 'asinh', stretch: { vmax: 7.23, a: 0.0737 },
       resp: [[5.0, 0.15, 0.05]],
       layers: layers({ uv: 1, ribbon: 9, limb: 0.15 }),
-      absorb: 0.15, coolS: 0.1, gain: 0.967
+      absorb: 0.15, coolS: 0.1, gain: 0.994
     },
     {
       id: 'white', label: 'White light', unit: '', ion: '4500 Å', temp: '5,700 K', key: '9', table: '4500',

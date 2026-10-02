@@ -34,7 +34,7 @@
  * sometimes cool catastrophically and rain back down as cool blobs.
  *
  * Rates are illustrative, as on /galaxy: the star turns in six minutes here, a strand
- * heats every 15 to 60 seconds, a flare runs its course in about 40, a region
+ * heats every 15 to 60 seconds, a flare runs its course in about a minute, a region
  * emerges in about a minute and lives for six or seven. The field turns rigidly with
  * the star. Real stars turn faster at the equator than the poles; this one does not,
  * so its loops are never sheared apart by the turning.
@@ -63,8 +63,6 @@ window.StarModel = (function () {
     SEED: 2732055
   };
   var SPIN = 2 * Math.PI / P.SPIN_SECONDS; // rad/s, about +z
-  var R_CM = P.R_SUN * 6.957e10;
-  var MX_PER_Q = 2 * Math.PI * R_CM * R_CM; // flux through the surface from one unit of charge
 
   /* ---------- Tunables ---------- */
 
@@ -1137,10 +1135,9 @@ window.StarModel = (function () {
   var HALE = { b: 'β', bg: 'βγ', bgd: 'βγδ' };
 
   function describe(reg) {
-    var area = 0, peakB = 0, flux = 0, bigSpot = 0;
+    var area = 0, peakB = 0, bigSpot = 0;
     reg.eff.forEach(function (p) {
       var b = Math.abs(p.q) / (p.d * p.d);
-      if (p.q > 0) { flux += p.q; }
       if (!p.spot) { return; }
       peakB = Math.max(peakB, b);
       if (b > 800) {
@@ -1175,7 +1172,7 @@ window.StarModel = (function () {
       mcintosh: z + (z === 'A' || z === 'B' ? 'x' : penumbra) + (z === 'A' ? 'x' : compact),
       area: Math.round(msh / 10) * 10,
       peakB: Math.round(peakB / 50) * 50,
-      flux: flux * MX_PER_Q,
+      tilt: reg.tilt * 180 / Math.PI,
       stage: flare && flare.region === reg ? 'Flaring' : reg.stage,
       tmin: tmax > 0 ? Math.pow(10, tmin) / 1e6 : 0,
       tmax: tmax > 0 ? Math.pow(10, tmax) / 1e6 : 0

@@ -13,9 +13,8 @@
  *   - A volume, on a spherical grid from the surface to 1.6 radii, of the corona's
  *     temperature and density. Each cell traces the field line through it both
  *     ways: if both ends come down, the loop's length and the field at its feet set
- *     how hot and dense it is, and the cell takes the density at its own height on
- *     that loop; if either end leaves, it is open field, a coronal hole. A layer or
- *     two are redrawn each frame.
+ *     how hot and dense it is at its base; if either end leaves, it is open field, a
+ *     coronal hole. A layer or two are redrawn each frame.
  *
  * A frame, all added into one half-float buffer:
  *
@@ -25,8 +24,9 @@
  *      the umbra's Wilson depression, which makes spots near the limb lopsided.
  *   2. The diffuse corona: rays marched through the volume at half resolution,
  *      only in front of the star, adding density squared times the channel's
- *      response. The limb brightening and the glow off the limb come from the
- *      length of the path, as they do in the real thing.
+ *      response, the density brought up from the base with the scale height of the
+ *      temperature the channel sees. The limb brightening and the glow off the limb
+ *      come from the length of the path, as they do in the real thing.
  *   3. Strands: every traced field line, filament thread and flare loop drawn as a
  *      thin tube in 3D (a strip widened on screen, Gaussian across), hidden where the
  *      star is in front of it. Each works out its own temperature and density from
@@ -1391,8 +1391,10 @@
       gl.bindTexture(gl.TEXTURE_2D, parTex);
       gl.uniform1i(L.u_par, 4);
       var verts = model.slots * (POINTS - 1) * 6;
-      gl.uniform1i(L.u_pass, 0);
-      gl.drawArrays(gl.TRIANGLES, 0, verts);
+      if (model.filaments.length) {
+        gl.uniform1i(L.u_pass, 0);
+        gl.drawArrays(gl.TRIANGLES, 0, verts);
+      }
       gl.uniform1i(L.u_pass, 1);
       gl.drawArrays(gl.TRIANGLES, 0, verts);
 
@@ -1615,8 +1617,9 @@
     card.classList.toggle('is-hot', d.stage === 'Flaring' || d.stage === 'Emerging');
     reticle.classList.toggle('is-hot', d.stage === 'Flaring' || d.stage === 'Emerging');
     cardRows[0].textContent = 'McIntosh ' + d.mcintosh + ' · ' + Model.thousands(d.area) + ' MSH';
-    cardRows[1].textContent = '|B| ' + Model.thousands(d.peakB) + ' G · '
-      + (d.flux / 1e22).toFixed(1) + '×10²² Mx';
+    // The tilt of its axis to the equator (Joy's law) rather than its flux: the
+    // buried sources set the field's shape well, but not its total flux.
+    cardRows[1].textContent = '|B| ' + Model.thousands(d.peakB) + ' G · tilt ' + Math.round(d.tilt) + '°';
     cardRows[2].textContent = stonyhurst(reg.frame.c)
       + (d.tmax ? ' · loops ' + mk(d.tmin) + '–' + mk(d.tmax) + ' MK' : '');
   }
