@@ -1,0 +1,695 @@
+<!DOCTYPE HTML>
+<!--
+	Temporary: five type combinations from Awwwards' 100 Best Free Fonts 2025, set on
+	the coal system's own components so they can be compared against the current
+	Fraunces / Inter / Chivo Mono. Not linked from anywhere and not in sitemap.xml.
+	Delete this file (and assets/fonts/junicode/ unless Junicode wins) once a set is picked.
+-->
+<html lang="en">
+	<head>
+		<title>Font samples — Jeremy Rigney</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex, nofollow" />
+		<link rel="icon" href="assets/favicon-jr.svg" type="image/svg+xml" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=Geist:wght@300..800&family=Geist+Mono:wght@400..700&family=Archivo:wdth,wght@62..125,400..900&family=Hanken+Grotesk:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet" />
+		<link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+		<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=cabinet-grotesk@500,700,800&f[]=satoshi@400,500,700,400i&f[]=chillax@500,600&f[]=ranade@400,500,400i&display=swap" rel="stylesheet" />
+		<link rel="stylesheet" href="assets/css/coal.css" />
+		<style>
+			@font-face {
+				font-family: "Junicode Condensed";
+				src: url("assets/fonts/junicode/junicode-bold-condensed.woff") format("woff");
+				font-weight: 700;
+				font-style: normal;
+				font-display: swap;
+			}
+
+			@font-face {
+				font-family: "Junicode Condensed";
+				src: url("assets/fonts/junicode/junicode-bold-italic-condensed.woff") format("woff");
+				font-weight: 700;
+				font-style: italic;
+				font-display: swap;
+			}
+
+			/* Page chrome, kept in a system mono so it never competes with a sample. */
+			:root {
+				--chrome: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+			}
+
+			.reveal,
+			.line-mask > span {
+				opacity: 1;
+				transform: none;
+			}
+
+			.picker {
+				position: sticky;
+				top: 0;
+				z-index: 40;
+				display: flex;
+				flex-wrap: wrap;
+				align-items: center;
+				gap: 0.4rem 1.4rem;
+				padding: 0.8rem 1.4rem;
+				background: rgba(17, 18, 20, 0.9);
+				backdrop-filter: blur(10px);
+				border-bottom: 1px solid var(--line-strong);
+				font-family: var(--chrome);
+				font-size: 0.7rem;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+			}
+
+			.picker strong {
+				color: var(--chalk);
+				font-weight: 600;
+			}
+
+			.picker a {
+				color: var(--ink-soft);
+				text-decoration: none;
+				padding: 0.2rem 0;
+				border-bottom: 1px solid transparent;
+			}
+
+			.picker a:hover,
+			.picker a:focus-visible,
+			.picker a.is-on {
+				color: var(--chalk);
+				border-bottom-color: var(--accent);
+			}
+
+			.picker-hint {
+				margin-left: auto;
+				color: var(--ink-faint);
+			}
+
+			.intro {
+				padding: 3.2rem 0 1rem;
+				font-family: var(--chrome);
+				font-size: 0.78rem;
+				line-height: 1.7;
+				color: var(--ink-soft);
+				max-width: 74ch;
+			}
+
+			/* ---------- A sample ---------- */
+
+			.sample {
+				font-family: var(--font-body);
+				border-top: 1px solid var(--line-strong);
+				padding-bottom: 5rem;
+				scroll-margin-top: 3rem;
+			}
+
+			.sample-head {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: baseline;
+				gap: 0.4rem 1.6rem;
+				padding-top: 2.4rem;
+				padding-bottom: 1.6rem;
+				font-family: var(--chrome);
+			}
+
+			.sample-num {
+				margin: 0;
+				font-size: 0.72rem;
+				letter-spacing: 0.1em;
+				color: var(--accent-soft);
+			}
+
+			.sample-name {
+				margin: 0;
+				font-family: var(--chrome);
+				font-size: 1.05rem;
+				font-weight: 600;
+				letter-spacing: 0.02em;
+				color: var(--chalk);
+			}
+
+			.sample-spec {
+				margin: 0;
+				font-size: 0.72rem;
+				color: var(--ink-soft);
+			}
+
+			.sample-why {
+				flex-basis: 100%;
+				margin: 0.3rem 0 0;
+				font-size: 0.74rem;
+				line-height: 1.6;
+				color: var(--ink-faint);
+				max-width: 90ch;
+			}
+
+			/* The header, set in flow rather than fixed. */
+			.sample .site-header {
+				position: relative;
+				inset: auto;
+				z-index: auto;
+				backdrop-filter: none;
+				background: transparent;
+				border-top: 1px solid var(--line);
+			}
+
+			.sample .site-nav a:first-child {
+				color: var(--chalk);
+				border-bottom-color: var(--accent);
+			}
+
+			.mock-opening {
+				padding-top: clamp(3rem, 8vw, 6rem);
+				padding-bottom: clamp(3rem, 7vw, 5rem);
+			}
+
+			.mock-opening .readout-rail {
+				margin-top: clamp(3rem, 7vw, 4.5rem);
+			}
+
+			.sample .chapter {
+				padding: clamp(3.5rem, 8vw, 6rem) 0;
+			}
+
+			.mock-record {
+				margin-top: clamp(3rem, 6vw, 4.5rem);
+			}
+
+			/* Long form, at the blog's reading size. */
+			.mock-article {
+				display: grid;
+				grid-template-columns: minmax(0, var(--margin-col)) minmax(0, 1fr);
+				gap: 0 clamp(1.5rem, 4vw, 3.5rem);
+				padding-top: clamp(3rem, 7vw, 5rem);
+				border-top: 1px solid var(--line);
+			}
+
+			.mock-article-meta {
+				margin: 0;
+				padding-top: 0.6em;
+				font-family: var(--font-mono);
+				font-size: var(--fs-micro);
+				line-height: 1.9;
+				letter-spacing: 0.18em;
+				text-transform: uppercase;
+				color: var(--ink-faint);
+			}
+
+			.mock-article-title {
+				margin: 0 0 2rem;
+				font-family: var(--font-display);
+				font-weight: 400;
+				font-size: clamp(2rem, 4.6vw, 3.6rem);
+				line-height: 1.04;
+				letter-spacing: -0.03em;
+				color: var(--chalk);
+			}
+
+			.mock-article-body {
+				max-width: min(62ch, 100%);
+			}
+
+			.mock-article-body p {
+				margin: 0 0 1.2rem;
+				font-size: 1rem;
+				line-height: 1.68;
+				color: var(--ink-soft);
+			}
+
+			.mock-article-body i {
+				color: var(--ink);
+			}
+
+			.mock-article-body a {
+				color: var(--ink);
+				text-decoration: none;
+				border-bottom: 1px solid var(--accent);
+			}
+
+			/* The display face on its own, at size. */
+			.specimen {
+				margin-top: clamp(3rem, 7vw, 5rem);
+				padding-top: 2rem;
+				border-top: 1px solid var(--line);
+				font-family: var(--font-display);
+				color: var(--chalk);
+				overflow-wrap: anywhere;
+			}
+
+			.specimen-big {
+				margin: 0;
+				font-size: clamp(2.6rem, 9vw, 7rem);
+				line-height: 1;
+				letter-spacing: -0.03em;
+			}
+
+			.specimen-row {
+				margin: 1rem 0 0;
+				font-size: clamp(1.1rem, 2.4vw, 1.6rem);
+				line-height: 1.35;
+				color: var(--ink-soft);
+			}
+
+			.specimen-mono {
+				margin: 1.2rem 0 0;
+				font-family: var(--font-mono);
+				font-size: 0.86rem;
+				letter-spacing: 0.04em;
+				color: var(--accent-soft);
+			}
+
+			.specimen-body {
+				margin: 0.6rem 0 0;
+				font-family: var(--font-body);
+				font-size: 0.95rem;
+				color: var(--ink-soft);
+			}
+
+			.sample-note {
+				margin: 2.4rem 0 0;
+				padding-top: 1rem;
+				border-top: 1px dashed var(--line);
+				font-family: var(--chrome);
+				font-size: 0.7rem;
+				line-height: 1.7;
+				color: var(--ink-faint);
+			}
+
+			/*
+			 * The new sets put the opening title in the display face. The baseline keeps
+			 * the site's own mono 700 uppercase so the comparison is honest.
+			 */
+			:where(.sample:not(.s-0)) .opening-title {
+				font-family: var(--font-display);
+				text-transform: none;
+			}
+
+			/* ---------- 0 · Baseline: Fraunces / Inter / Chivo Mono ---------- */
+
+			.s-0 {
+				--font-display: "Fraunces", Georgia, serif;
+				--font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+				--font-mono: "Chivo Mono", "Courier New", monospace;
+			}
+
+			/* ---------- 1 · Mission Control: Clash Display / Geist / Geist Mono ---------- */
+
+			.s-1 {
+				--font-display: "Clash Display", "Helvetica Neue", Arial, sans-serif;
+				--font-body: "Geist", "Helvetica Neue", Arial, sans-serif;
+				--font-mono: "Geist Mono", "Courier New", monospace;
+			}
+
+			.s-1 .opening-title {
+				font-weight: 600;
+				font-size: clamp(2.5rem, 7.6vw, 5.8rem);
+				line-height: 0.96;
+				letter-spacing: -0.025em;
+			}
+
+			.s-1 .chapter-title,
+			.s-1 .mock-article-title,
+			.s-1 .record-name,
+			.s-1 .specimen {
+				font-weight: 600;
+				letter-spacing: -0.02em;
+			}
+
+			.s-1 .record-name {
+				font-weight: 500;
+			}
+
+			/* ---------- 2 · Race Poster: Archivo (Narrow width) / Hanken Grotesk / Geist Mono ---------- */
+
+			.s-2 {
+				--font-display: "Archivo", "Arial Narrow", sans-serif;
+				--font-body: "Hanken Grotesk", "Helvetica Neue", Arial, sans-serif;
+				--font-mono: "Geist Mono", "Courier New", monospace;
+			}
+
+			.s-2 .opening-title,
+			.s-2 .chapter-title,
+			.s-2 .mock-article-title,
+			.s-2 .record-name,
+			.s-2 .specimen-big {
+				font-stretch: 62%;
+				font-weight: 900;
+				text-transform: uppercase;
+				letter-spacing: -0.005em;
+			}
+
+			.s-2 .opening-title {
+				font-size: clamp(3.2rem, 12vw, 9.5rem);
+				line-height: 0.86;
+			}
+
+			.s-2 .chapter-title {
+				font-size: clamp(3rem, 9vw, 7rem);
+				line-height: 0.88;
+			}
+
+			.s-2 .mock-article-title {
+				font-size: clamp(2.4rem, 6vw, 4.6rem);
+				line-height: 0.92;
+			}
+
+			.s-2 .record-name {
+				font-weight: 800;
+				font-size: clamp(1.8rem, 4vw, 2.8rem);
+				line-height: 0.95;
+			}
+
+			.s-2 .record-row.is-current .record-name {
+				font-size: clamp(2.4rem, 6vw, 4.2rem);
+			}
+
+			.s-2 .specimen-row {
+				font-stretch: 75%;
+				font-weight: 700;
+			}
+
+			/* ---------- 3 · Editorial Grotesk: Cabinet Grotesk / Satoshi / Chivo Mono ---------- */
+
+			.s-3 {
+				--font-display: "Cabinet Grotesk", "Helvetica Neue", Arial, sans-serif;
+				--font-body: "Satoshi", "Helvetica Neue", Arial, sans-serif;
+				--font-mono: "Chivo Mono", "Courier New", monospace;
+			}
+
+			.s-3 .opening-title {
+				font-weight: 800;
+				font-size: clamp(2.6rem, 7.8vw, 6rem);
+				line-height: 0.94;
+				letter-spacing: -0.035em;
+			}
+
+			.s-3 .chapter-title,
+			.s-3 .mock-article-title,
+			.s-3 .specimen {
+				font-weight: 800;
+				letter-spacing: -0.035em;
+			}
+
+			.s-3 .record-name {
+				font-weight: 700;
+				letter-spacing: -0.025em;
+			}
+
+			/* ---------- 4 · Observatory Journal: Junicode Bold Condensed / Satoshi / Geist Mono ---------- */
+
+			.s-4 {
+				--font-display: "Junicode Condensed", Georgia, serif;
+				--font-body: "Satoshi", "Helvetica Neue", Arial, sans-serif;
+				--font-mono: "Geist Mono", "Courier New", monospace;
+			}
+
+			.s-4 .opening-title,
+			.s-4 .chapter-title,
+			.s-4 .mock-article-title,
+			.s-4 .record-name,
+			.s-4 .specimen {
+				font-weight: 700;
+				letter-spacing: -0.01em;
+			}
+
+			.s-4 .opening-title {
+				font-size: clamp(2.8rem, 8.4vw, 6.6rem);
+				line-height: 0.95;
+			}
+
+			.s-4 .chapter-title {
+				line-height: 0.96;
+			}
+
+			/* ---------- 5 · Soft Orbit: Chillax / Ranade / Geist Mono ---------- */
+
+			.s-5 {
+				--font-display: "Chillax", "Helvetica Neue", Arial, sans-serif;
+				--font-body: "Ranade", "Helvetica Neue", Arial, sans-serif;
+				--font-mono: "Geist Mono", "Courier New", monospace;
+			}
+
+			.s-5 .opening-title {
+				font-weight: 600;
+				font-size: clamp(2.5rem, 7.6vw, 5.8rem);
+				line-height: 0.98;
+				letter-spacing: -0.025em;
+			}
+
+			.s-5 .chapter-title,
+			.s-5 .mock-article-title,
+			.s-5 .specimen {
+				font-weight: 600;
+				letter-spacing: -0.025em;
+			}
+
+			.s-5 .record-name {
+				font-weight: 500;
+				letter-spacing: -0.02em;
+			}
+
+			@media (max-width: 860px) {
+				.mock-article {
+					grid-template-columns: 1fr;
+				}
+
+				.mock-article-meta {
+					padding-top: 0;
+					margin-bottom: 1.2rem;
+				}
+
+				.picker-hint {
+					display: none;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<nav class="picker" aria-label="Samples">
+			<strong>Font samples</strong>
+			<a href="#s0">0 Current</a>
+			<a href="#s1">1 Mission Control</a>
+			<a href="#s2">2 Race Poster</a>
+			<a href="#s3">3 Editorial Grotesk</a>
+			<a href="#s4">4 Observatory Journal</a>
+			<a href="#s5">5 Soft Orbit</a>
+			<span class="picker-hint">Keys 0–5 jump</span>
+		</nav>
+
+		<div class="wrap">
+			<p class="intro">
+				Five type sets from Awwwards&rsquo; <em>100 Best Free Fonts 2025</em>, each on the
+				site&rsquo;s real components (coal.css), with copy from the homepage and the
+				radio-telescope article. Every display and prose face is named on that list and
+				free for commercial use. The site keeps its three roles: a display face for titles
+				and names, a prose face, and a mono UI voice for labels, figures and links. Set 0
+				is what the site uses today. In sets 1&ndash;5 the opening title moves from mono
+				to the display face; the masthead and every label stay in the set&rsquo;s mono.
+			</p>
+		</div>
+
+		<main id="samples"></main>
+
+		<template id="sample-template">
+			<section class="sample">
+				<div class="wrap sample-head">
+					<p class="sample-num"></p>
+					<h2 class="sample-name"></h2>
+					<p class="sample-spec"></p>
+					<p class="sample-why"></p>
+				</div>
+
+				<header class="site-header">
+					<div class="brand">
+						<a class="masthead" href="#top">Jeremy<span class="masthead-dot">.</span></a>
+						<p class="header-meta">Dublin &middot; Ireland</p>
+					</div>
+					<nav class="site-nav" aria-label="Sample navigation">
+						<a href="#">Home</a>
+						<a href="#">Speaking</a>
+						<a href="#">Dashboard</a>
+						<a href="#">Blog</a>
+						<a href="#">CV</a>
+					</nav>
+				</header>
+
+				<div class="wrap mock-opening">
+					<p class="opening-eyebrow">Dr. Jeremy Rigney &middot; Dublin, Ireland</p>
+					<h1 class="opening-title">
+						<span class="line-mask"><span>From stellar physics</span></span>
+						<span class="line-mask"><span>to production AI</span></span>
+					</h1>
+					<p class="opening-sub">Senior Data Scientist &middot; AI R&amp;D &middot; Astrophysicist</p>
+					<p class="opening-lead">I build data pipelines and models that turn complex, large-scale datasets into clear decisions, drawing on a PhD spent observing the stars with some of the world&rsquo;s most advanced telescopes.</p>
+					<div class="opening-actions">
+						<a class="cta cta-lead" href="#">View CV</a>
+						<a class="cta" href="#">Explore the dashboard</a>
+					</div>
+					<div class="readout-rail">
+						<div class="readout readout-lead">
+							<span class="readout-value">PhD 2024</span>
+							<span class="readout-label">Astrophysics, QUB</span>
+						</div>
+						<div class="readout">
+							<span class="readout-value">Dublin, IE</span>
+							<span class="readout-label">Based</span>
+						</div>
+						<div class="readout">
+							<span class="readout-value">6</span>
+							<span class="readout-label">Live projects here</span>
+						</div>
+					</div>
+				</div>
+
+				<div class="chapter">
+					<div class="wrap">
+						<div class="chapter-head">
+							<p class="chapter-index"><b>01</b> / What I do</p>
+							<h2 class="chapter-title"><span class="line-mask"><span>From terabyte-scale telescope data to production models.</span></span></h2>
+						</div>
+
+						<div class="hang-prose">
+							<span class="hang-label">Background</span>
+							<div class="hang-prose-body">
+								<p>I&rsquo;m a <strong>Senior Data Scientist at Optum</strong>, with a PhD in astrophysics from Queen&rsquo;s University Belfast. My research centred on observing the Sun and other stars to better understand stellar dynamics, which meant designing and running analysis pipelines end to end on terabytes of telescope data.</p>
+								<p>I&rsquo;ve led collaborative projects spanning multiple continents, worked in Agile software teams, and published peer-reviewed research.</p>
+							</div>
+						</div>
+
+						<ul class="hang-list">
+							<li class="hang-row"><span class="hang-label hang-label-key">A</span><p>Large-scale data pipelines in Python</p></li>
+							<li class="hang-row"><span class="hang-label hang-label-key">B</span><p>High-performance &amp; scientific computing</p></li>
+							<li class="hang-row"><span class="hang-label hang-label-key">C</span><p>Time-series &amp; statistical analysis</p></li>
+						</ul>
+
+						<div class="record mock-record">
+							<div class="record-row is-current">
+								<span class="record-yr">2026 to present</span>
+								<div>
+									<h3 class="record-name">Optum</h3>
+									<p class="record-role">Senior Data Scientist. AI R&amp;D and production deployment: agentic pipelines and production ML models.</p>
+								</div>
+							</div>
+							<div class="record-row">
+								<span class="record-yr">2020 to 2024</span>
+								<div>
+									<h3 class="record-name">Queen&rsquo;s University Belfast</h3>
+									<p class="record-role">PhD, School of Mathematics and Physics. Observational astrophysics.</p>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="wrap">
+					<div class="mock-article">
+						<p class="mock-article-meta">Blog<br />14 April 2023<br />Jeremy Rigney</p>
+						<div>
+							<h2 class="mock-article-title">The Absurdity and Possible Reality of a Radio Telescope on the Moon</h2>
+							<div class="mock-article-body">
+								<p>What once sounded like a story from science fiction is now quickly becoming a scientific reality, with privately funded projects and NASA-supported studies into the feasibility of a radio dish nestled inside a lunar crater.</p>
+								<p>There are two issues which must be addressed when observing in the long wavelengths of the radio domain. The first is <i>resolution</i>. A simple equation relates the wavelength of the observed light and diameter of the mirror to the telescope&rsquo;s angular resolution: <i>angular resolution = 1.22 wavelength/diameter</i>. For optical telescopes a 3 or 4-meter mirror can obtain incredibly sharp images; radio wavelengths are much longer, so far larger dishes are required.</p>
+								<p>The year 2000 marked the completion of the <a href="#">Green Bank Radio Telescope (GBT)</a>, one of the largest moveable manmade structures on earth: a 100&times;110 meter dish listening at 3 meters to 2.6 mm.</p>
+							</div>
+						</div>
+					</div>
+
+					<div class="specimen">
+						<p class="specimen-big">Aa Gg Rr 2026</p>
+						<p class="specimen-row">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br />abcdefghijklmnopqrstuvwxyz &amp; 0123456789</p>
+						<p class="specimen-mono">AG 2026-08-12 · 1.22 λ/D · 76 m · 100×110 m · 3.9 rem</p>
+						<p class="specimen-body">The quick brown fox jumps over the lazy dog. <em>Italic, if the face has one.</em> <strong>Bold for emphasis.</strong></p>
+					</div>
+
+					<p class="sample-note"></p>
+				</div>
+			</section>
+		</template>
+
+		<script>
+			(function () {
+				var sets = [
+					{
+						name: "Current",
+						spec: "Display Fraunces · Prose Inter · UI Chivo Mono",
+						why: "What the site uses today, set exactly as it is now, including the mono uppercase opening title.",
+						note: "All three from Google Fonts (OFL). Chivo Mono and Inter are not on the Awwwards list; Fraunces isn't either."
+					},
+					{
+						name: "Mission Control",
+						spec: "Display Clash Display 600 · Prose Geist · UI Geist Mono",
+						why: "Geometric and engineered. Clash Display gives the titles real mass without losing the clean, technical feel, and Geist with Geist Mono makes prose and UI one family. Reads as AI-lab and observatory at once. The safest of the bold options.",
+						note: "Clash Display: Fontshare (ITF), free for personal and commercial use. Geist and Geist Mono: Vercel, OFL, on Google Fonts. Weights used: Clash 500/600; Geist 400/500; Geist Mono 400–700."
+					},
+					{
+						name: "Race Poster",
+						spec: "Display Archivo Narrow at 62% width, 900, uppercase · Prose Hanken Grotesk · UI Geist Mono",
+						why: "The loudest set. Tall condensed capitals like a race programme or a launch poster, tying the homepage to /f1. Hanken Grotesk (the HK Grotesk on the list) keeps the prose plain so the titles can shout. With Humane or Mango Grotesque this could go further, but those would need downloading and self-hosting.",
+						note: "Archivo Narrow is a cut of Archivo, loaded here as the full variable family to reach the 62% width. Archivo, Hanken Grotesk and Geist Mono are OFL, on Google Fonts."
+					},
+					{
+						name: "Editorial Grotesk",
+						spec: "Display Cabinet Grotesk 800 · Prose Satoshi · UI Chivo Mono (kept)",
+						why: "Chunky magazine headlines over a warm, rounded grotesk for reading. The mono UI voice stays exactly as it is, so the labels, readouts, /f1 and /galaxy don't change. The lowest-effort switch.",
+						note: "Cabinet Grotesk and Satoshi: Fontshare (ITF), free for personal and commercial use. Chivo Mono: Google Fonts, OFL (current, not on the list)."
+					},
+					{
+						name: "Observatory Journal",
+						spec: "Display Junicode Bold Condensed · Prose Satoshi · UI Geist Mono",
+						why: "Keeps a serif for titles like today, but trades Fraunces' softness for a narrow, scholarly old-style face: an observatory logbook or a journal masthead. The most academic of the five, and a nod to the PhD.",
+						note: "Junicode: Peter S. Baker, OFL, self-hosted on this page from the TypoPRO build (Junicode 1). Junicode 2 has more widths and weights if this set wins. Satoshi: Fontshare. Geist Mono: OFL, Google Fonts."
+					},
+					{
+						name: "Soft Orbit",
+						spec: "Display Chillax 600 · Prose Ranade · UI Geist Mono",
+						why: "Rounder and friendlier, leaning into the science-communication and public-speaking side rather than the engineering one. Ranade is a humanist sans with a calligraphic hint that gives the long-form prose some character. The biggest change in tone.",
+						note: "Chillax and Ranade: Fontshare (ITF), free for personal and commercial use. Geist Mono: OFL, Google Fonts."
+					}
+				];
+
+				var tpl = document.getElementById("sample-template");
+				var main = document.getElementById("samples");
+
+				sets.forEach(function (set, i) {
+					var node = tpl.content.cloneNode(true);
+					var section = node.querySelector(".sample");
+					section.classList.add("s-" + i);
+					section.id = "s" + i;
+					section.setAttribute("aria-label", set.name);
+					node.querySelector(".sample-num").textContent = i === 0 ? "0 · Baseline" : i + " / 5";
+					node.querySelector(".sample-name").textContent = set.name;
+					node.querySelector(".sample-spec").textContent = set.spec;
+					node.querySelector(".sample-why").textContent = set.why;
+					node.querySelector(".sample-note").textContent = set.note;
+					main.appendChild(node);
+				});
+
+				var links = Array.prototype.slice.call(document.querySelectorAll(".picker a"));
+
+				document.addEventListener("keydown", function (e) {
+					if (e.metaKey || e.ctrlKey || e.altKey) return;
+					var n = parseInt(e.key, 10);
+					if (n >= 0 && n <= 5) {
+						document.getElementById("s" + n).scrollIntoView({ behavior: "smooth" });
+					}
+				});
+
+				if ("IntersectionObserver" in window) {
+					var io = new IntersectionObserver(function (entries) {
+						entries.forEach(function (entry) {
+							if (!entry.isIntersecting) return;
+							links.forEach(function (a) {
+								a.classList.toggle("is-on", a.getAttribute("href") === "#" + entry.target.id);
+							});
+						});
+					}, { rootMargin: "-45% 0px -50% 0px" });
+					document.querySelectorAll(".sample").forEach(function (s) { io.observe(s); });
+				}
+			})();
+		</script>
+	</body>
+</html>
