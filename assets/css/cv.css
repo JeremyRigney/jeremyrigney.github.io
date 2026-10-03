@@ -241,6 +241,19 @@
 }
 
 /*
+ * A short note under a row's bullets, set as a label rather than another bullet. Used
+ * once, on the current role, to say the detail of internal work is confidential.
+ */
+.record-note {
+  margin: 1.1rem 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/*
  * Links inside a record row — the two scholarship hosts in the education chapter. The
  * same underline-as-hairline treatment .hang-row a gets in coal.css.
  */

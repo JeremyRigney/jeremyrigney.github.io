@@ -37,7 +37,7 @@
  *
  * Reference tokens for any redesign — the values at :root below are canonical:
  *   ground  --coal #111214    ink  --chalk #f6f7f8 / --ink #eceef0
- *   prose   --ink-soft #9aa0a6    labels  --ink-faint #6b7178
+ *   prose   --ink-soft #9aa0a6    labels  --ink-faint #82888f
  *   accent  --accent #6e8a78 (deep #5a7566, soft #7e9c89)
  *   type    Chivo Mono (UI) / Fraunces (chapter titles) / Inter (prose)
  *   layout  1180px wrap, 13rem margin spine, 3.9rem header; breakpoints 860 / 700px
@@ -49,7 +49,11 @@
   --line-strong: rgba(236, 238, 240, 0.28);
   --ink: #eceef0;
   --ink-soft: #9aa0a6;
-  --ink-faint: #6b7178;
+  /*
+   * 5.2:1 on the coal ground. It was #6b7178 (3.8:1), which fell short of the 4.5:1
+   * WCAG AA needs for text this small, and every micro label on the site uses it.
+   */
+  --ink-faint: #82888f;
   --chalk: #f6f7f8;
 
   /*
@@ -74,7 +78,7 @@
 
   --fs-chapter: clamp(2.6rem, 7vw, 5.5rem);
   --fs-figure: clamp(2.4rem, 6vw, 4.6rem);
-  --fs-micro: 0.58rem;
+  --fs-micro: 0.64rem;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* Width of the left margin column that carries chapter numbers and hanging labels. */
@@ -355,9 +359,13 @@ a {
  */
 
 /* The announce link — a ruled row, not a pill. */
+/*
+ * No wrap at the flex level: on a phone the text wraps inside its own span instead,
+ * so the arrow stays at the end of the line rather than dropping onto a line of its own.
+ */
 .announce {
   display: inline-flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   max-width: 100%;
   align-items: baseline;
   gap: 0.4rem 0.9rem;
@@ -382,7 +390,13 @@ a {
   color: var(--accent-soft);
 }
 
+.announce-tag,
+.announce-arrow {
+  flex: none;
+}
+
 .announce-text {
+  min-width: 0;
   font-size: 0.92rem;
   color: var(--ink-soft);
 }
@@ -468,7 +482,7 @@ a {
   display: flex;
   flex-wrap: wrap;
   gap: 1.1rem 2.2rem;
-  margin-top: 2.6rem;
+  margin-top: 1.9rem;
 }
 
 /*
@@ -478,14 +492,23 @@ a {
  */
 .cta {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.76rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink);
   text-decoration: none;
-  padding-bottom: 0.45rem;
+  padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--line-strong);
   transition: color 220ms ease, border-color 220ms ease;
+}
+
+/*
+ * In an opening frame the links are the main way on, so they get a taller hit area
+ * for a thumb. The extra is above the text, which keeps the rule where it was; the
+ * frame's margin above the row came down by the same amount.
+ */
+.opening-actions .cta {
+  padding-top: 0.75rem;
 }
 
 .cta:hover,
@@ -494,14 +517,39 @@ a {
   border-bottom-color: var(--accent);
 }
 
+/*
+ * The primary link outranks the others by weight, not by colour alone: chalk on a
+ * heavier rule. It used to be sage on a hairline, which read as quieter than the white
+ * secondary link beside it.
+ */
 .cta-lead {
-  color: var(--accent-soft);
-  border-bottom-color: var(--accent);
+  color: var(--chalk);
+  border-bottom: 2px solid var(--accent-soft);
 }
 
 .cta-lead:hover,
 .cta-lead:focus-visible {
   color: var(--chalk);
+  border-bottom-color: var(--chalk);
+}
+
+.cta-arrow {
+  display: inline-block;
+  margin-left: 0.35em;
+  color: var(--accent-soft);
+  transition: transform 220ms var(--ease), color 220ms ease;
+}
+
+.cta:hover .cta-arrow,
+.cta:focus-visible .cta-arrow {
+  color: var(--chalk);
+  transform: translateX(5px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-arrow {
+    transition: none;
+  }
 }
 
 /* ---------- The readout rail ---------- */

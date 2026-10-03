@@ -1,10 +1,10 @@
 # Jeremy Rigney
 
-> Dr. Jeremy Rigney is a Senior Data Scientist at Optum in Dublin, Ireland, building production AI, with a PhD in astrophysics from Queen's University Belfast.
+> Dr. Jeremy Rigney is a Senior Data Scientist at Optum in Dublin, Ireland, working on agentic AI in regulated healthcare. He has a PhD in astrophysics from Queen's University Belfast.
 
 ## Career
 
-- Senior Data Scientist, Optum (2026 to present): AI research and development, and production deployment.
+- Senior Data Scientist, Optum (2026 to present): designs and builds agentic AI systems for a regulated healthcare setting, including MCP (Model Context Protocol) data contracts, grounding model outputs in trusted data, and evaluation and testing of LLMs and agents. Details of internal projects are confidential.
 - Data Scientist, LexisNexis Risk Solutions (2025 to 2026): vehicle risk models and analytics.
 - PhD, observational astrophysics, Queen's University Belfast (2020 to 2024): observing the Sun and other stars with some of the world's most advanced telescopes, and analysing terabytes of telescope data.
 - BSc (Hons) Physics with Astronomy and Space Science, University College Dublin (2016 to 2020).
@@ -20,7 +20,6 @@ Jeremy Rigney is an award-winning science communicator, with over 60 talks, tour
 
 - [Home](https://jeremy.ie/): career overview, from stellar physics to production AI
 - [CV](https://jeremy.ie/cv): experience, education, skills, awards and publications
-- [CV (PDF)](https://jeremy.ie/JeremyRigneyCV.pdf)
 - [Public speaking](https://jeremy.ie/speaking): talks, tours and awards
 - [Data dashboard](https://jeremy.ie/dashboard): live widgets built from public APIs
 - [Blog](https://jeremy.ie/blog): writing on astronomy and radio telescopes

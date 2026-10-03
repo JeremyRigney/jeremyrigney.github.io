@@ -340,6 +340,18 @@
 }
 
 /*
+ * The name inside the eyebrow. The header that carries it is held off-screen over this
+ * frame, so without this the name was the smallest text on the first screen. Brighter
+ * and a step larger than the rest of the line, on the same baseline.
+ */
+.opening-eyebrow .opening-name {
+  font-size: 0.86rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  color: var(--chalk);
+}
+
+/*
  * Reduced motion keeps the picture and loses the movement: home-galaxy.js paints one
  * frame and never starts its loop. Hovering a star still works, since that is a
  * response to the pointer and not an animation, but nothing fades.
@@ -466,6 +478,48 @@
   .scroll-hint {
     display: none;
   }
+
+  /*
+   * Four figures in two even rows. Left to flex-wrap they broke three and one, because
+   * the first label is the widest.
+   */
+  .opening .readout-rail {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---------- Selected work: the side projects ---------- */
+
+/*
+ * The second group in chapter 02. A mono label on the margin spine, then the same
+ * ruled rows set smaller, so the professional rows above read as the main list and
+ * these as the extras. Grid and hover come from .index-list in coal.css.
+ */
+.index-group {
+  margin: clamp(3rem, 6vw, 4.5rem) 0 1.1rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.index-list.is-minor {
+  border-top-color: var(--line);
+}
+
+.index-list.is-minor .index-row {
+  padding: 1.4rem 0;
+}
+
+.index-list.is-minor .index-name {
+  font-size: clamp(1.4rem, 2.6vw, 2rem);
+}
+
+.index-list.is-minor .index-note {
+  margin-top: 0.7rem;
 }
 
 /* ---------- Loading sequence ---------- */
