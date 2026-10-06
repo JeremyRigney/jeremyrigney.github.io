@@ -5,7 +5,7 @@
  * the motion primitives, the header, the opening type, and the row grids that hang off
  * the margin spine — the record board among them, which moved there when /cv became
  * the second page to set one. Everything in this file is something only the homepage
- * has: the opening frame and its galaxy, the readout foot, and the loading sequence. It
+ * has: the opening frame and its galaxy, the readout foot, contact form, and loading sequence. It
  * cannot be loaded on its own; every var() below is defined there.
  *
  * The constraints coal.css states hold here too: no card, no rounded corner (bar the
@@ -719,4 +719,170 @@ html.intro.intro-out .galaxy-hud {
 /* Focus is moved here when the sequence ends, if it was on Skip. It is not a control. */
 .opening-title:focus {
   outline: none;
+}
+
+/* ---------- Contact section ---------- */
+
+#contact {
+  padding: clamp(3rem, 7vw, 5rem) 0;
+}
+
+.contact-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(2.5rem, 6vw, 5rem);
+}
+
+.contact-info .chapter-head {
+  display: block;
+  margin-bottom: 1.8rem;
+}
+
+.contact-info .chapter-index {
+  margin-bottom: 0.9rem;
+  padding-top: 0;
+}
+
+.contact-info .chapter-title {
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  line-height: 1.1;
+}
+
+.contact-info .chapter-lead {
+  margin-top: 1rem;
+  max-width: 44ch;
+  font-size: 0.94rem;
+}
+
+.contact-info .hang-row {
+  grid-template-columns: minmax(0, 5.5rem) minmax(0, 1fr);
+  column-gap: 1rem;
+  padding: 0.8rem 0;
+  font-size: 0.88rem;
+}
+
+.contact-info .wordmarks {
+  gap: 0.5rem 1rem;
+}
+
+.contact-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.1rem 1rem;
+  margin: 0;
+}
+
+.contact-field {
+  min-width: 0;
+}
+
+.contact-field-message {
+  grid-column: 1 / -1;
+}
+
+.contact-form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.contact-form input,
+.contact-form textarea {
+  min-width: 0;
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  background: var(--coal);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.contact-form textarea {
+  resize: vertical;
+  min-height: 6.5rem;
+}
+
+.contact-form .contact-honeypot {
+  display: none;
+}
+
+.contact-form-footer {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.9rem;
+}
+
+.contact-form-footer p {
+  max-width: 62ch;
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.contact-form-footer a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 0.2em;
+}
+
+.contact-form button {
+  min-height: 44px;
+  padding: 0.9rem 1.3rem;
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  background: transparent;
+  color: var(--accent-soft);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.contact-form button:hover {
+  background: rgba(var(--accent-rgb), 0.12);
+  color: var(--chalk);
+}
+
+.contact-form input:focus-visible,
+.contact-form textarea:focus-visible,
+.contact-form button:focus-visible,
+.contact-form-footer a:focus-visible {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 3px;
+}
+
+@media (max-width: 860px) {
+  .contact-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .contact-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .contact-info .hang-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .contact-info .hang-label {
+    margin-bottom: 0.4rem;
+  }
 }
