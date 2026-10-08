@@ -112,8 +112,8 @@
   z-index: -1;
   background: radial-gradient(
     62% 56% at 26% 50%,
-    rgba(17, 18, 20, 0.72),
-    rgba(17, 18, 20, 0) 100%
+    rgba(var(--ground-rgb), 0.72),
+    rgba(var(--ground-rgb), 0) 100%
   );
 }
 
@@ -184,8 +184,8 @@
     inset: -1.5rem -1.5rem;
     background: radial-gradient(
       90% 65% at 40% 50%,
-      rgba(17, 18, 20, 0.92),
-      rgba(17, 18, 20, 0) 100%
+      rgba(var(--ground-rgb), 0.92),
+      rgba(var(--ground-rgb), 0) 100%
     );
   }
 }

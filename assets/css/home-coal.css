@@ -78,6 +78,15 @@
 }
 
 /*
+ * On stone the galaxy is a printed plate rather than a lit display: home-galaxy.js
+ * draws its stars as ink, and the teal goes to a deep ink teal (5.0:1 on the ground)
+ * so the card tag and the reticle still read as text and line.
+ */
+:root[data-theme="light"] .opening {
+  --galaxy-teal-rgb: 31, 107, 98;
+}
+
+/*
  * The galaxy layer. It fills the frame and takes no pointer events of its own: the
  * script listens on the window, so the type and the links above it stay clickable, and
  * the hover cards are positioned inside this box rather than being hit targets.
@@ -148,7 +157,7 @@
   left: 0;
   min-width: 12.5rem;
   padding: 0.7rem 0.85rem 0.75rem;
-  background: rgba(17, 18, 20, 0.86);
+  background: rgba(var(--ground-rgb), 0.86);
   border: 1px solid var(--line-strong);
   border-left: 2px solid var(--accent);
   font-family: var(--font-mono);
@@ -296,6 +305,19 @@
   opacity: var(--shimmer-strength);
 }
 
+/*
+ * On coal the etch is anodised metal. On stone it is multiplied into the paper instead,
+ * so its near-black grooves print as a contour plate, and it is taken a little quieter
+ * because ink on a light ground carries further than light on a dark one.
+ */
+:root[data-theme="light"] .opening {
+  --shimmer-strength: 0.16;
+}
+
+:root[data-theme="light"] .shimmer-etch {
+  mix-blend-mode: multiply;
+}
+
 .shimmer-etch canvas {
   position: absolute;
   inset: 0;
@@ -311,7 +333,7 @@
   background: radial-gradient(
     60% 55% at var(--shimmer-x) var(--shimmer-y),
     rgba(var(--accent-rgb), 0.07),
-    rgba(17, 18, 20, 0) 72%
+    rgba(var(--ground-rgb), 0) 72%
   );
 }
 

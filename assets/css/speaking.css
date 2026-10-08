@@ -114,8 +114,8 @@
    */
   background: radial-gradient(
     62% 56% at 26% 50%,
-    rgba(17, 18, 20, 0.72),
-    rgba(17, 18, 20, 0) 100%
+    rgba(var(--ground-rgb), 0.72),
+    rgba(var(--ground-rgb), 0) 100%
   );
 }
 
@@ -176,8 +176,8 @@
     inset: -1.5rem -1.5rem;
     background: radial-gradient(
       90% 65% at 40% 50%,
-      rgba(17, 18, 20, 0.92),
-      rgba(17, 18, 20, 0) 100%
+      rgba(var(--ground-rgb), 0.92),
+      rgba(var(--ground-rgb), 0) 100%
     );
   }
 }
@@ -315,8 +315,16 @@
   object-fit: cover;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
-  filter: grayscale(0.55) contrast(1.04) brightness(0.9);
+  filter: grayscale(0.55) contrast(1.04) brightness(var(--figure-dim, 0.9));
   transition: filter 600ms var(--ease);
+}
+
+/*
+ * On stone the photograph is already the darkest thing near it. Taking it down a
+ * further stop only muddies it, so it keeps the desaturation and loses the dimming.
+ */
+:root[data-theme="light"] .feature-figure {
+  --figure-dim: 1;
 }
 
 .feature-figure:hover img {

@@ -51,18 +51,20 @@
 		<link rel="icon" type="image/png" sizes="192x192" href="/images/favicon.png"/>
 		<link rel="apple-touch-icon" href="/images/derived/apple-touch-icon.png"/>
 		<meta name="theme-color" content="#111214" />
+		<!-- Coal or stone. Sets data-theme before first paint, so it comes before the stylesheets. -->
+		<script src="assets/js/theme.js?v=20261008"></script>
 		<meta name="author" content="Jeremy Rigney">
 		<meta name="description" content="What once sounded like science fiction is quickly becoming a scientific reality: privately funded projects and NASA-supported studies into a radio dish nestled inside a lunar crater."/>
 
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-		<link rel="stylesheet" href="assets/css/coal.css?v=20260929" />
+		<link rel="stylesheet" href="assets/css/coal.css?v=20261008" />
 		<link rel="stylesheet" href="assets/css/blog.css?v=20260929" />
 		<noscript><link rel="stylesheet" href="assets/css/noscript-coal.css?v=20260929" /></noscript>
 
 		<!-- Cookie consent: sets the Consent Mode defaults, so it must come before the Google tag -->
-		<link rel="stylesheet" href="assets/css/consent.css?v=20261001b" />
+		<link rel="stylesheet" href="assets/css/consent.css?v=20261008" />
 		<script src="assets/js/consent.js?v=20261001b"></script>
 
 		<!-- Google tag (gtag.js) -->
@@ -82,6 +84,7 @@
 				<a class="masthead" href="/">Jeremy<span class="masthead-dot">.</span></a>
 			</div>
 			<p class="header-meta">Dublin &middot; Ireland</p>
+			<button class="theme-toggle needs-js" type="button" data-theme-toggle aria-label="Switch to light theme"><span class="theme-label-light">Light</span><span class="theme-label-dark">Dark</span></button>
 			<button class="nav-toggle" type="button" aria-label="Open menu" aria-controls="site-nav" aria-expanded="false">
 				<span></span>
 				<span></span>
@@ -198,7 +201,7 @@
 		<footer class="site-footer">
 			<div class="wrap">
 				<p>&copy; <span id="year">2026</span> Jeremy Rigney</p>
-				<p><a href="cv">CV</a> &nbsp;&middot;&nbsp; <a href="dashboard">Dashboard</a> &nbsp;&middot;&nbsp; <a href="eclipse">Eclipse</a> &nbsp;&middot;&nbsp; <a href="f1">F1</a> &nbsp;&middot;&nbsp; <a href="speaking">Speaking</a> &nbsp;&middot;&nbsp; <a href="privacy">Privacy</a> &nbsp;&middot;&nbsp; <a href="#" data-consent-open>Cookie settings</a></p>
+				<p><a href="cv">CV</a> &nbsp;&middot;&nbsp; <a href="dashboard">Dashboard</a> &nbsp;&middot;&nbsp; <a href="eclipse">Eclipse</a> &nbsp;&middot;&nbsp; <a href="f1">F1</a> &nbsp;&middot;&nbsp; <a href="speaking">Speaking</a> &nbsp;&middot;&nbsp; <a href="privacy">Privacy</a> &nbsp;&middot;&nbsp; <a href="#" data-consent-open>Cookie settings</a><span class="needs-js"> &nbsp;&middot;&nbsp; <a href="#" data-theme-toggle><span class="theme-label-light">Light</span><span class="theme-label-dark">Dark</span> mode</a></span></p>
 			</div>
 		</footer>
 
