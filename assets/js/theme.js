@@ -22,6 +22,7 @@
 
   var KEY = 'jr-theme';
   var GROUND = { dark: '#111214', light: '#e7e5e0' };
+  var HERO = '#dfe6dd'; // --hero: on stone, the mist the opening frames are set on
 
   var root = document.documentElement;
   var query = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
@@ -43,12 +44,18 @@
     return root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
   }
 
-  // The browser chrome on a phone, and the aria-label on every toggle.
+  /*
+   * The browser chrome on a phone, and the aria-label on every toggle. The chrome runs
+   * on from the top of the page, so on stone it takes the mist where the page opens on
+   * an opening frame. That frame has not been parsed when this first runs in the head;
+   * the DOMContentLoaded pass below picks it up.
+   */
   function sync() {
     var theme = current();
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) {
-      meta.setAttribute('content', GROUND[theme]);
+      var hero = theme === 'light' && document.querySelector('.opening');
+      meta.setAttribute('content', hero ? HERO : GROUND[theme]);
     }
     var label = theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme';
     var toggles = document.querySelectorAll('[data-theme-toggle]');

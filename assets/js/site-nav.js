@@ -1,9 +1,10 @@
 /*
  * jeremy.ie — shared page chrome.
  *
- * The mobile nav, the scroll reveals and the footer year, for every page that wears the
- * coal design system except the homepage (home-coal.js keeps its own copy: its reveals
- * are sequenced with the intro overlay and the hide-the-header behaviour).
+ * The mobile nav, the scroll reveals, the header's ground and the footer year, for every
+ * page that wears the coal design system except the homepage (home-coal.js keeps its
+ * own copy: its reveals are sequenced with the intro overlay and the hide-the-header
+ * behaviour).
  *
  * This was setupNav / setupReveals, byte-identical in cv.js, speaking.js and
  * dashboard-coal.js. It is one file now so that a change to the chrome is one edit.
@@ -109,11 +110,49 @@
     });
   }
 
+  /* ---------- Header ground ---------- */
+
+  /*
+   * On stone the opening frame is set on mist and the page below it on stone, and the
+   * fixed header takes whichever is under it rather than laying a stone bar across the
+   * top of the mist. This only says where the header is; coal.css decides what that
+   * means, and on coal it means nothing. home-coal.js does the same on the homepage.
+   */
+  function setupHeaderGround() {
+    var header = document.getElementById('site-header');
+    var opening = document.querySelector('.opening');
+    if (!header || !opening) {
+      return;
+    }
+
+    var pending = false;
+
+    function update() {
+      pending = false;
+      header.classList.toggle(
+        'is-over-opening',
+        opening.getBoundingClientRect().bottom > header.offsetHeight
+      );
+    }
+
+    function onScroll() {
+      if (!pending) {
+        pending = true;
+        requestAnimationFrame(update);
+      }
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    update();
+  }
+
   /* ---------- Boot ---------- */
 
   function boot() {
     setupNav();
     setupReveals();
+    setupHeaderGround();
 
     var year = document.getElementById('year');
     if (year) {

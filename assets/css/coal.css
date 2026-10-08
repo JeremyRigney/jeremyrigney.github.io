@@ -46,6 +46,7 @@
  *   ground  --coal #e7e5e0    ink  --chalk #111214 / --ink #1e2023
  *   prose   --ink-soft #4a4e54    labels  --ink-faint #62666c
  *   accent  --accent #4f6f5d (deep #5f806c, soft #3e5b4a)
+ *   hero    --hero #dfe6dd, the mist the opening frames are set on
  *
  * Stone is not the coal palette inverted. It is set like a printed page: a warm grey
  * paper, near-black ink, and the same sage, taken darker so it holds on a light ground.
@@ -116,6 +117,11 @@
  * --ink-faint is 4.6:1 here, where coal's is 3.8:1: grey on a light ground loses more
  * at micro size than grey on a dark one does.
  *
+ * --hero is the mist every opening frame sits on: stone with a breath of Spa sage
+ * (relative luminance 0.775). It was picked to cost no text any contrast. On it chalk
+ * is 14.7:1, --ink-soft 6.6:1, --ink-faint 4.5:1 and --accent-soft 5.9:1, so nothing
+ * set in an opening needs a colour of its own.
+ *
  * The one change that is not a colour is --display-weight. Dark ink on a light ground
  * reads thinner than light ink on a dark one, so Fraunces is set a step heavier, and
  * the heavier serif is the printed-page look stone is after.
@@ -141,6 +147,9 @@
   --accent-soft: #3e5b4a;
   --accent-rgb: 79, 111, 93;
   --accent-soft-rgb: 62, 91, 74;
+
+  --hero: #dfe6dd;
+  --hero-rgb: 223, 230, 221;
 
   --display-weight: 500;
 }
@@ -278,7 +287,17 @@ a {
   background: rgba(var(--ground-rgb), 0.82);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
-  transition: transform 420ms var(--ease), opacity 420ms ease;
+  transition: transform 420ms var(--ease), opacity 420ms ease, background-color 220ms ease;
+}
+
+/*
+ * On stone the header takes the ground of whatever is under it: mist while it sits over
+ * an opening frame, stone once the page has scrolled past. site-nav.js (home-coal.js
+ * on the homepage) sets the class; the phone drawer is inside the header and follows
+ * too. On coal the opening has no ground of its own, so the class changes nothing.
+ */
+:root[data-theme="light"] .site-header.is-over-opening {
+  --ground-rgb: var(--hero-rgb);
 }
 
 /*
@@ -536,6 +555,21 @@ a {
  * the homepage's carries the shimmer and is a full viewport, /speaking's carries the
  * talk map and is shorter. Each page defines its own .opening.
  */
+
+/*
+ * The one ground they do share. On stone every opening is set on mist, and the page
+ * turns stone at its foot. This is the one tinted band on the site, and it does not
+ * break the no-alternating-band rule above: it is a title page printed on a different
+ * paper, once, at the top, not a rhythm of light and dark down the page.
+ *
+ * Redefining --ground-rgb inside the frame is what carries everything that paints
+ * "with the ground" along with it: the scrims behind each headline, the galaxy's
+ * hover card, the 404's light. None of them needed to change.
+ */
+:root[data-theme="light"] .opening {
+  --ground-rgb: var(--hero-rgb);
+  background-color: var(--hero);
+}
 
 /* The announce link — a ruled row, not a pill. */
 .announce {
