@@ -316,7 +316,7 @@ def _get(path, filters, authed=True):
         parts.append(key + ("" if key.endswith(("=", ">", "<")) else "=") + quote(str(value), safe=":"))
     url = OPENF1 + "/" + path + ("?" + "&".join(parts) if parts else "")
 
-    headers = {"User-Agent": "jeremy.ie-f1/1.0 (mailto:jeremy.rigney@gmail.com)"}
+    headers = {"User-Agent": "jeremy.ie-f1/1.0 (+https://jeremy.ie/#contact)"}
     if authed:
         headers["Authorization"] = "Bearer " + _bearer()
 

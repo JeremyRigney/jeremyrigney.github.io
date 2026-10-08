@@ -41,7 +41,7 @@
    * version in the URL, so without this a browser can pair a fresh script with a stale
    * data file for ten minutes after a deploy. Keep in step with f1-lab.js.
    */
-  var DATA_V = '20260911';
+  var DATA_V = '20261004';
 
   /* Beyond this from the centreline a car is not on the racing surface — pit lane. */
   var OFF_TRACK_M = 45;
