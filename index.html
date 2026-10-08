@@ -58,7 +58,8 @@
 
 			var forced = /[?&]intro=1(&|$)/.test(location.search);
 			var off = /[?&]intro=0(&|$)/.test(location.search);
-			if (reduced || off || (!forced && (backForward || seen || internal))) { return; }
+			var contactLink = location.hash === '#contact';
+			if (reduced || off || contactLink || (!forced && (backForward || seen || internal))) { return; }
 
 			root.classList.add('intro');
 			try {
@@ -402,13 +403,14 @@
 				<div class="wrap">
 					<div class="chapter-head reveal">
 						<p class="chapter-index"><b>01</b> / What I do</p>
-						<h2 class="chapter-title"><span class="line-mask"><span>From terabyte-scale telescope data to production models.</span></span></h2>
+						<h2 class="chapter-title"><span class="line-mask"><span>From terabyte-scale telescope data to enterprise AI.</span></span></h2>
 					</div>
 
 					<div class="hang-prose reveal">
 						<span class="hang-label">Background</span>
 						<div class="hang-prose-body">
-							<p>I&rsquo;m a <strong>Senior Data Scientist at Optum</strong>, with a PhD in astrophysics from Queen&rsquo;s University Belfast. My research centred on observing the Sun and other stars to better understand stellar dynamics, which meant designing and running analysis pipelines end to end on terabytes of telescope data.</p>
+							<p>As a <strong>Senior Data Scientist at Optum</strong>, part of UnitedHealth Group, I develop enterprise AI for a regulated healthcare environment. My work spans agentic workflows, tool use and large-scale data processing, where the ability to trace and audit system behaviour matters alongside reliability and low latency.</p>
+							<p>That engineering approach builds on my PhD in astrophysics from Queen&rsquo;s University Belfast. Studying the Sun and other stars meant designing and running analysis pipelines end to end on terabytes of telescope data, with careful attention to the evidence behind each result.</p>
 							<p>I&rsquo;ve led collaborative projects spanning multiple continents, worked in Agile software teams, and published peer-reviewed research. I&rsquo;m also an experienced science communicator who has represented Ireland and won awards for public engagement.</p>
 						</div>
 					</div>
@@ -583,41 +585,64 @@
 
 			<!-- 04 — Get in touch -->
 			<section class="chapter" id="contact">
-				<div class="wrap">
-					<div class="chapter-head reveal">
-						<p class="chapter-index"><b>04</b> / Get in touch</p>
-						<h2 class="chapter-title"><span class="line-mask"><span>Let&rsquo;s talk data, research, or a talk.</span></span></h2>
-						<p class="chapter-lead">I welcome speaking invitations, particularly for science festivals and open days, as well as data and research collaborations. Feel free to reach out.</p>
+				<div class="wrap contact-layout">
+					<div class="contact-info">
+						<div class="chapter-head reveal">
+							<p class="chapter-index"><b>04</b> / Get in touch</p>
+							<h2 class="chapter-title">Get in touch.</h2>
+							<p class="chapter-lead">For speaking invitations, data projects or research collaborations, send me a message.</p>
+						</div>
+
+						<ul class="hang-list reveal">
+							<li class="hang-row">
+								<span class="hang-label">Location</span>
+								<p>Dublin &bull; Ireland</p>
+							</li>
+							<li class="hang-row">
+								<span class="hang-label">Elsewhere</span>
+								<!--
+									Wordmarks, not icons. Four glyphs from a 59 KB icon font was
+									the whole reason this page loaded Font Awesome; set as type
+									they cost nothing and match everything else on the page.
+								-->
+								<ul class="wordmarks">
+									<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" rel="me noopener">LinkedIn</a></li>
+									<li><a href="https://github.com/jeremyrigney" target="_blank" rel="me noopener">GitHub</a></li>
+									<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target="_blank" rel="me noopener">Scholar</a></li>
+									<li><a href="https://www.instagram.com/jeremy.rigney/" target="_blank" rel="me noopener">Instagram</a></li>
+								</ul>
+							</li>
+							<li class="hang-row">
+								<span class="hang-label">Talks</span>
+								<p><a href="speaking">See previous talks</a></p>
+							</li>
+						</ul>
 					</div>
 
-					<ul class="hang-list reveal">
-						<li class="hang-row">
-							<span class="hang-label">Location</span>
-							<p>Dublin &bull; Ireland</p>
-						</li>
-						<li class="hang-row">
-							<span class="hang-label">Email</span>
-							<p><a href="mailto:jeremy.rigney@gmail.com">jeremy.rigney [at] gmail [dot] com</a></p>
-						</li>
-						<li class="hang-row">
-							<span class="hang-label">Elsewhere</span>
-							<!--
-								Wordmarks, not icons. Four glyphs from a 59 KB icon font was
-								the whole reason this page loaded Font Awesome; set as type
-								they cost nothing and match everything else on the page.
-							-->
-							<ul class="wordmarks">
-								<li><a href="https://www.linkedin.com/in/jeremyrigney/" target="_blank" rel="me noopener">LinkedIn</a></li>
-								<li><a href="https://github.com/jeremyrigney" target="_blank" rel="me noopener">GitHub</a></li>
-								<li><a href="https://scholar.google.com/citations?user=49Jj6VoAAAAJ&hl=en" target="_blank" rel="me noopener">Scholar</a></li>
-								<li><a href="https://www.instagram.com/jeremy.rigney/" target="_blank" rel="me noopener">Instagram</a></li>
-							</ul>
-						</li>
-						<li class="hang-row">
-							<span class="hang-label">Talks</span>
-							<p><a href="speaking">See previous talks</a></p>
-						</li>
-					</ul>
+					<form class="contact-form" action="https://formspree.io/f/mbgddolq" method="POST" aria-label="Contact form" aria-describedby="contact-note">
+						<div class="contact-field">
+							<label for="contact-name">Name (optional)</label>
+							<input id="contact-name" name="name" type="text" autocomplete="name" />
+						</div>
+
+						<div class="contact-field">
+							<label for="contact-email">Email (required)</label>
+							<input id="contact-email" name="email" type="email" autocomplete="email" required />
+						</div>
+
+						<div class="contact-field contact-field-message">
+							<label for="contact-message">Message (required)</label>
+							<textarea id="contact-message" name="message" rows="3" required></textarea>
+						</div>
+
+						<!-- Formspree discards submissions when this hidden honeypot is filled. -->
+						<input type="text" name="_gotcha" class="contact-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
+
+						<div class="contact-form-footer">
+							<p id="contact-note">Your message is sent through Formspree. See the <a href="privacy">privacy notice</a>.</p>
+							<button type="submit">Send message</button>
+						</div>
+					</form>
 				</div>
 			</section>
 		</main>
@@ -625,7 +650,7 @@
 		<footer class="site-footer">
 			<div class="wrap">
 				<p>&copy; <span id="year">2026</span> Jeremy Rigney</p>
-				<p><a href="cv">CV</a> &nbsp;&middot;&nbsp; <a href="dashboard">Dashboard</a> &nbsp;&middot;&nbsp; <a href="eclipse">Eclipse</a> &nbsp;&middot;&nbsp; <a href="f1">F1</a> &nbsp;&middot;&nbsp; <a href="galaxy">Galaxy</a> &nbsp;&middot;&nbsp; <a href="speaking">Speaking</a> &nbsp;&middot;&nbsp; <a href="privacy">Privacy</a> &nbsp;&middot;&nbsp; <a href="#" data-consent-open>Cookie settings</a><span class="needs-js"> &nbsp;&middot;&nbsp; <a href="#" data-theme-toggle><span class="theme-label-light">Light</span><span class="theme-label-dark">Dark</span> mode</a></span></p>
+				<p><a href="cv">CV</a> &nbsp;&middot;&nbsp; <a href="dashboard">Dashboard</a> &nbsp;&middot;&nbsp; <a href="eclipse">Eclipse</a> &nbsp;&middot;&nbsp; <a href="f1">F1</a> &nbsp;&middot;&nbsp; <a href="galaxy">Galaxy</a> &nbsp;&middot;&nbsp; <a href="speaking">Speaking</a> &nbsp;&middot;&nbsp; <a href="/#contact">Contact</a> &nbsp;&middot;&nbsp; <a href="privacy">Privacy</a> &nbsp;&middot;&nbsp; <a href="#" data-consent-open>Cookie settings</a><span class="needs-js"> &nbsp;&middot;&nbsp; <a href="#" data-theme-toggle><span class="theme-label-light">Light</span><span class="theme-label-dark">Dark</span> mode</a></span></p>
 			</div>
 		</footer>
 
