@@ -41,9 +41,23 @@
  *   accent  --accent #6e8a78 (deep #5a7566, soft #7e9c89)
  *   type    Chivo Mono (UI) / Fraunces (chapter titles) / Inter (prose)
  *   layout  1180px wrap, 13rem margin spine, 3.9rem header; breakpoints 860 / 700px
+ *
+ * And the light theme, "stone", under :root[data-theme="light"]:
+ *   ground  --coal #e7e5e0    ink  --chalk #111214 / --ink #1e2023
+ *   prose   --ink-soft #4a4e54    labels  --ink-faint #62666c
+ *   accent  --accent #4f6f5d (deep #5f806c, soft #3e5b4a)
+ *   hero    --hero #dfe6dd, the mist the opening frames are set on
+ *
+ * Stone is not the coal palette inverted. It is set like a printed page: a warm grey
+ * paper, near-black ink, and the same sage, taken darker so it holds on a light ground.
+ * assets/js/theme.js sets data-theme before first paint, from the visitor's own choice
+ * if they have made one and from prefers-color-scheme if not. With no JavaScript the
+ * attribute is never set and the pages stay coal.
  */
 
 :root {
+  color-scheme: dark;
+
   --coal: #111214;
   --line: rgba(236, 238, 240, 0.14);
   --line-strong: rgba(236, 238, 240, 0.28);
@@ -51,6 +65,16 @@
   --ink-soft: #9aa0a6;
   --ink-faint: #6b7178;
   --chalk: #f6f7f8;
+
+  /*
+   * The same colours as bare channels, so a scrim or a canvas can take them at any
+   * alpha. Anything that would otherwise write rgba(17, 18, 20, …) uses --ground-rgb,
+   * and that is what lets a scrim follow the theme instead of laying coal on stone.
+   */
+  --ground-rgb: 17, 18, 20;
+  --ink-rgb: 236, 238, 240;
+  --ink-soft-rgb: 154, 160, 166;
+  --ink-faint-rgb: 107, 113, 120;
 
   /*
    * Spa's colour in three tones, the same contract f1.css:31-37 sets out. Ratios are
@@ -66,10 +90,12 @@
   --accent: #6e8a78;
   --accent-soft: #7e9c89;
   --accent-rgb: 110, 138, 120;
+  --accent-soft-rgb: 126, 156, 137;
 
   --font-display: "Fraunces", Georgia, "Times New Roman", serif;
   --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "Chivo Mono", "Courier New", monospace;
+  --display-weight: 400;
   --maxw: 1180px;
 
   --fs-chapter: clamp(2.6rem, 7vw, 5.5rem);
@@ -79,6 +105,53 @@
 
   /* Width of the left margin column that carries chapter numbers and hanging labels. */
   --margin-col: 13rem;
+}
+
+/*
+ * Stone. Ratios are measured against the stone ground (relative luminance 0.784), and
+ * the three sage tones keep the contract above — text, lines, fills — with the order
+ * of the hexes reversed, because on a light ground the darkest tone carries best:
+ *   --accent-soft  #3E5B4A  6.0:1  accent text
+ *   --accent       #4F6F5D  4.4:1  rules, borders, hover
+ *   --accent-deep  #5F806C  3.5:1  large fills
+ * --ink-faint is 4.6:1 here, where coal's is 3.8:1: grey on a light ground loses more
+ * at micro size than grey on a dark one does.
+ *
+ * --hero is the mist every opening frame sits on: stone with a breath of Spa sage
+ * (relative luminance 0.775). It was picked to cost no text any contrast. On it chalk
+ * is 14.7:1, --ink-soft 6.6:1, --ink-faint 4.5:1 and --accent-soft 5.9:1, so nothing
+ * set in an opening needs a colour of its own.
+ *
+ * The one change that is not a colour is --display-weight. Dark ink on a light ground
+ * reads thinner than light ink on a dark one, so Fraunces is set a step heavier, and
+ * the heavier serif is the printed-page look stone is after.
+ */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --coal: #e7e5e0;
+  --line: rgba(17, 18, 20, 0.14);
+  --line-strong: rgba(17, 18, 20, 0.28);
+  --ink: #1e2023;
+  --ink-soft: #4a4e54;
+  --ink-faint: #62666c;
+  --chalk: #111214;
+
+  --ground-rgb: 231, 229, 224;
+  --ink-rgb: 30, 32, 35;
+  --ink-soft-rgb: 74, 78, 84;
+  --ink-faint-rgb: 98, 102, 108;
+
+  --accent-deep: #5f806c;
+  --accent: #4f6f5d;
+  --accent-soft: #3e5b4a;
+  --accent-rgb: 79, 111, 93;
+  --accent-soft-rgb: 62, 91, 74;
+
+  --hero: #dfe6dd;
+  --hero-rgb: 223, 230, 221;
+
+  --display-weight: 500;
 }
 
 * {
@@ -211,10 +284,20 @@ a {
   justify-content: space-between;
   gap: 1rem;
   padding: 0 1.4rem;
-  background: rgba(17, 18, 20, 0.82);
+  background: rgba(var(--ground-rgb), 0.82);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
-  transition: transform 420ms var(--ease), opacity 420ms ease;
+  transition: transform 420ms var(--ease), opacity 420ms ease, background-color 220ms ease;
+}
+
+/*
+ * On stone the header takes the ground of whatever is under it: mist while it sits over
+ * an opening frame, stone once the page has scrolled past. site-nav.js (home-coal.js
+ * on the homepage) sets the class; the phone drawer is inside the header and follows
+ * too. On coal the opening has no ground of its own, so the class changes nothing.
+ */
+:root[data-theme="light"] .site-header.is-over-opening {
+  --ground-rgb: var(--hero-rgb);
 }
 
 /*
@@ -255,8 +338,13 @@ a {
   color: var(--accent-soft);
 }
 
+/*
+ * Midway between the masthead and the nav, as it was when the nav was the last thing
+ * in the bar. Auto margins keep it there now that the theme toggle follows the nav, and
+ * leave the nav and the toggle side by side.
+ */
 .header-meta {
-  margin: 0;
+  margin: 0 auto;
   font-family: var(--font-mono);
   font-size: 0.66rem;
   letter-spacing: 0.1em;
@@ -311,6 +399,112 @@ a {
   background: var(--ink);
 }
 
+/* ---------- Theme toggle ---------- */
+
+/*
+ * Coal or stone, wired up by assets/js/theme.js. The label names the theme it switches
+ * to, so it is a setting rather than another place in the site. It is set in the
+ * nav's own type, with a hairline before it to keep it apart from the links, and it
+ * sits after the nav even though the markup puts it first: on a phone it has to come
+ * before the menu button, and order is cheaper than two buttons.
+ *
+ * The mark is a half-filled disc, a moon at quarter, and it turns over with the theme.
+ * It is the one round thing in the header besides the nav toggle's corners, for the
+ * same reason the map key's dots are round: it is a body, not a box.
+ */
+.theme-toggle {
+  order: 1;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.3rem 0 0.3rem 1.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: none;
+  border: 0;
+  border-left: 1px solid var(--line);
+  cursor: pointer;
+  transition: color 220ms ease;
+}
+
+.theme-toggle::before {
+  content: "";
+  flex: none;
+  width: 0.62rem;
+  height: 0.62rem;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: linear-gradient(90deg, transparent 50%, currentColor 50%);
+}
+
+:root[data-theme="light"] .theme-toggle::before {
+  background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+}
+
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
+  color: var(--chalk);
+}
+
+.theme-toggle:focus-visible {
+  outline: 1px solid var(--accent-soft);
+  outline-offset: 4px;
+}
+
+/*
+ * The label is in the markup twice and the theme picks one, so it is right from the
+ * first paint rather than after theme.js has found the button. The toggles carry
+ * .needs-js too: with no JavaScript nothing can switch, and noscript-coal.css hides them.
+ */
+.theme-label-dark,
+:root[data-theme="light"] .theme-label-light {
+  display: none;
+}
+
+:root[data-theme="light"] .theme-label-dark {
+  display: inline;
+}
+
+/*
+ * Held on <html> by theme.js for two frames while the theme changes, so a link with a
+ * colour transition does not fade on its own clock while the ground beside it snaps.
+ */
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+
+/*
+ * Between the drawer breakpoint and 1100px the homepage's ten links already fill the
+ * bar, and the meta line was wrapping onto two lines there before the toggle came. So
+ * the meta line goes, the nav keeps to the right, and the toggle drops its word and
+ * keeps the disc. Its aria-label still names it.
+ */
+@media (min-width: 861px) and (max-width: 1100px) {
+  .header-meta {
+    display: none;
+  }
+
+  .site-nav {
+    margin-left: auto;
+  }
+
+  .theme-toggle {
+    padding-left: 1rem;
+  }
+
+  :root[data-theme] .theme-toggle span {
+    display: none;
+  }
+}
+
 @media (max-width: 860px) {
   .header-meta {
     display: none;
@@ -320,13 +514,21 @@ a {
     display: block;
   }
 
+  /* Beside the menu button, pushed to the right edge with it. */
+  .theme-toggle {
+    order: 0;
+    margin-left: auto;
+    padding: 0.3rem 0;
+    border-left: 0;
+  }
+
   .site-nav {
     position: fixed;
     inset: 3.9rem 0 auto 0;
     flex-direction: column;
     gap: 0;
     padding: 0.6rem 1.4rem 1.2rem;
-    background: rgba(17, 18, 20, 0.97);
+    background: rgba(var(--ground-rgb), 0.97);
     border-bottom: 1px solid var(--line);
     transform: translateY(-8px);
     opacity: 0;
@@ -353,6 +555,21 @@ a {
  * the homepage's carries the shimmer and is a full viewport, /speaking's carries the
  * talk map and is shorter. Each page defines its own .opening.
  */
+
+/*
+ * The one ground they do share. On stone every opening is set on mist, and the page
+ * turns stone at its foot. This is the one tinted band on the site, and it does not
+ * break the no-alternating-band rule above: it is a title page printed on a different
+ * paper, once, at the top, not a rhythm of light and dark down the page.
+ *
+ * Redefining --ground-rgb inside the frame is what carries everything that paints
+ * "with the ground" along with it: the scrims behind each headline, the galaxy's
+ * hover card, the 404's light. None of them needed to change.
+ */
+:root[data-theme="light"] .opening {
+  --ground-rgb: var(--hero-rgb);
+  background-color: var(--hero);
+}
 
 /* The announce link — a ruled row, not a pill. */
 .announce {
@@ -601,7 +818,7 @@ a {
   grid-column: 2;
   margin: 0;
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: var(--display-weight);
   font-size: var(--fs-chapter);
   line-height: 0.98;
   letter-spacing: -0.035em;
@@ -804,7 +1021,7 @@ a {
 .record-name {
   margin: 0;
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: var(--display-weight);
   font-size: clamp(1.5rem, 3.2vw, 2.2rem);
   line-height: 1.06;
   letter-spacing: -0.03em;
@@ -917,7 +1134,7 @@ a {
   display: block;
   margin: 0;
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: var(--display-weight);
   font-size: clamp(1.9rem, 4.4vw, 3.2rem);
   line-height: 1;
   letter-spacing: -0.035em;

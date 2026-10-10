@@ -55,12 +55,30 @@
   var PAD_TOP = 0.16;
   var PAD_BOTTOM = 0.08;
 
-  /* The same colour table speaking-map.js uses, in rgba against the coal ground. */
+  /*
+   * The same colour table speaking-map.js uses, built from coal.css's bare channels so
+   * it follows the theme. ACCENT is kept as channels because the peak's halo and disc
+   * take their alpha from the draw-on. The literals are coal's, kept as the fallback.
+   */
   var GRID = 'rgba(236, 238, 240, 0.05)';
   var LABEL = 'rgba(155, 161, 166, 0.85)';
   var TRACE = 'rgba(126, 156, 137, 0.55)';
-  var PEAK = 'rgba(126, 156, 137, 0.9)';
+  var ACCENT = '126, 156, 137';
   var LABEL_FONT = '500 9px "Chivo Mono", "Courier New", monospace';
+
+  function readColours() {
+    var cs = getComputedStyle(document.documentElement);
+    var read = function (name, fallback) {
+      var v = cs.getPropertyValue(name).trim();
+      return v || fallback;
+    };
+    var ink = read('--ink-rgb', '236, 238, 240');
+    var soft = read('--ink-soft-rgb', '155, 161, 166');
+    ACCENT = read('--accent-soft-rgb', '126, 156, 137');
+    GRID = 'rgba(' + ink + ', 0.05)';
+    LABEL = 'rgba(' + soft + ', 0.85)';
+    TRACE = 'rgba(' + ACCENT + ', 0.55)';
+  }
 
   var GRID_MS = 700;
   var TRACE_MS = 1900;
@@ -287,14 +305,14 @@
       ctx.save();
 
       var halo = ctx.createRadialGradient(x, y, 0, x, y, 16);
-      halo.addColorStop(0, 'rgba(126, 156, 137, ' + (0.22 * progress) + ')');
-      halo.addColorStop(1, 'rgba(126, 156, 137, 0)');
+      halo.addColorStop(0, 'rgba(' + ACCENT + ', ' + (0.22 * progress) + ')');
+      halo.addColorStop(1, 'rgba(' + ACCENT + ', 0)');
       ctx.fillStyle = halo;
       ctx.beginPath();
       ctx.arc(x, y, 16, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = 'rgba(126, 156, 137, ' + (0.9 * progress) + ')';
+      ctx.fillStyle = 'rgba(' + ACCENT + ', ' + (0.9 * progress) + ')';
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
@@ -358,6 +376,7 @@
       if (!size()) {
         return;
       }
+      played = true;
       if (reducedMotion) {
         frame(total());
         return;
@@ -383,6 +402,17 @@
           frame(total());
         }
       }, 150);
+    });
+
+    /* A theme change repaints the finished state; a running draw-on picks the new
+       colours up on its next frame. Before play() there is nothing on the canvas. */
+    var played = false;
+    readColours();
+    document.addEventListener('jr:themechange', function () {
+      readColours();
+      if (played && !running) {
+        frame(total());
+      }
     });
 
     /*

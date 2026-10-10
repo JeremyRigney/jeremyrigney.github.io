@@ -122,6 +122,27 @@
     var land = null;
     var started = 0;
     var running = false;
+    var painted = false;
+
+    /*
+     * The map's three inks, read from coal.css so they follow the theme: ink for the
+     * coast and the graticule, soft ink for the labels, sage for the routes and venues.
+     * Bare channels, so each mark can take its own alpha.
+     */
+    var INK = '236, 238, 240';
+    var LABEL = '155, 161, 166';
+    var ACCENT = '126, 156, 137';
+
+    function readColours() {
+      var cs = getComputedStyle(document.documentElement);
+      var read = function (name, fallback) {
+        var v = cs.getPropertyValue(name).trim();
+        return v || fallback;
+      };
+      INK = read('--ink-rgb', INK);
+      LABEL = read('--ink-soft-rgb', LABEL);
+      ACCENT = read('--accent-soft-rgb', ACCENT);
+    }
 
     /* Set by size(), read by project(). In CSS pixels. */
     var w = 0;
@@ -208,7 +229,7 @@
     function drawGraticule(alpha) {
       ctx.save();
       ctx.globalAlpha = alpha;
-      ctx.strokeStyle = 'rgba(236, 238, 240, 0.05)';
+      ctx.strokeStyle = 'rgba(' + INK + ', 0.05)';
       ctx.lineWidth = 1;
 
       var lon;
@@ -242,7 +263,7 @@
       }
 
       ctx.save();
-      ctx.strokeStyle = 'rgba(236, 238, 240, 0.17)';
+      ctx.strokeStyle = 'rgba(' + INK + ', 0.17)';
       ctx.lineWidth = 1;
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
@@ -313,7 +334,7 @@
        * of this map carrying an argument, and on the page they run out under the
        * headline where both the frame mask and the copy scrim are eating into them.
        */
-      ctx.strokeStyle = 'rgba(126, 156, 137, 0.55)';
+      ctx.strokeStyle = 'rgba(' + ACCENT + ', 0.55)';
       ctx.lineWidth = 1;
       ctx.lineCap = 'round';
       ctx.beginPath();
@@ -357,22 +378,22 @@
          coastline they sit on top of. */
       if (venue.n > 3) {
         var halo = ctx.createRadialGradient(x, y, 0, x, y, r * 4.5);
-        halo.addColorStop(0, 'rgba(126, 156, 137, ' + (0.20 * progress) + ')');
-        halo.addColorStop(1, 'rgba(126, 156, 137, 0)');
+        halo.addColorStop(0, 'rgba(' + ACCENT + ', ' + (0.20 * progress) + ')');
+        halo.addColorStop(1, 'rgba(' + ACCENT + ', 0)');
         ctx.fillStyle = halo;
         ctx.beginPath();
         ctx.arc(x, y, r * 4.5, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      ctx.fillStyle = 'rgba(126, 156, 137, ' + (0.9 * progress) + ')';
+      ctx.fillStyle = 'rgba(' + ACCENT + ', ' + (0.9 * progress) + ')';
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
 
       if (venue.label) {
         ctx.globalAlpha = progress;
-        ctx.fillStyle = 'rgba(155, 161, 166, 0.85)';
+        ctx.fillStyle = 'rgba(' + LABEL + ', 0.85)';
         ctx.font = '500 9px "Chivo Mono", "Courier New", monospace';
         ctx.textBaseline = 'middle';
         /* Labels sit to the right except where that would run them off the edge. */
@@ -439,6 +460,7 @@
       if (!size()) {
         return;
       }
+      painted = true;
       if (reducedMotion) {
         frame(TOTAL);
         return;
@@ -464,6 +486,16 @@
           frame(TOTAL);
         }
       }, 150);
+    });
+
+    /* A theme change repaints the finished state too. A running draw-on picks the new
+       inks up on its next frame. */
+    readColours();
+    document.addEventListener('jr:themechange', function () {
+      readColours();
+      if (painted && !running) {
+        frame(TOTAL);
+      }
     });
 
     /* Precompute segment lengths in projected space is not possible before fit(), so
