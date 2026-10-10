@@ -100,6 +100,13 @@ MV_CIRCUIT_KEYS = {
     'us-2023': 152,  # Las Vegas
 }
 
+# Source rings drawn against the direction of racing. Everything downstream assumes s
+# increases the way the cars go: corner numbers must ascend round the lap, and a
+# marshalling sector runs from its own start to the next one's. Singapore's ring runs
+# backwards, which was found from live 2026 qualifying telemetry — every car moved
+# toward decreasing s — and is why its MultiViewer corner fit wrapped three times.
+REVERSED_RINGS = {'sg-2008'}
+
 # How far a corner may be moved off the arc-length model when it is snapped onto
 # our own path, in metres. This window is load-bearing: an unconstrained nearest-
 # point search puts Baku's turn 6 two and a half kilometres away, by snapping onto
@@ -111,11 +118,11 @@ MV_SNAP_WINDOW_M = 100.0
 # The test is whether each numbered corner lands on a curvature peak of our own
 # path, within MV_PEAK_TOLERANCE_M. That is a far better signal than how well the
 # two outlines overlap: Las Vegas overlaps poorly (70 m) yet numbers correctly,
-# while Singapore overlaps well (24 m) and numbers wrongly, because the source
-# geometry there is the pre-2023 layout and MultiViewer's map is the current one.
+# while Singapore overlaps well (24 m) and numbers wrongly.
 #
 # A good fit scores 0.9-1.0 — Zandvoort 14/14, Austin 19/20. Singapore manages
-# 12/19 and is rejected.
+# 12/19 and is rejected. That only costs the corner numbers: the map transform is
+# tested separately, and Singapore's passes (see resolve_turns).
 MV_PEAK_TOLERANCE_M = 45.0
 MV_FIT_MIN_ON_PEAK = 0.75
 
@@ -957,6 +964,7 @@ def resolve_turns(points, perimeter, lat0, geo_id, season):
     numbers to be trustworthy, so a bad map never silently mislabels a circuit.
     """
     mv = fetch_mv_circuit(geo_id, season)
+    report = {}
     if mv:
         turns, start_s, report = align_corners(points, perimeter, lat0, mv)
         if turns and report['onPeak'] >= MV_FIT_MIN_ON_PEAK and report['wraps'] <= 1:
@@ -966,39 +974,50 @@ def resolve_turns(points, perimeter, lat0, geo_id, season):
                      report['chamfer'], report['maxSnap'],
                      '; start/finish moved to %.0f m' % start_s
                      if report['lineMoved'] else ''))
-            # The map's own acceptance test, separate from the corner fit's. A circuit can
-            # have perfectly placed corner numbers and still be too loosely aligned to draw
-            # cars on, so this is gated on the measured residual rather than inherited.
-            transform = None
-            # Marshalling sectors are placed with the transform, so they stand or fall
-            # with it: no transform means no trustworthy sector geometry either.
-            marshals = None
-            if report['fitResidual'] <= MAP_FIT_MAX_RESIDUAL_M:
-                transform = dict(report['transform'])
-                transform['residual'] = round(report['fitResidual'], 2)
-                transform['source'] = 'multiviewer'
-                print('    map transform fitted, telemetry lands %.1f m from the centreline'
-                      % report['fitResidual'])
-                marshals = report['marshalSectors'] or None
-                if marshals:
-                    print('    %d marshalling sectors placed (worst %.1f m from the centreline)'
-                          % (len(marshals), report['marshalFit']))
-                else:
-                    print('    no marshalling sectors published — flagged sectors stay text only')
-            else:
-                print('    map transform rejected (%.1f m residual) — the map will draw no cars'
-                      % report['fitResidual'])
+            transform, marshals = map_transform(report)
             return turns, start_s, 'multiviewer', transform, marshals
         print('    MultiViewer fit rejected (%s) — falling back to curvature'
               % (report.get('error')
                  or '%.0f%% on a corner, %d wraps'
                  % (report['onPeak'] * 100, report['wraps'])))
 
-    # No usable fit means no transform, and the map simply draws no cars rather than
-    # drawing them in the wrong place.
     turns = detect_turns(points, lat0)
     print('    %d provisional turns from curvature' % len(turns))
-    return turns, 0.0, 'curvature', None, None
+    # A rejected corner fit says the numbering slides along the lap, not that the outlines
+    # disagree, so the map transform still gets its own test. Singapore is the case: 12 of
+    # 19 corners land on a corner of our path, yet live qualifying telemetry in 2026 landed
+    # a median 3.3 m from it through the transform this fit produces.
+    transform, marshals = map_transform(report) if 'fitResidual' in report else (None, None)
+    return turns, 0.0, 'curvature', transform, marshals
+
+
+def map_transform(report):
+    """
+    The map's own acceptance test, separate from the corner fit's. A circuit can have
+    perfectly placed corner numbers and still be too loosely aligned to draw cars on, so
+    this is gated on the measured residual rather than inherited. No transform means the
+    map draws no cars rather than drawing them in the wrong place.
+
+    Returns (transform, marshalSectors). Marshalling sectors are placed with the
+    transform, so they stand or fall with it: no transform means no trustworthy sector
+    geometry either.
+    """
+    if report['fitResidual'] > MAP_FIT_MAX_RESIDUAL_M:
+        print('    map transform rejected (%.1f m residual) — the map will draw no cars'
+              % report['fitResidual'])
+        return None, None
+    transform = dict(report['transform'])
+    transform['residual'] = round(report['fitResidual'], 2)
+    transform['source'] = 'multiviewer'
+    print('    map transform fitted, telemetry lands %.1f m from the centreline'
+          % report['fitResidual'])
+    marshals = report['marshalSectors'] or None
+    if marshals:
+        print('    %d marshalling sectors placed (worst %.1f m from the centreline)'
+              % (len(marshals), report['marshalFit']))
+    else:
+        print('    no marshalling sectors published — flagged sectors stay text only')
+    return transform, marshals
 
 
 def build_circuit(feature, round_info, season):
@@ -1006,6 +1025,8 @@ def build_circuit(feature, round_info, season):
     coords = feature['geometry']['coordinates']
     if coords[0] == coords[-1]:
         coords = coords[:-1]  # the ring closes itself; resample walks it as a loop
+    if props['id'] in REVERSED_RINGS:
+        coords = coords[:1] + coords[:0:-1]  # same start point, walked the other way
 
     dense = catmull_rom(coords)
     points, perimeter = resample(dense, STEP_M)
@@ -1044,7 +1065,7 @@ def build_circuit(feature, round_info, season):
         'turnSource': source,
         # Maps OpenF1 `location` (F1-frame decimetres) onto this circuit's path, in metres
         # about the path centroid: X = a*x + b*y + c, Y = d*x + e*y + f. Absent when the
-        # MultiViewer fit was rejected, in which case the live map draws no cars.
+        # MultiViewer map fit was rejected, in which case the live map draws no cars.
         'locationTransform': transform,
         'elevationSource': dem_for(points[0][0], points[0][1])[0],
     }
