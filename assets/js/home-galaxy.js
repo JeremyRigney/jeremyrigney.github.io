@@ -133,11 +133,47 @@
 
   /* ---------- Colour ---------- */
 
-  // Overridable from CSS so the palette stays in one place. Fallbacks match coal.css.
-  function readRgb(name, fallback) {
+  /*
+   * Two palettes, one per theme (see assets/js/theme.js). On coal the plot is a lit
+   * display: light added to a dark ground, so where stars crowd they burn brighter. On
+   * stone it is a printed plate: ink laid on paper, so where they crowd they print
+   * darker, the way a negative survey plate shows a galaxy. The four star classes are
+   * the same in both; on stone they are taken down to inks that hold on the light
+   * ground, and the white heart of a supernova becomes the blackest ink there is.
+   *
+   * The sage and the teal come from CSS so the palette stays in one place; the other
+   * two have no token of their own.
+   */
+  var PALETTES = {
+    dark: {
+      soft: [142, 172, 152],
+      warm: [226, 222, 208],
+      flash: [255, 255, 255],
+      blend: 'lighter',
+      halo: 1,
+      haze: 1
+    },
+    /*
+     * Ink does not glow. The halos that make a bright star bloom on coal print as grey
+     * smudges, and the disc's haze as a green fog over the whole paper, so on stone
+     * both are taken most of the way down: a bright star is a crisp dot, and the disc
+     * is told by the crowding of the dots and the dark knot of the bulge.
+     */
+    light: {
+      soft: [86, 116, 98],
+      warm: [56, 48, 40],
+      flash: [17, 18, 20],
+      blend: 'multiply',
+      halo: 0.3,
+      haze: 0.45
+    }
+  };
+
+  // Fallbacks match coal.css.
+  function readRgb(el, name, fallback) {
     var raw = '';
     try {
-      raw = getComputedStyle(document.documentElement).getPropertyValue(name);
+      raw = getComputedStyle(el).getPropertyValue(name);
     } catch (e) { /* fall through */ }
     var parts = String(raw).split(',').map(function (s) { return parseInt(s, 10); });
     return parts.length === 3 && parts.every(function (n) { return n >= 0 && n <= 255; })
@@ -145,14 +181,34 @@
       : fallback;
   }
 
-  var SAGE = readRgb('--accent-rgb', [110, 138, 120]);
-  var SAGE_SOFT = [142, 172, 152];
-  var TEAL = readRgb('--galaxy-teal-rgb', [72, 190, 176]);
-  var WARM = [226, 222, 208];
+  var SAGE, SAGE_SOFT, TEAL, WARM, FLASH, BLEND, HALO, HAZE;
 
-  // Star colour classes. The index is what a star stores.
-  var COLOURS = [SAGE, SAGE_SOFT, TEAL, WARM];
+  // Star colour classes. The index is what a star stores, so the array is refilled in
+  // place when the theme changes rather than replaced.
+  var COLOURS = [];
   var C_SAGE = 0, C_SOFT = 1, C_TEAL = 2, C_WARM = 3;
+
+  /*
+   * The teal is set on .opening, not :root, so it is read from the frame. Called once
+   * the frame is known, and again on every theme change.
+   */
+  function applyPalette(el) {
+    var p = document.documentElement.getAttribute('data-theme') === 'light'
+      ? PALETTES.light
+      : PALETTES.dark;
+    SAGE = readRgb(el, '--accent-rgb', [110, 138, 120]);
+    SAGE_SOFT = p.soft;
+    TEAL = readRgb(el, '--galaxy-teal-rgb', [72, 190, 176]);
+    WARM = p.warm;
+    FLASH = p.flash;
+    BLEND = p.blend;
+    HALO = p.halo;
+    HAZE = p.haze;
+    COLOURS[C_SAGE] = SAGE;
+    COLOURS[C_SOFT] = SAGE_SOFT;
+    COLOURS[C_TEAL] = TEAL;
+    COLOURS[C_WARM] = WARM;
+  }
 
   // Brightness tiers: [size in px, alpha]. Tier 2 also gets a soft halo.
   var TIERS = [[1.2, 0.46], [1.6, 0.7], [2.3, 0.92]];
@@ -169,6 +225,8 @@
   if (!canvas || !frame || !canvas.getContext) {
     return;
   }
+
+  applyPalette(frame);
   var ctx = canvas.getContext('2d');
   if (!ctx) {
     return;
@@ -539,7 +597,7 @@
       [1, 'rgba(' + rgb(SAGE) + ',0)']
     ]);
     snSprite = makeSprite(128, [
-      [0, 'rgba(255,255,255,1)'],
+      [0, 'rgba(' + rgb(FLASH) + ',1)'],
       [0.08, 'rgba(' + rgb(WARM) + ',0.85)'],
       [0.25, 'rgba(' + rgb(TEAL) + ',0.28)'],
       [1, 'rgba(' + rgb(TEAL) + ',0)']
@@ -666,16 +724,17 @@
     var tilt = BASE_TILT + tiltOff;
     setView(tilt, baseRoll + roll, R * (0.7 + 0.3 * rev));
 
-    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalCompositeOperation = BLEND;
 
     // Haze and core. Both are squashed and turned with the disc.
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(baseRoll + roll);
     ctx.scale(1, cT);
-    ctx.globalAlpha = glow;
+    ctx.globalAlpha = glow * HAZE;
     var hz = scale * 2.3;
     ctx.drawImage(hazeSprite, -hz / 2, -hz / 2, hz, hz);
+    ctx.globalAlpha = glow;
     var cs = scale * 0.95;
     ctx.drawImage(coreSprite, -cs / 2, -cs / 2, cs, cs);
     ctx.restore();
@@ -771,7 +830,7 @@
     }
 
     // Soft halos on the brightest lit stars and the catalogue.
-    ctx.globalAlpha = 0.85 * rev;
+    ctx.globalAlpha = 0.85 * rev * HALO;
     for (b = 0; b < buckets.length; b++) {
       if (b % 3 !== 2) { continue; }
       list = buckets[b];
@@ -782,7 +841,7 @@
         ctx.drawImage(sprite, px[i] - 8, py[i] - 8, 16, 16);
       }
     }
-    ctx.globalAlpha = 0.6 * rev;
+    ctx.globalAlpha = 0.6 * rev * HALO;
     for (k = 0; k < named.length; k++) {
       i = named[k];
       if (lvl[i] !== 0) { continue; }
@@ -951,7 +1010,7 @@
     var lx = x + 16;
     if (lx + ctx.measureText(label).width > w - 8) { lx = x - 16 - ctx.measureText(label).width; }
     ctx.fillText(label, lx, y - 14);
-    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalCompositeOperation = BLEND;
   }
 
   /* ---------- Hover ---------- */
@@ -1271,6 +1330,17 @@
         resize();
         if (reducedMotion) { render(0); }
       }, 150);
+    });
+
+    /*
+     * Coal to stone or back. The sprites are baked in the old colours, so they are
+     * rebuilt; a running loop picks the rest up on its next frame. A stopped one (reduced
+     * motion, or the frame scrolled away) is painted once now, so it is never seen stale.
+     */
+    document.addEventListener('jr:themechange', function () {
+      applyPalette(frame);
+      buildSprites();
+      if (!running) { render(reducedMotion ? 0 : performance.now()); }
     });
   }
 

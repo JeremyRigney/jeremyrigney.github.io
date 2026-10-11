@@ -16,9 +16,27 @@
   var API = 'https://irishrail-api-737590149980.europe-west1.run.app';
   var REFRESH_MS = 60000;
 
-  /* --accent-soft and --accent from coal.css, which canvas and Leaflet cannot read. */
+  /*
+   * --accent-soft and --accent from coal.css. Leaflet's vector layers take a colour,
+   * not a var(), so they are read here, and read again when the theme changes. The
+   * literals are coal's, kept as the fallback.
+   */
   var STOP_COLOUR = '#7e9c89';
   var ROUTE_COLOUR = '#6e8a78';
+
+  function readColours() {
+    var cs = getComputedStyle(document.documentElement);
+    STOP_COLOUR = cs.getPropertyValue('--accent-soft').trim() || STOP_COLOUR;
+    ROUTE_COLOUR = cs.getPropertyValue('--accent').trim() || ROUTE_COLOUR;
+  }
+
+  // CARTO's basemap for the theme: the dark one on coal, the light one on stone.
+  function basemapUrl() {
+    var style = document.documentElement.getAttribute('data-theme') === 'light'
+      ? 'light_all'
+      : 'dark_all';
+    return window.cartoTiles && window.cartoTiles(style, { subdomain: '{s}', retina: '{r}' });
+  }
 
   /*
    * The island, generously. The feed occasionally reports a train at (0, 0) or in the
@@ -57,12 +75,13 @@
     });
 
     /*
-     * A dark base layer to match the page. CARTO needs a key; without one the map
-     * falls back to satellite rather than to watermarked tiles — see carto-basemap.js.
+     * A base layer to match the page, dark on coal and light on stone. CARTO needs a
+     * key; without one the map falls back to satellite rather than to watermarked
+     * tiles — see carto-basemap.js.
      */
-    var cartoDarkUrl = window.cartoTiles
-      && window.cartoTiles('dark_all', { subdomain: '{s}', retina: '{r}' });
-    var dark = cartoDarkUrl ? L.tileLayer(cartoDarkUrl, {
+    readColours();
+    var cartoUrl = basemapUrl();
+    var base = cartoUrl ? L.tileLayer(cartoUrl, {
       maxZoom: 19,
       subdomains: 'abcd',
       attribution: '© OpenStreetMap contributors © CARTO'
@@ -75,15 +94,28 @@
     var map = L.map('trainmap', {
       center: [53.4495, -7.5030],
       zoom: 7,
-      layers: [dark || satellite]
+      layers: [base || satellite]
     });
     L.control.layers(
-      dark ? { Dark: dark, Satellite: satellite } : { Satellite: satellite }
+      base ? { Map: base, Satellite: satellite } : { Satellite: satellite }
     ).addTo(map);
 
     var stationLookup = {};
     var routeLayers = [];
     var trainMarkers = [];
+
+    // Coal to stone or back: the basemap swaps, and a drawn route takes the new sage.
+    document.addEventListener('jr:themechange', function () {
+      readColours();
+      if (base) {
+        base.setUrl(basemapUrl());
+      }
+      routeLayers.forEach(function (layer) {
+        layer.setStyle(layer instanceof L.CircleMarker
+          ? { color: STOP_COLOUR, fillColor: STOP_COLOUR }
+          : { color: ROUTE_COLOUR });
+      });
+    });
 
     /* ---------- Stations ---------- */
 

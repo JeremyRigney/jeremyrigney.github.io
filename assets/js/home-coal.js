@@ -32,9 +32,20 @@
       return;
     }
 
+    /*
+     * Its ground as well (see setupHeaderGround in site-nav.js): it comes back while the
+     * foot of the opening is still under it, so on stone it arrives in mist and turns
+     * stone as the frame scrolls away.
+     */
+    var opening = document.querySelector('.opening');
+
     function onScroll() {
       var past = window.pageYOffset > window.innerHeight * 0.7;
       header.classList.toggle('is-hidden', !past);
+      header.classList.toggle(
+        'is-over-opening',
+        !!opening && opening.getBoundingClientRect().bottom > header.offsetHeight
+      );
     }
 
     window.addEventListener('scroll', onScroll, { passive: true });

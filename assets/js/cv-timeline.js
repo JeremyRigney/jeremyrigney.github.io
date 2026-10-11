@@ -52,9 +52,24 @@
    */
   var LABEL_MIN_WIDTH = 860;
 
+  /*
+   * Bare channels from coal.css, so each mark can take its own alpha and the chart
+   * follows the theme. These are coal's values, kept as the fallback.
+   */
   var ACCENT = '126, 156, 137'; /* --accent-soft */
   var INK_FAINT = '107, 113, 120'; /* --ink-faint */
   var LINE = '236, 238, 240'; /* --ink, used at low alpha for the rules */
+
+  function readColours() {
+    var cs = getComputedStyle(document.documentElement);
+    var read = function (name, fallback) {
+      var v = cs.getPropertyValue(name).trim();
+      return v || fallback;
+    };
+    ACCENT = read('--accent-soft-rgb', ACCENT);
+    INK_FAINT = read('--ink-faint-rgb', INK_FAINT);
+    LINE = read('--ink-rgb', LINE);
+  }
 
   /*
    * The span bar sits this far above the axis and the publication ticks this far
@@ -399,6 +414,16 @@
       }, 150);
     });
 
+    /* A theme change repaints the finished state; a running draw-on picks the new
+       colours up on its next frame. */
+    document.addEventListener('jr:themechange', function () {
+      readColours();
+      if (!running && canvas.parentNode.classList.contains('is-ready')) {
+        frame(TOTAL);
+      }
+    });
+
+    readColours();
     play();
   }
 

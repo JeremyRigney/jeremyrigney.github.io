@@ -19,18 +19,84 @@
 (function () {
   'use strict';
 
+  /* ---------- Theme ---------- */
+
+  /*
+   * Coal or stone (assets/js/theme.js). Three widgets here are drawn by someone else's
+   * code: the weather iframe, the lunar SVG and the CanvasJS chart. None of them can
+   * see a custom property, so each is handed its colours from coal.css's tokens and
+   * rebuilt on "jr:themechange". The fallbacks are coal's.
+   */
+  function tokens() {
+    var cs = getComputedStyle(document.documentElement);
+    var read = function (name, fallback) {
+      var v = cs.getPropertyValue(name).trim();
+      return v || fallback;
+    };
+    return {
+      light: document.documentElement.getAttribute('data-theme') === 'light',
+      ground: read('--coal', '#111214'),
+      ink: read('--ink', '#eceef0'),
+      soft: read('--ink-soft', '#9aa0a6'),
+      faint: read('--ink-faint', '#6b7178'),
+      accent: read('--accent-soft', '#7e9c89'),
+      inkRgb: read('--ink-rgb', '236, 238, 240'),
+      accentRgb: read('--accent-rgb', '110, 138, 120')
+    };
+  }
+
   /* ---------- Weather ---------- */
 
   /*
    * weatherwidget.io's own loader, verbatim — it looks for its anchor by class and
-   * replaces it. Its colours are passed as data- attributes in the markup, since the
-   * iframe interior cannot be reached from a stylesheet.
+   * replaces it. Its colours are passed as data- attributes, since the iframe interior
+   * cannot be reached from a stylesheet. The markup carries coal's; paintWeather()
+   * rewrites them for the current theme before the loader reads them.
    */
+  function paintWeather() {
+    var anchor = document.querySelector('.weatherwidget-io');
+    if (!anchor) {
+      return;
+    }
+    var t = tokens();
+    var set = {
+      basecolor: t.ground,
+      shadecolor: t.ground,
+      accent: 'rgba(' + t.accentRgb + ',0.08)',
+      textcolor: t.ink,
+      mooncolor: t.ink,
+      highcolor: t.accent,
+      suncolor: t.accent,
+      lowcolor: t.soft,
+      raincolor: t.soft,
+      cloudcolor: t.faint,
+      cloudfill: t.faint
+    };
+    for (var key in set) {
+      if (Object.prototype.hasOwnProperty.call(set, key)) {
+        anchor.setAttribute('data-' + key, set[key]);
+      }
+    }
+  }
+
+  /*
+   * weatherwidget.io's re-scan, the call its docs give for pages that change after
+   * load. If it leaves an iframe that is already built alone, the widget simply keeps
+   * the old colours until the next page load; the attributes are right either way.
+   */
+  function repaintWeather() {
+    paintWeather();
+    if (typeof window.__weatherwidget_init === 'function') {
+      window.__weatherwidget_init();
+    }
+  }
+
   function loadWeather() {
     var id = 'weatherwidget-io-js';
     if (document.getElementById(id)) {
       return;
     }
+    paintWeather();
     var first = document.getElementsByTagName('script')[0];
     var js = document.createElement('script');
     js.id = id;
@@ -47,8 +113,15 @@
    *
    * The two colours are passed as query parameters: chalk for the lit limb and the
    * coal ground for the shadow, so the disc sits on the page rather than on the dark
-   * green plate the previous version gave it.
+   * green plate the previous version gave it. On stone the shadow cannot be the ground,
+   * or a crescent would be a near-white sliver on near-white paper, so the shadow is
+   * the soft ink and the lit limb is paper a shade brighter than the page.
    */
+  var MOON = {
+    dark: { lit: 'rgb(246,247,248)', shade: 'rgb(17,18,20)' },
+    light: { lit: 'rgb(251,250,247)', shade: 'rgb(74,78,84)' }
+  };
+
   function loadMoon() {
     var host = document.getElementById('contain_moon');
     if (!host) {
@@ -60,6 +133,7 @@
       return;
     }
 
+    var moon = tokens().light ? MOON.light : MOON.dark;
     var now = new Date();
     var day = now.getDate();
     var monthStart = new Date(now.getFullYear(), now.getMonth(), 1) / 1000;
@@ -68,8 +142,8 @@
       + '&month=' + (now.getMonth() + 1)
       + '&year=' + now.getFullYear()
       + '&size=100'
-      + '&lightColor=rgb(246,247,248)'
-      + '&shadeColor=rgb(17,18,20)'
+      + '&lightColor=' + moon.lit
+      + '&shadeColor=' + moon.shade
       + '&t&LDZ=' + monthStart;
 
     var request = new XMLHttpRequest();
@@ -101,12 +175,27 @@
    * it already names it, and a library title would say the same thing twice in a
    * different typeface.
    */
-  var CHART_INK = '#eceef0';
-  var CHART_FAINT = '#6b7178';
-  var CHART_LINE = 'rgba(236, 238, 240, 0.14)';
-  var CHART_GRID = 'rgba(236, 238, 240, 0.06)';
-  var CHART_SHORT = '#9aa0a6';
-  var CHART_LONG = '#7e9c89';
+  var chart = null;
+
+  // Every colour the chart has, written onto its options. Run again on a theme change.
+  function themeChart(options) {
+    var t = tokens();
+    var line = 'rgba(' + t.inkRgb + ', 0.14)';
+    var grid = 'rgba(' + t.inkRgb + ', 0.06)';
+
+    [options.axisX, options.axisY].forEach(function (axis) {
+      axis.titleFontColor = t.faint;
+      axis.lineColor = line;
+      axis.tickColor = line;
+      axis.gridColor = grid;
+    });
+    options.axisX.labelFontColor = t.faint;
+    options.axisY.labelFontColor = t.accent;
+    options.legend.fontColor = t.ink;
+    options.data[0].color = t.soft;
+    options.data[1].color = t.accent;
+    return options;
+  }
 
   function seriesFor(rows, energy) {
     var points = [];
@@ -142,7 +231,7 @@
 
     window.goesData
       .then(function (rows) {
-        var chart = new CanvasJS.Chart('chartContainer', {
+        chart = new CanvasJS.Chart('chartContainer', themeChart({
           zoomEnabled: true,
           zoomType: 'xy',
           exportEnabled: true,
@@ -150,28 +239,18 @@
           axisX: {
             valueFormatString: 'HH:MM DD/MM',
             title: 'Time and date · UTC',
-            titleFontColor: CHART_FAINT,
             titleFontFamily: 'Chivo Mono, monospace',
             titleFontSize: 10,
-            labelFontColor: CHART_FAINT,
             labelFontFamily: 'Chivo Mono, monospace',
-            labelFontSize: 10,
-            lineColor: CHART_LINE,
-            tickColor: CHART_LINE,
-            gridColor: CHART_GRID
+            labelFontSize: 10
           },
           axisY: {
             logarithmic: true,
             title: 'Flare class',
-            titleFontColor: CHART_FAINT,
             titleFontFamily: 'Chivo Mono, monospace',
             titleFontSize: 10,
-            labelFontColor: CHART_LONG,
             labelFontFamily: 'Chivo Mono, monospace',
             labelFontSize: 11,
-            lineColor: CHART_LINE,
-            tickColor: CHART_LINE,
-            gridColor: CHART_GRID,
             maximum: 0.0005,
             minimum: 0.00000001,
             labelFormatter: function (e) {
@@ -188,7 +267,6 @@
           toolTip: { shared: true },
           legend: {
             cursor: 'pointer',
-            fontColor: CHART_INK,
             fontFamily: 'Chivo Mono, monospace',
             fontSize: 11,
             verticalAlign: 'top',
@@ -199,7 +277,6 @@
           data: [{
             type: 'line',
             name: 'GOES 0.05–0.4 nm',
-            color: CHART_SHORT,
             showInLegend: true,
             markerSize: 1,
             lineThickness: 1.4,
@@ -208,14 +285,13 @@
           }, {
             type: 'line',
             name: 'GOES 0.1–0.8 nm',
-            color: CHART_LONG,
             showInLegend: true,
             markerSize: 1,
             lineThickness: 1.4,
             yValueFormatString: '#.##########',
             dataPoints: seriesFor(rows, '0.1-0.8nm')
           }]
-        });
+        }));
 
         function toggleSeries(e) {
           e.dataSeries.visible = !(typeof e.dataSeries.visible === 'undefined'
@@ -458,6 +534,15 @@
     loadChart();
     loadEphemeris();
     loadPapers();
+
+    document.addEventListener('jr:themechange', function () {
+      repaintWeather();
+      loadMoon();
+      if (chart) {
+        themeChart(chart.options);
+        chart.render();
+      }
+    });
   }
 
   if (document.readyState === 'loading') {

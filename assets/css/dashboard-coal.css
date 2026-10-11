@@ -111,8 +111,8 @@
   z-index: -1;
   background: radial-gradient(
     62% 56% at 26% 50%,
-    rgba(17, 18, 20, 0.72),
-    rgba(17, 18, 20, 0) 100%
+    rgba(var(--ground-rgb), 0.72),
+    rgba(var(--ground-rgb), 0) 100%
   );
 }
 
@@ -166,8 +166,8 @@
     inset: -1.5rem -1.5rem;
     background: radial-gradient(
       90% 65% at 40% 50%,
-      rgba(17, 18, 20, 0.92),
-      rgba(17, 18, 20, 0) 100%
+      rgba(var(--ground-rgb), 0.92),
+      rgba(var(--ground-rgb), 0) 100%
     );
   }
 }
@@ -714,12 +714,21 @@
   filter: brightness(0.88) saturate(0.6);
 }
 
+/*
+ * On stone, dashboard-rail.js swaps dark_all for light_all. That basemap is already
+ * near the ground, so it is only desaturated; dimming it would turn it muddy against
+ * the paper around it.
+ */
+:root[data-theme="light"] .leaflet-tile-pane {
+  filter: saturate(0.6);
+}
+
 .leaflet-bar,
 .leaflet-control-layers {
   border: 1px solid var(--line);
   border-radius: 0;
   box-shadow: none;
-  background: rgba(17, 18, 20, 0.92);
+  background: rgba(var(--ground-rgb), 0.92);
   backdrop-filter: blur(6px);
 }
 
@@ -743,6 +752,11 @@
   filter: invert(1) brightness(0.9);
 }
 
+/* Leaflet's own icon is drawn dark, which is already right on stone. */
+:root[data-theme="light"] .leaflet-control-layers-toggle {
+  filter: none;
+}
+
 .leaflet-control-layers-expanded {
   padding: 0.6rem 0.8rem;
   font-family: var(--font-mono);
@@ -758,7 +772,7 @@
 
 .leaflet-popup-content-wrapper,
 .leaflet-popup-tip {
-  background: rgba(17, 18, 20, 0.96);
+  background: rgba(var(--ground-rgb), 0.96);
   color: var(--ink);
   border: 1px solid var(--line);
   border-radius: 0;
@@ -792,7 +806,7 @@
 }
 
 .leaflet-control-attribution {
-  background: rgba(17, 18, 20, 0.82);
+  background: rgba(var(--ground-rgb), 0.82);
   font-family: var(--font-mono);
   font-size: 0.6rem;
   letter-spacing: 0.04em;
@@ -806,7 +820,7 @@
 /* The train legend. Mono text on the ground, not a boxed key. */
 .info_legend {
   padding: 0.6rem 0.8rem;
-  background: rgba(17, 18, 20, 0.92);
+  background: rgba(var(--ground-rgb), 0.92);
   backdrop-filter: blur(6px);
   border: 1px solid var(--line);
   border-radius: 0;
@@ -852,7 +866,7 @@
 }
 
 .canvasjs-chart-toolbar button {
-  background: rgba(17, 18, 20, 0.92) !important;
+  background: rgba(var(--ground-rgb), 0.92) !important;
   border: 1px solid var(--line) !important;
   border-radius: 0 !important;
 }

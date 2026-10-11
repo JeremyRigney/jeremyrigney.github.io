@@ -54,10 +54,10 @@
 
   /* ---------- Helpers (copied from home-galaxy.js; see the header) ---------- */
 
-  function readRgb(name, fallback) {
+  function readRgb(el, name, fallback) {
     var raw = '';
     try {
-      raw = getComputedStyle(document.documentElement).getPropertyValue(name);
+      raw = getComputedStyle(el).getPropertyValue(name);
     } catch (e) { /* fall through */ }
     var parts = String(raw).split(',').map(function (s) { return parseInt(s, 10); });
     return parts.length === 3 && parts.every(function (n) { return n >= 0 && n <= 255; })
@@ -88,12 +88,48 @@
 
   function rgb(c) { return c[0] + ',' + c[1] + ',' + c[2]; }
 
-  var SAGE = readRgb('--accent-rgb', [110, 138, 120]);
-  var SAGE_SOFT = [142, 172, 152];
-  var TEAL = readRgb('--galaxy-teal-rgb', [72, 190, 176]);
-  var WARM = [226, 222, 208];
-  var WHITE = [246, 247, 248];
-  var TINTS = { warm: [236, 214, 176], teal: [196, 236, 230], white: WHITE };
+  /*
+   * Coal and stone, as in home-galaxy.js: light added to a dark ground, or ink laid on
+   * paper. On stone the white of a bright star is the darkest ink, and a tint is a
+   * coloured ink rather than a coloured light.
+   */
+  var PALETTES = {
+    dark: {
+      soft: [142, 172, 152],
+      warm: [226, 222, 208],
+      white: [246, 247, 248],
+      tints: { warm: [236, 214, 176], teal: [196, 236, 230] },
+      blend: 'lighter',
+      halo: 1
+    },
+    // Ink does not glow: a cluster's bright members are crisp dots on stone.
+    light: {
+      soft: [86, 116, 98],
+      warm: [56, 48, 40],
+      white: [17, 18, 20],
+      tints: { warm: [96, 68, 36], teal: [24, 84, 77] },
+      blend: 'multiply',
+      halo: 0.3
+    }
+  };
+
+  var SAGE, SAGE_SOFT, TEAL, WARM, WHITE, TINTS, BLEND, HALO;
+
+  // The teal is set on the homepage's .opening, not :root.
+  function applyPalette() {
+    var p = document.documentElement.getAttribute('data-theme') === 'light'
+      ? PALETTES.light
+      : PALETTES.dark;
+    var opening = document.querySelector('.opening') || document.documentElement;
+    SAGE = readRgb(document.documentElement, '--accent-rgb', [110, 138, 120]);
+    SAGE_SOFT = p.soft;
+    TEAL = readRgb(opening, '--galaxy-teal-rgb', [72, 190, 176]);
+    WARM = p.warm;
+    WHITE = p.white;
+    TINTS = { warm: p.tints.warm, teal: p.tints.teal, white: p.white };
+    BLEND = p.blend;
+    HALO = p.halo;
+  }
 
   function halo(c, a) {
     return makeSprite(64, [
@@ -108,7 +144,7 @@
   // Draw a star: a square point, plus a soft halo if it is a bright one.
   function star(g, x, y, size, c, alpha, glow) {
     if (glow) {
-      g.globalAlpha = alpha * 0.8;
+      g.globalAlpha = alpha * 0.8 * HALO;
       g.drawImage(halo(c, 0.6), x - glow / 2, y - glow / 2, glow, glow);
     }
     g.globalAlpha = alpha;
@@ -224,27 +260,45 @@
     cv.setAttribute('aria-hidden', 'true');
     cv.style.width = cv.style.height = size + 'px';
 
+    if (!cv.getContext('2d')) { return null; }
+    draw(cv, spec, size);
+    return cv;
+  }
+
+  // Seeded, so a repaint in the other theme draws the same object in the other inks.
+  function draw(cv, spec, size) {
     var g = cv.getContext('2d');
-    if (!g) { return null; }
-    g.scale(dpr, dpr);
-    g.globalCompositeOperation = 'lighter';
+    var dpr = cv.width / size;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.globalCompositeOperation = 'source-over';
+    g.globalAlpha = 1;
+    g.clearRect(0, 0, size, size);
+    g.globalCompositeOperation = BLEND;
     var rand = mulberry32(spec.seed * 7919);
 
     if (spec.type === 'globular') { paintGlobular(g, rand, size); }
     else if (spec.type === 'star') { paintStar(g, rand, size, spec.tint); }
     else { paintOpen(g, rand, size, spec.type === 'mini'); }
-    return cv;
   }
 
   /* ---------- Placement ---------- */
 
-  var placed = [];
+  var placed = []; // { cv, spec, size }
   var observer = null;
 
   function clear() {
-    placed.forEach(function (cv) { cv.remove(); });
+    placed.forEach(function (p) { p.cv.remove(); });
     placed = [];
     if (observer) { observer.disconnect(); }
+  }
+
+  /*
+   * A theme change repaints each object where it is, rather than laying the sky out
+   * again: a fresh layout would fade every object back in from nothing.
+   */
+  function repaint() {
+    applyPalette();
+    placed.forEach(function (p) { draw(p.cv, p.spec, p.size); });
   }
 
   function layout() {
@@ -300,7 +354,7 @@
       }
 
       section.appendChild(cv);
-      placed.push(cv);
+      placed.push({ cv: cv, spec: spec, size: size });
       if (observer) { observer.observe(cv); } else { cv.classList.add('is-seen'); }
     });
   }
@@ -308,7 +362,9 @@
   /* ---------- Boot ---------- */
 
   function start() {
+    applyPalette();
     layout();
+    document.addEventListener('jr:themechange', repaint);
 
     // Placement depends on width only; a phone's URL bar changing the height is
     // absorbed by the CSS centring in the band.

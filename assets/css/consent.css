@@ -100,6 +100,42 @@
   outline-offset: 1px;
 }
 
+/*
+ * Stone, the light theme on the coal pages (see coal.css). Only those pages load
+ * theme.js, so only they ever set data-theme. The off-palette pages keep the card above.
+ */
+html[data-theme="light"] #jr-consent {
+  background: rgba(231, 229, 224, 0.94);
+  border-color: rgba(17, 18, 20, 0.14);
+  box-shadow: 0 8px 28px rgba(17, 18, 20, 0.12);
+  color: #1e2023;
+}
+
+html[data-theme="light"] #jr-consent .jr-consent-text {
+  color: #4a4e54;
+}
+
+html[data-theme="light"] #jr-consent .jr-consent-text a,
+html[data-theme="light"] #jr-consent button {
+  color: #1e2023;
+}
+
+html[data-theme="light"] #jr-consent .jr-consent-text a {
+  text-decoration-color: rgba(17, 18, 20, 0.28);
+}
+
+html[data-theme="light"] #jr-consent .jr-consent-text a:hover,
+html[data-theme="light"] #jr-consent .jr-consent-text a:focus-visible,
+html[data-theme="light"] #jr-consent button:hover,
+html[data-theme="light"] #jr-consent button[aria-pressed="true"] {
+  text-decoration-color: #4f6f5d;
+}
+
+html[data-theme="light"] #jr-consent button:focus-visible,
+html[data-theme="light"] #jr-consent .jr-consent-text a:focus-visible {
+  outline-color: #4f6f5d;
+}
+
 @media (prefers-reduced-motion: reduce) {
   #jr-consent {
     transform: none;
