@@ -36,7 +36,7 @@
    * That is not academic: it shipped a season index with no circuitKey against a script
    * that required one, and the map silently vanished. Bump this whenever the data changes.
    */
-  var DATA_V = '20260911';
+  var DATA_V = '20261004';
 
   /* Flag colours for the scrubber track. Same values as the --flag tokens in f1.css. */
   var BAND = {

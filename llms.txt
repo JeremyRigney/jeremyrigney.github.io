@@ -4,7 +4,7 @@
 
 ## Career
 
-- Senior Data Scientist, Optum (2026 to present): designs and builds agentic AI systems for a regulated healthcare setting, including MCP (Model Context Protocol) data contracts, grounding model outputs in trusted data, and evaluation and testing of LLMs and agents. Details of internal projects are confidential.
+- Senior Data Scientist, Optum (2026 to present): designs and builds agentic AI systems for a regulated healthcare environment, covering agent orchestration, context engineering, retrieval and grounding, data contracts (including MCP), evaluation frameworks, guardrails and observability. Details of internal projects are confidential.
 - Data Scientist, LexisNexis Risk Solutions (2025 to 2026): vehicle risk models and analytics.
 - PhD, observational astrophysics, Queen's University Belfast (2020 to 2024): observing the Sun and other stars with some of the world's most advanced telescopes, and analysing terabytes of telescope data.
 - BSc (Hons) Physics with Astronomy and Space Science, University College Dublin (2016 to 2020).
