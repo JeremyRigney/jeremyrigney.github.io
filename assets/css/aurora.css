@@ -1236,21 +1236,33 @@ body[data-view="2"] :is(.topdock, .top-time, .top-seg) {
   letter-spacing: -0.02em;
 }
 
+/* Two columns, the solar wind beside Kp over the magnetometers, each column its own
+   stack, so a card opening lengthens only its own column. */
 .drivers {
   flex: 1;
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-  grid-template-rows: minmax(19rem, 1fr) minmax(19rem, 1fr) auto;
+  grid-template-rows: 1fr auto;
   grid-template-areas:
-    "wind kp"
-    "wind magie"
+    "wind side"
     "alerts alerts";
   gap: var(--s-4);
 }
 
+.drivers-side {
+  grid-area: side;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+}
+
+.drivers-side > .chart {
+  flex: 1 0 auto;
+  min-height: 19rem;
+}
+
 .chart-wind { grid-area: wind; }
-.chart-kp { grid-area: kp; }
-.chart-magie { grid-area: magie; }
 .alerts { grid-area: alerts; }
 
 .chart {
@@ -1271,10 +1283,10 @@ body[data-view="2"] :is(.topdock, .top-time, .top-seg) {
   min-height: 30rem;
 }
 
-/* With a chart's + open, its card runs long; the others keep their own height rather
-   than stretch to the new row, so their charts don't balloon. */
-.drivers:has(.chart .more[aria-expanded="true"]) > .chart {
-  align-self: start;
+/* With a chart's + open, its column runs long; the other keeps its own height rather
+   than stretch to match, so its charts don't balloon. */
+.drivers:has(.chart .more[aria-expanded="true"]) {
+  align-items: start;
 }
 
 .chart-body canvas,
@@ -2033,6 +2045,22 @@ body[data-view="2"] .dock > * {
     --dock-space: calc(var(--dock-h) + var(--s-2) + var(--timeline-h));
   }
 
+  /* The header and dock are fixed, so a + panel taller than the room left would run
+     off the screen out of reach. It stops at the room there is and scrolls inside
+     itself. (Wide screens have the room, and their dock panels' feet sit outside the
+     box, where scrolling would clip them.) */
+  .top-more {
+    max-height: max(10rem, calc(100svh - var(--header-h) - env(safe-area-inset-top, 0px) - var(--s-5)));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .dock .card-more {
+    max-height: max(10rem, calc(100svh - var(--header-h) - var(--dock-space) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - var(--s-5)));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
   .timeline {
     height: var(--timeline-h);
     padding-top: var(--s-2);
@@ -2110,7 +2138,7 @@ body[data-view="2"] .dock > * {
   .drivers {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: none;
-    grid-template-areas: "wind" "kp" "magie" "alerts";
+    grid-template-areas: "wind" "side" "alerts";
   }
 
   .chart-wind .chart-body {

@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/aurora.css?v=20261104za" />
+  <link rel="stylesheet" href="assets/css/aurora.css?v=20261105b" />
 
   <!-- Cookie consent: sets the Consent Mode defaults, so it must come before the Google tag -->
   <link rel="stylesheet" href="assets/css/consent.css?v=20261008" />
@@ -158,32 +158,34 @@
             <div class="chart-extra" data-extra="wind-heat" style="height:11rem"></div>
           </div>
         </figure>
-        <figure class="card chart chart-kp" id="chart-kp">
-          <figcaption class="card-head">
-            <span class="card-heading"><span class="card-title">Planetary Kp</span><span class="card-meta">Past week and NOAA&rsquo;s next 3 days</span></span>
-            <span class="card-actions"><button type="button" class="chip chart-table-toggle" aria-pressed="false">Table</button><button type="button" class="more" aria-expanded="false" aria-controls="kp-more"><span class="visually-hidden">More on Kp</span></button></span>
-          </figcaption>
-          <div class="chart-body"></div>
-          <div class="card-more" id="kp-more" hidden>
-            <p class="card-note">A column for every 3 hours, over NOAA&rsquo;s storm bands; outlined columns are NOAA&rsquo;s forecast. From Ireland, aurora usually shows low in the north from G1 (Kp&nbsp;5).</p>
-            <p class="extra-title">Now</p>
-            <div class="chart-extra" data-extra="kp-gauge" style="height:6.5rem"></div>
-          </div>
-        </figure>
-        <figure class="card chart chart-magie" id="chart-magie">
-          <figcaption class="card-head">
-            <span class="card-heading"><span class="card-title">Ireland&rsquo;s magnetometers</span><span class="card-meta">Last 24 hours, from MagIE</span></span>
-            <span class="card-actions"><button type="button" class="chip chart-table-toggle" aria-pressed="false">Table</button><button type="button" class="more" aria-expanded="false" aria-controls="magie-more"><span class="visually-hidden">More on the magnetometers</span></button></span>
-          </figcaption>
-          <div class="chart-body"></div>
-          <div class="card-more" id="magie-more" hidden>
-            <p class="card-note">How far the field at Dunsink and Valentia strays from a quiet day: a sudden swing marks a substorm, when the aurora to the north brightens. K is each station&rsquo;s local K for the 3 hours now running. Orange marks a half hour 3&sigma; to 5&sigma; beyond the past year&rsquo;s background.</p>
-            <p class="extra-title">Now, against the past year</p>
-            <div class="chart-extra" data-extra="magie-gauges" style="height:11rem"></div>
-            <p class="extra-title">Heat strips</p>
-            <div class="chart-extra" data-extra="magie-heat" style="height:8rem"></div>
-          </div>
-        </figure>
+        <div class="drivers-side">
+          <figure class="card chart chart-kp" id="chart-kp">
+            <figcaption class="card-head">
+              <span class="card-heading"><span class="card-title">Planetary Kp</span><span class="card-meta">Past week and NOAA&rsquo;s next 3 days</span></span>
+              <span class="card-actions"><button type="button" class="chip chart-table-toggle" aria-pressed="false">Table</button><button type="button" class="more" aria-expanded="false" aria-controls="kp-more"><span class="visually-hidden">More on Kp</span></button></span>
+            </figcaption>
+            <div class="chart-body"></div>
+            <div class="card-more" id="kp-more" hidden>
+              <p class="card-note">A column for every 3 hours, over NOAA&rsquo;s storm bands; outlined columns are NOAA&rsquo;s forecast. From Ireland, aurora usually shows low in the north from G1 (Kp&nbsp;5).</p>
+              <p class="extra-title">Now</p>
+              <div class="chart-extra" data-extra="kp-gauge" style="height:6.5rem"></div>
+            </div>
+          </figure>
+          <figure class="card chart chart-magie" id="chart-magie">
+            <figcaption class="card-head">
+              <span class="card-heading"><span class="card-title">Ireland&rsquo;s magnetometers</span><span class="card-meta">Last 24 hours, from MagIE</span></span>
+              <span class="card-actions"><button type="button" class="chip chart-table-toggle" aria-pressed="false">Table</button><button type="button" class="more" aria-expanded="false" aria-controls="magie-more"><span class="visually-hidden">More on the magnetometers</span></button></span>
+            </figcaption>
+            <div class="chart-body"></div>
+            <div class="card-more" id="magie-more" hidden>
+              <p class="card-note">How far the field at Dunsink and Valentia strays from a quiet day: a sudden swing marks a substorm, when the aurora to the north brightens. K is each station&rsquo;s local K for the 3 hours now running. Orange marks a half hour 3&sigma; to 5&sigma; beyond the past year&rsquo;s background.</p>
+              <p class="extra-title">Now, against the past year</p>
+              <div class="chart-extra" data-extra="magie-gauges" style="height:11rem"></div>
+              <p class="extra-title">Heat strips</p>
+              <div class="chart-extra" data-extra="magie-heat" style="height:8rem"></div>
+            </div>
+          </figure>
+        </div>
         <section class="card alerts" id="alerts" aria-labelledby="alerts-title">
           <div class="card-head">
             <div class="card-heading"><h3 class="card-title" id="alerts-title">Geomagnetic alerts</h3><p class="card-meta">From NOAA SWPC, the past week</p></div>
