@@ -1,0 +1,2291 @@
+/*
+ * /aurora — the live aurora on a globe.
+ *
+ * Off-palette from the rest of jeremy.ie on purpose, the way f1.css and
+ * eclipse-ireland-2026.css are: graphite and bone, with a pale lilac for whatever
+ * is selected. Chosen by Jeremy on 2026-11-02 from three looks tried live ("Dusk",
+ * in the graphite palette).
+ *
+ * One system, used everywhere over the globe:
+ *   - one face, Figtree, at 400 for text and 600-700 for titles and values, in
+ *     five sizes (--fs-*), with tabular figures wherever a number changes;
+ *   - one surface, the card: nearly opaque, 28-px corners, lit along its top edge
+ *     and lifted by a soft shadow, the same padding everywhere; anything nested in
+ *     a card is an inset tile at 18 px. No backdrop blur: the globe under a card
+ *     moves every frame, so the blur would be redone every frame;
+ *   - the dock along the foot is one capsule: conditions, time and legend are its
+ *     segments, and what a + opens rises above it as a card of its own;
+ *   - pills for every control (segmented switches, chips) and a round + that opens
+ *     a card's secondary detail;
+ *   - spacing in steps of 4 px (--s-*).
+ *
+ * Colour is data here, but for the accent. The three emission lines (--em-*) are
+ * the colours the aurora is drawn in on the "Seen" layer; the --prob-* ramp is the
+ * "Probability" layer's, a gradient from deep indigo through the accent's lilac to
+ * rose, clear of the aurora's green and red and of the lights' amber; the chart roles and the NOAA storm-scale colours are for Kp and the
+ * Drivers charts. The interface is bone on graphite, and the selected state of a
+ * control is the lilac accent. No accent may be amber: the warm --earth-lights
+ * ramp is kept for light pollution. aurora-globe.js reads the ink, --em-*, --prob-*
+ * and the earth's tokens from here at boot, so every colour it reads stays
+ * six-digit hex.
+ *
+ * Every text token clears 4.5:1 on a card (ink-faint is 5.1:1 at worst), and
+ * nothing that carries information is set below 0.75rem.
+ */
+
+:root {
+  --night: #131317;
+  --ink: #ece9e2;
+  --ink-soft: #aeaaa2;
+  --ink-faint: #8c8981;
+
+  --card: rgba(19, 19, 23, 0.9);
+  --card-solid: #18181d;
+  --inset: rgba(236, 233, 226, 0.05);
+  --hover: rgba(236, 233, 226, 0.08);
+  --line: rgba(236, 233, 226, 0.1);
+  --line-solid: color-mix(in srgb, var(--ink) 10%, var(--card-solid)); /* --line as it looks on a card */
+  --join: 18px; /* the concave curve where a + panel grows out of its capsule */
+  --rule: rgba(236, 233, 226, 0.12);
+  --rule-strong: rgba(236, 233, 226, 0.26);
+  --lift: inset 0 1px 0 var(--rule), 0 24px 48px -20px rgba(4, 4, 8, 0.6);
+
+  --accent: #bba7f5; /* a control's selected state */
+  --on-accent: #131317;
+
+  /* The wordmark: a muted mint into a soft green, quieter than the data's 557.7 green
+     so it never reads as aurora on the globe. */
+  --logo-from: #e4f3ea;
+  --logo-mid: #a9e6c6;
+  --logo-to: #6fcf9f;
+
+  /* Emission lines, as drawn on the Seen layer. */
+  --em-5577: #47ffa0; /* atomic oxygen, 557.7 nm: the green */
+  --em-6300: #ff3d2e; /* atomic oxygen, 630.0 nm: the red, high up */
+  --em-4278: #7b5cff; /* ionised nitrogen, 427.8 nm: the violet lower edge */
+
+  /* Probability, at 5, 10, 30, 50, 70 and 90 %: the globe blends between them. */
+  --prob-1: #3b3486;
+  --prob-2: #5446b0;
+  --prob-3: #7a5fd6;
+  --prob-4: #a487ec;
+  --prob-5: #d79be0;
+  --prob-6: #ffc3dc;
+
+  /* The globe (aurora-globe.js): the space behind it, top to bottom of the
+     screen, the haze above the limb, the earth by night and in full sun, its
+     coasts, the place marker, and the night side's lights. */
+  --sky-top: #131317;
+  --sky-bottom: #131317;
+  --haze: #ece9e2;
+  --haze-strength: 0.05;
+  --earth-sea: #141418;
+  --earth-land: #1f1f26;
+  --earth-sea-day: #1c1c22;
+  --earth-land-day: #2c2c33;
+  --earth-lights: #ffe2b0; /* the sky-glow hue, kept for light pollution */
+  --coast-alpha: 0.35;
+  --place: #ece9e2;
+
+  /* Drivers charts: grey for the ordinary, and one colour for a half hour 3 to 5 sigma
+     beyond the past year's background. It means nothing else on the page. */
+  --series-quiet: #77757c;
+  --event: #d95926;
+  --grid: rgba(236, 233, 226, 0.07);
+  --axis: rgba(236, 233, 226, 0.2);
+
+  /* NOAA G-scale, as status: G1 minor, G2 moderate, G3+ strong to extreme. */
+  --g1: #fab219;
+  --g2: #ec835a;
+  --g3: #d03b3b;
+
+  --font: "Figtree", "Helvetica Neue", Arial, sans-serif;
+
+  --fs-xs: 0.8125rem;  /* 13 px: labels, meta, chips, ticks */
+  --fs-sm: 0.875rem;   /* 14 px: notes */
+  --fs-md: 1.0625rem;  /* 17 px: card titles */
+  --fs-lg: 2.125rem;   /* 34 px: readings */
+  --fs-xl: clamp(2.1rem, 3.4vw, 3.1rem); /* view titles */
+
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.5rem;
+  --s-6: 2rem;
+
+  --r-card: 28px;
+  --r-inset: 18px;
+  --r-pill: 999px;
+  --pad: 1.25rem;
+
+  --gutter: clamp(1rem, 2.4vw, 1.75rem);
+  --top-h: 5.25rem; /* the top capsule, mirroring the dock */
+  --header-h: calc(var(--s-3) + 2.625rem + var(--s-2) + var(--top-h)); /* the byline and switches over the capsule */
+  --timeline-h: 5.25rem;
+  --dock-h: 7.25rem; /* the dock along the foot of views 01 and 02 */
+  --dock-space: var(--dock-h); /* how much of the foot the dock takes, closed */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html {
+  scroll-snap-type: y mandatory;
+  background: var(--night);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+abbr[title] {
+  text-decoration: none;
+  cursor: help;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ---------- The stage ---------- */
+
+.stage {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100lvh;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.stage canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#aurora-gl {
+  opacity: 0;
+  transition: opacity 900ms var(--ease);
+}
+
+.is-ready #aurora-gl {
+  opacity: 1;
+}
+
+/* ---------- Building blocks ---------- */
+
+.card {
+  padding: var(--pad);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--card);
+  box-shadow: var(--lift);
+}
+
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.card-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.card-title {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.card-meta {
+  margin: 0;
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.card-meta a {
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 2px;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex: none;
+}
+
+/* What a + opens: an inset tile, so it reads as part of the card it came from. */
+.card-more {
+  display: block;
+  margin-top: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-inset);
+  background: var(--inset);
+}
+
+.card-note {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.card-note b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.card-note + .card-note {
+  margin-top: var(--s-2);
+}
+
+.card-more .gauges + .card-note {
+  margin-top: var(--s-4);
+}
+
+/* The round +. Turns to a white x while open. */
+.more {
+  position: relative;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--rule-strong);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.more::before,
+.more::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 1.5px;
+  margin: -0.75px 0 0 -6px;
+  border-radius: 1px;
+  background: currentColor;
+  transition: transform 220ms var(--ease);
+}
+
+.more::after {
+  transform: rotate(90deg);
+}
+
+.more:hover {
+  border-color: var(--ink-soft);
+  background: var(--hover);
+}
+
+.more[aria-expanded="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.more[aria-expanded="true"]::before {
+  transform: rotate(45deg);
+}
+
+.more[aria-expanded="true"]::after {
+  transform: rotate(135deg);
+}
+
+/* Chips: every other button. Pressed is white. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 2rem;
+  padding: 0 0.875rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-pill);
+  background: transparent;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.chip:hover {
+  border-color: var(--ink-soft);
+  background: var(--hover);
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.chip[disabled] {
+  cursor: default;
+}
+
+.chip-quiet {
+  border-color: transparent;
+  color: var(--ink-soft);
+}
+
+/* Tags: pills that only say something. */
+.tag,
+.scale-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 1.5rem;
+  padding: 0 0.625rem;
+  border-radius: var(--r-pill);
+  background: var(--hover);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--ink);
+  vertical-align: middle;
+}
+
+.tag::before,
+.scale-chip::before {
+  content: "";
+  flex: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.tag-model::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+
+.tag-demo::before {
+  background: var(--g1);
+}
+
+.view-times .tag {
+  margin-right: var(--s-2);
+}
+
+/* The NOAA storm level beside Kp: always a word, the colour only a dot. */
+.scale-chip::before { background: var(--series-quiet); }
+.scale-chip[data-g="1"]::before { background: var(--g1); }
+.scale-chip[data-g="2"]::before { background: var(--g2); }
+.scale-chip[data-g="3"]::before,
+.scale-chip[data-g="4"]::before,
+.scale-chip[data-g="5"]::before { background: var(--g3); }
+
+/* Segmented switches: the views and the layer. */
+.seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  box-shadow: var(--lift);
+}
+
+.seg a,
+.seg button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2rem;
+  padding: 0 0.875rem;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.seg a:hover,
+.seg button:hover {
+  color: var(--ink);
+  background: var(--hover);
+}
+
+.seg a[aria-current="true"],
+.seg button[aria-checked="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* A value that has gone stale says so, and fades, but never moves. */
+[data-stale="true"] {
+  opacity: 0.45;
+}
+
+.stale-note {
+  color: var(--ink-faint);
+}
+
+/* ---------- The top capsule ---------- */
+
+/* It mirrors the dock at the foot: one capsule, its parts divided by hairlines, small
+   labels over large values, a round + for the rest. The byline and the switches stand
+   over it. The header is the grid and .topdock the capsule behind its second row, so
+   the parts rearrange by width without moving in the DOM: the time, and the place (in
+   the south, the oval). */
+.site-header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto var(--top-h);
+  grid-template-areas:
+    "brand controls"
+    "time  place";
+  align-items: center;
+  row-gap: var(--s-2);
+  padding: calc(var(--s-3) + env(safe-area-inset-top, 0px)) var(--gutter) 0;
+  pointer-events: none;
+}
+
+.site-header > :not(.topdock) {
+  pointer-events: auto;
+}
+
+.topdock {
+  grid-row: 2;
+  grid-column: 1 / -1;
+  align-self: stretch;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  box-shadow: var(--lift);
+}
+
+.top-time,
+.top-seg {
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.top-time {
+  grid-area: time;
+  padding: 0 var(--s-5) 0 2.25rem;
+}
+
+.top-seg {
+  grid-area: place;
+  gap: var(--s-5);
+  padding: 0 1.25rem 0 var(--s-5);
+}
+
+.header-controls {
+  grid-area: controls;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+/* The hairline between the parts, as the dock's. */
+.top-seg::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 1.25rem;
+  bottom: 1.25rem;
+  width: 1px;
+  background: var(--line);
+}
+
+/* The time: the live pill and the clock, and how far ahead under them. */
+.top-time .view-times {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: var(--s-3);
+  row-gap: 0.125rem;
+  font-size: var(--fs-xs);
+}
+
+.top-time .tag {
+  grid-row: 1;
+  height: 1.75rem;
+  margin: 0;
+  padding: 0 0.75rem;
+  background: var(--ink);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--night);
+}
+
+.top-time .tag-model {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--ink);
+  color: var(--ink);
+}
+
+.top-time .times-main {
+  grid-row: 1;
+  white-space: nowrap;
+}
+
+.top-time .times-lead {
+  display: none;
+}
+
+.top-time .times-main b {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.top-time .times-main .tz {
+  margin-left: 0.15em;
+  font-size: 0.38em;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink-soft);
+}
+
+.top-time .times-rel {
+  grid-row: 2;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.top-time .times-src {
+  grid-row: 2;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.top-time .times-src::before {
+  content: none;
+}
+
+.top-time .stale-note {
+  grid-column: 1 / -1;
+}
+
+/* The cloud at the place for the time shown, at the time's far end: a glyph as tall
+   as the clock and its percentage under it (aurora-hud.js). The place isn't shown in
+   the south, so neither is its cloud. */
+.top-time .cloud {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0 0 0 auto;
+  padding-left: var(--s-4);
+  color: var(--ink);
+}
+
+.cloud-glyph {
+  display: block;
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.cloud-pct {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.cloud-pct .unit {
+  margin-left: 0.05em;
+  font-weight: 500;
+}
+
+body[data-view="1"] .top-time .cloud {
+  display: none;
+}
+
+/* The place: its name over the verdict, then its figures, as the dock's gauges. */
+.top-seg-head {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.top-label {
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ink-soft);
+}
+
+.top-seg .place-verdict {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--fs-md);
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.top-figures {
+  display: flex;
+  flex: none;
+  gap: var(--s-5);
+  margin: 0;
+}
+
+.top-figures > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.top-figures dt {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--ink-soft);
+}
+
+.top-figures dd {
+  margin: 0.125rem 0 0;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.top-figures .unit {
+  margin-left: 0.1em;
+  font-size: 0.42em;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-soft);
+}
+
+.top-figures .bearing {
+  margin-left: 0.35rem;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-soft);
+}
+
+.top-figures .sky {
+  font-size: var(--fs-md);
+  line-height: 2;
+  letter-spacing: -0.01em;
+}
+
+.top-seg > .more {
+  flex: none;
+}
+
+/* What a + opens drops below the capsule as a card, as the dock's rise above it. */
+.top-more {
+  position: absolute;
+  top: calc(100% + var(--s-3));
+  right: var(--s-3);
+  z-index: 1;
+  width: min(24rem, calc(100vw - 2 * var(--gutter)));
+  margin: 0;
+  padding: var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-inset);
+  background: var(--card-solid);
+  box-shadow: var(--lift);
+}
+
+.top-more .card-meta {
+  margin: var(--s-4) 0 var(--s-3);
+  font-size: var(--fs-sm);
+}
+
+/* What a + opens is read, not glanced at: body-size type and room around it. */
+.top-more,
+.dock .card-more {
+  padding: var(--s-5) 1.75rem;
+}
+
+.top-more .card-note,
+.dock .card-more .card-note,
+.dock .card-more.card-note {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.top-more .card-note + .card-note,
+.dock .card-more .card-note + .card-note {
+  margin-top: var(--s-3);
+}
+
+.top-more .top-figures {
+  justify-content: space-between;
+  margin: 0 0 var(--s-2);
+}
+
+.top-more .top-figures dt {
+  font-size: var(--fs-sm);
+}
+
+.top-more .top-figures dd {
+  font-size: 2rem;
+}
+
+.top-more .top-figures .sky {
+  font-size: 1.125rem;
+  line-height: 2.4;
+}
+
+.top-more .place-actions {
+  margin-top: var(--s-5);
+}
+
+/* Opening, it eases out of the bar; closing, it eases back in, more slowly, so the eye
+   follows it home. The + marks it closing for --close-ms before hiding it
+   (aurora-hud.js). */
+.top-more,
+.dock .card-more {
+  --close-ms: 600;
+}
+
+.top-more {
+  transition: opacity 320ms var(--ease), translate 320ms var(--ease);
+}
+
+.top-more[data-closing] {
+  opacity: 0;
+  translate: 0 -0.75rem;
+  transition: opacity 600ms cubic-bezier(0.65, 0, 0.35, 1), translate 600ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@starting-style {
+  .top-more {
+    opacity: 0;
+    translate: 0 -0.75rem;
+  }
+}
+
+/* North shows the place, south the southern oval, the drivers neither. */
+.top-oval {
+  display: none;
+}
+
+body[data-view="1"] .top-place {
+  display: none;
+}
+
+body[data-view="1"] .top-oval {
+  display: flex;
+}
+
+.topdock,
+.top-time,
+.top-seg {
+  transition: opacity 400ms var(--ease), visibility 400ms;
+}
+
+body[data-view="2"] :is(.topdock, .top-time, .top-seg) {
+  visibility: hidden;
+  opacity: 0;
+}
+
+/* Wide: the capsule parts into two pills, one either side, each as wide as the
+   switches over the right one, so the middle stays open for the globe and its name.
+   The right pill keeps the place and its verdict; its figures open from its +. */
+@media (min-width: 1241px) {
+  :root {
+    --side: 29rem;
+  }
+
+  .site-header {
+    grid-template-columns: var(--side) minmax(0, 1fr) var(--side);
+    grid-template-rows: auto minmax(var(--top-h), auto);
+    grid-template-areas:
+      "brand .  controls"
+      "time  .  place";
+    align-items: start;
+  }
+
+  .brand {
+    align-self: center;
+  }
+
+  .header-controls {
+    justify-self: stretch;
+    justify-content: space-between;
+  }
+
+  .topdock {
+    display: none;
+  }
+
+  .top-time,
+  .top-seg {
+    min-height: var(--top-h);
+    border: 1px solid var(--line);
+    border-radius: calc(var(--top-h) / 2);
+    background: var(--card-solid);
+    box-shadow: var(--lift);
+  }
+
+  /* The pill's + panel is the pill continued: the same width, straight on down, so the
+     two read as one rounded card. The pill's foot squares off while it's open (and
+     rounds again once the panel has gone back in). */
+  .top-seg {
+    transition: opacity 400ms var(--ease), visibility 400ms, border-radius 200ms var(--ease) 600ms;
+  }
+
+  .top-seg:has(.more[aria-expanded="true"]) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    transition: opacity 400ms var(--ease), visibility 400ms, border-radius 0s;
+  }
+
+  .top-more {
+    top: 100%;
+    left: -1px;
+    right: -1px;
+    width: auto;
+    border-top: 0;
+    border-radius: 0 0 var(--r-card) var(--r-card);
+    box-shadow: 0 24px 48px -20px rgba(4, 4, 8, 0.6);
+    clip-path: inset(0 -3rem -4rem);
+    opacity: 1;
+    translate: none;
+    transition: clip-path 420ms var(--ease);
+  }
+
+  .top-more[data-closing] {
+    clip-path: inset(0 -3rem 100%);
+    opacity: 1;
+    translate: none;
+    transition: clip-path 600ms cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  @starting-style {
+    .top-more {
+      clip-path: inset(0 -3rem 100%);
+      opacity: 1;
+      translate: none;
+    }
+  }
+
+  .top-time {
+    align-self: start;
+    padding: 0 var(--s-5) 0 1.75rem;
+  }
+
+  .top-seg {
+    flex-wrap: wrap;
+    row-gap: var(--s-3);
+    padding: var(--s-3) 1.25rem var(--s-3) 1.75rem;
+  }
+
+  .top-seg::before {
+    display: none;
+  }
+
+  .top-seg .top-seg-head {
+    flex-basis: 0;
+  }
+
+  /* The oval's pill has room for its three figures beside its name. */
+  .top-oval .place-verdict {
+    display: none;
+  }
+
+  .top-oval .top-label {
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    white-space: normal;
+    color: var(--ink);
+  }
+
+  .top-oval .top-figures {
+    gap: var(--s-4);
+  }
+
+  .top-oval .top-figures dd {
+    font-size: 1.75rem;
+  }
+}
+
+/* The byline, top left: whose page this is, home to jeremy.ie. */
+/* The wordmark, then the byline on its baseline. */
+.brand {
+  grid-area: brand;
+  justify-self: start;
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  min-width: 0;
+}
+
+.logo {
+  flex: none;
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-decoration: none;
+  color: var(--logo-mid);
+  background: linear-gradient(100deg, var(--logo-from) 0%, var(--logo-mid) 55%, var(--logo-to) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-by {
+  overflow: hidden;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ink-soft);
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.brand-by b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.brand-by:hover {
+  color: var(--ink);
+}
+
+/* The layer switch. Each option carries a dot of the colour its layer draws in,
+   so the identity is the mark beside the word, never the word's own colour. */
+.layer-toggle button::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--em-5577);
+}
+
+.layer-toggle button[data-layer="probability"]::before {
+  background: linear-gradient(90deg, var(--prob-2), var(--prob-5));
+}
+
+.layer-gain {
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+/* ---------- Views ---------- */
+
+.views {
+  position: relative;
+  z-index: 5;
+}
+
+.view {
+  position: relative;
+  height: 100vh;
+  height: 100svh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  padding: calc(var(--header-h) + env(safe-area-inset-top, 0px) + var(--s-4)) var(--gutter) calc(var(--gutter) + env(safe-area-inset-bottom, 0px));
+  touch-action: pan-y;
+  pointer-events: auto;
+  overflow: hidden;
+}
+
+.view-north,
+.view-south {
+  padding-bottom: calc(var(--dock-space) + var(--gutter) + var(--s-5) + env(safe-area-inset-bottom, 0px));
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  min-width: 0;
+}
+
+.view-times {
+  margin: var(--s-3) 0 0;
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.view-times b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.times-src::before { content: " · "; }
+
+/* North and south hold nothing over the globe: the time and the place are in the top
+   capsule, the conditions in the dock. */
+
+/* ---------- Readings ---------- */
+
+.gauges {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-4);
+  margin: var(--s-4) 0 0;
+}
+
+.card-more .gauges {
+  margin: 0;
+}
+
+.gauges-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.gauge dt {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.gauge dd {
+  margin: var(--s-1) 0 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--s-1) 0.375rem;
+}
+
+.gauge-value {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+}
+
+.gauge-unit {
+  font-size: var(--fs-xs);
+  color: var(--ink-soft);
+}
+
+.gauge-sub {
+  align-self: center;
+  margin-left: var(--s-2);
+  font-size: var(--fs-xs);
+  color: var(--ink-soft);
+}
+
+/* Kp as nine steps, each in the storm colour of its range, lit up to the value. */
+.kp-meter {
+  flex-basis: 100%;
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: var(--s-3);
+}
+
+.kp-meter i {
+  --c: var(--series-quiet);
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--c) var(--fill, 0%), var(--hover) var(--fill, 0%));
+}
+
+.kp-meter i[data-g="1"] { --c: var(--g1); }
+.kp-meter i[data-g="2"] { --c: var(--g2); }
+.kp-meter i[data-g="3"],
+.kp-meter i[data-g="4"],
+.kp-meter i[data-g="5"] { --c: var(--g3); }
+
+/* ---------- The place's actions (behind its +) ---------- */
+
+.place-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-4);
+}
+
+.place-actions .chip[disabled] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.place-status {
+  margin: 0;
+  flex-basis: 100%;
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.place-status:empty {
+  display: none;
+}
+
+/* ---------- Drivers ---------- */
+
+/* The drivers view may run taller than the screen; scroll-snap lets a tall view
+   scroll freely inside itself. */
+.view-drivers {
+  /* The pills are hidden here, so only the byline and switches need clearing. */
+  padding-top: calc(var(--s-3) + 2.625rem + var(--s-5) + env(safe-area-inset-top, 0px));
+  height: auto;
+  min-height: 100vh;
+  min-height: 100svh;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+/* The drivers' cards are solid: charts read on a plain ground, the globe not through them. */
+.view-drivers .card {
+  background: var(--card-solid);
+}
+
+/* Each chart's name leads it, over its subtitle. */
+.view-drivers .card-title {
+  font-size: 1.5rem;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.drivers {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  grid-template-rows: minmax(19rem, 1fr) minmax(19rem, 1fr) auto;
+  grid-template-areas:
+    "wind kp"
+    "wind magie"
+    "alerts alerts";
+  gap: var(--s-4);
+}
+
+.chart-wind { grid-area: wind; }
+.chart-kp { grid-area: kp; }
+.chart-magie { grid-area: magie; }
+.alerts { grid-area: alerts; }
+
+.chart {
+  margin: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-body {
+  position: relative;
+  flex: 1;
+  min-height: 13rem;
+  margin-top: var(--s-4);
+}
+
+.chart-wind .chart-body {
+  min-height: 30rem;
+}
+
+/* With a chart's + open, its card runs long; the others keep their own height rather
+   than stretch to the new row, so their charts don't balloon. */
+.drivers:has(.chart .more[aria-expanded="true"]) > .chart {
+  align-self: start;
+}
+
+.chart-body canvas,
+.chart-extra canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: pan-y;
+}
+
+.chart-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: var(--s-4);
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: var(--ink-faint);
+}
+
+/* Behind a chart's +: the same series as gauges and heat strips. */
+.chart-extra {
+  position: relative;
+}
+
+.chart-extra .chart-table {
+  display: none;
+}
+
+.extra-title {
+  margin: var(--s-4) 0 var(--s-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+
+.chart-table {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  border-radius: var(--r-inset);
+  background: var(--inset);
+}
+
+.chart-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.chart-table th,
+.chart-table td {
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.chart-table th:first-child,
+.chart-table td:first-child {
+  text-align: left;
+}
+
+.chart-table th {
+  position: sticky;
+  top: 0;
+  background: var(--card-solid);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Alerts: one row an episode, led by the level it reached (filled) or was warned of
+   or watched for (outlined). Storm levels take NOAA's bands, muted, as the Kp chart's. */
+.episodes {
+  list-style: none;
+  margin: var(--s-4) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 34rem), 1fr));
+  gap: var(--s-2);
+}
+
+.episode {
+  display: grid;
+  grid-template-columns: 6.5rem 3.25rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-inset);
+  background: var(--inset);
+}
+
+.ep-level {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2rem;
+  border-radius: 999px;
+  background: rgba(236, 233, 226, 0.12);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.ep-level[data-g="1"] { background: color-mix(in srgb, var(--g1) 32%, transparent); }
+.ep-level[data-g="2"] { background: color-mix(in srgb, var(--g2) 36%, transparent); }
+.ep-level[data-g="3"],
+.ep-level[data-g="4"],
+.ep-level[data-g="5"] { background: color-mix(in srgb, var(--g3) 42%, transparent); }
+
+.ep-level.ep-outline {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px var(--rule-strong);
+}
+
+.ep-level.ep-outline[data-g="1"] { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--g1) 60%, transparent); }
+.ep-level.ep-outline[data-g="2"] { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--g2) 60%, transparent); }
+
+/* When it was issued: the day, and the time under it. */
+.ep-when {
+  display: flex;
+  flex-direction: column;
+  font-variant-numeric: tabular-nums;
+}
+
+.ep-when b {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.ep-when span {
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+}
+
+.ep-text {
+  min-width: 0;
+  font-size: var(--fs-md);
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.alerts-none {
+  padding: var(--s-2) 0;
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+}
+
+.alerts-now {
+  margin: var(--s-3) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+}
+
+.alerts-full {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.alerts-full li {
+  display: grid;
+  grid-template-columns: 9.5rem minmax(0, 1fr);
+  column-gap: var(--s-4);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.alerts-full li:last-child {
+  border-bottom: 0;
+}
+
+.alerts-full time {
+  grid-row: span 2;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.alerts-full b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.foot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  margin-top: auto;
+}
+
+.foot .card-more {
+  max-width: 80ch;
+}
+
+.byline {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--ink-faint);
+}
+
+.byline a {
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+
+.byline a:hover {
+  color: var(--ink);
+}
+
+/* ---------- The dock ---------- */
+
+/* Along the foot of views 01 and 02: the conditions, the time slider and the
+   legend, in one row of one height. A card opens upward from its +, so the row
+   itself never moves. Where the row fits, it is one capsule (below). */
+.dock {
+  position: fixed;
+  z-index: 16;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: calc(var(--gutter) * 0.75 + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  grid-template-columns: minmax(0, 30rem) minmax(0, 1fr) minmax(0, 17.5rem);
+  grid-template-areas: "conditions timeline legend";
+  align-items: end;
+  gap: var(--s-3);
+  pointer-events: none;
+  transition: opacity 400ms var(--ease);
+}
+
+.dock > * {
+  pointer-events: auto;
+}
+
+body[data-view="2"] .dock {
+  opacity: 0;
+}
+
+body[data-view="2"] .dock > * {
+  pointer-events: none;
+}
+
+.dock .conditions,
+.dock .legend {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: var(--dock-h);
+  padding: var(--s-4) var(--pad);
+}
+
+.dock-more {
+  position: absolute;
+  top: var(--s-4);
+  right: var(--s-4);
+}
+
+/* One capsule, where the row fits: the three cards are its segments, ruled apart,
+   and what a + opens rises above it as a card of its own. */
+@media (min-width: 1241px) {
+  .dock {
+    gap: 0;
+  }
+
+  .dock::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--dock-h);
+    border: 1px solid var(--line);
+    border-radius: var(--r-pill);
+    background: var(--card);
+    box-shadow: var(--lift);
+  }
+
+  .dock > .card {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .dock .conditions {
+    padding-left: 2.25rem;
+  }
+
+  .dock .legend {
+    padding-right: 1.75rem;
+  }
+
+  /* The + keeps its place in the capsule however far its card rises. */
+  .dock .dock-more {
+    top: auto;
+    bottom: calc(var(--dock-h) - var(--s-4) - 2rem);
+  }
+
+  .dock .legend .dock-more {
+    right: 1.75rem;
+  }
+
+  .dock > .timeline {
+    position: relative;
+  }
+
+  .dock > .timeline::before,
+  .dock > .timeline::after {
+    content: "";
+    position: absolute;
+    top: 1.25rem;
+    bottom: 1.25rem;
+    width: 1px;
+    background: var(--line);
+  }
+
+  .dock > .timeline::before { left: 0; }
+  .dock > .timeline::after { right: 0; }
+
+  .dock .legend-seen,
+  .dock .legend-prob {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dock .legend-model {
+    order: -1;
+    margin: 0 0 var(--s-5);
+    padding: var(--s-4);
+    border: 1px solid var(--line);
+    border-radius: var(--r-inset);
+    background: var(--card-solid);
+    box-shadow: var(--lift);
+  }
+
+  /* What a + opens grows out of the capsule's top edge as one shape with it, flush with
+     the capsule's end: its outer side runs straight down into the capsule's round end
+     (a foot, the panel's outer pseudo-element, squares off the end's upper quarter,
+     behind the readings there), and its inner side sweeps into the top edge through
+     one concave curve. Both are solid, so no seam shows where they overlap. */
+  .dock::before {
+    background: var(--card-solid);
+  }
+
+  .dock .conditions > .gauges,
+  .dock .legend-seen > :not(.card-more),
+  .dock .legend-prob > :not(.card-more) {
+    position: relative;
+    z-index: 2;
+  }
+
+  .dock .dock-more {
+    z-index: 3;
+  }
+
+  .dock .card-more {
+    --foot: calc(var(--dock-h) / 2);
+    position: absolute;
+    z-index: 1;
+    bottom: calc(var(--dock-h) - 2px);
+    width: 26rem;
+    margin: 0;
+    border: 1px solid var(--line);
+    border-bottom: 0;
+    border-radius: var(--r-card) var(--r-card) 0 0;
+    background: var(--card-solid);
+    box-shadow: inset 0 1px 0 var(--rule);
+    clip-path: inset(0 calc(-1 * var(--join) - 2px) calc(-1 * var(--foot)));
+    transition: clip-path 420ms var(--ease);
+  }
+
+  .dock .card-more[data-closing] {
+    clip-path: inset(calc(100% + var(--foot)) calc(-1 * var(--join) - 2px) calc(-1 * var(--foot)));
+    transition: clip-path 600ms cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  @starting-style {
+    .dock .card-more {
+      clip-path: inset(calc(100% + var(--foot)) calc(-1 * var(--join) - 2px) calc(-1 * var(--foot)));
+    }
+  }
+
+  .dock .conditions .card-more {
+    left: 0;
+  }
+
+  .dock .legend .card-more {
+    right: 0;
+    width: 24rem;
+  }
+
+  .dock .card-more::before,
+  .dock .card-more::after {
+    content: "";
+    position: absolute;
+  }
+
+  /* The foot: the outer side carried down to the middle of the capsule's round end. */
+  .dock .conditions .card-more::before,
+  .dock .legend .card-more::after {
+    top: 100%;
+    width: var(--foot);
+    height: calc(var(--foot) - 2px);
+    background: var(--card-solid);
+  }
+
+  .dock .conditions .card-more::before {
+    left: -1px;
+    border-left: 1px solid var(--line-solid);
+  }
+
+  .dock .legend .card-more::after {
+    right: -1px;
+    border-right: 1px solid var(--line-solid);
+  }
+
+  /* The one curve, on the inner side, where the panel meets the capsule's top edge. */
+  .dock .conditions .card-more::after,
+  .dock .legend .card-more::before {
+    bottom: 0;
+    width: calc(var(--join) + 1px); /* over the panel's side border, where the curve takes over */
+    height: calc(var(--join) + 2px);
+    background: radial-gradient(circle at 0 0, transparent var(--join), var(--line-solid) var(--join),
+      var(--line-solid) calc(var(--join) + 1px), var(--card-solid) calc(var(--join) + 1px));
+  }
+
+  .dock .legend .card-more::before {
+    left: calc(-1 * var(--join) - 1px);
+  }
+
+  .dock .conditions .card-more::after {
+    right: calc(-1 * var(--join) - 1px);
+    transform: scaleX(-1);
+  }
+}
+
+/* The conditions: Kp, Bz and the wind side by side, clear of the +. */
+.conditions {
+  grid-area: conditions;
+}
+
+.conditions > .gauges {
+  grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr) minmax(0, 1fr);
+  margin: 0;
+  padding-right: 2.5rem;
+}
+
+.conditions .kp-meter {
+  margin-top: var(--s-2);
+}
+
+/* Kp's storm level shares the value's line, wrapping inside itself (the
+   "· forecast" while the slider is away from live) rather than below it. */
+.conditions .gauge-kp .gauge-sub {
+  flex: 1 1 0;
+  min-width: 0;
+  line-height: 1.7;
+}
+
+/* ---------- Legend ---------- */
+
+.legend {
+  grid-area: legend;
+}
+
+.legend .card-title,
+.legend .card-meta {
+  padding-right: 2.5rem;
+}
+
+/* 0.1 to 30 kR on a log scale, the same curve the shader's glow follows. */
+.legend-bar-seen {
+  height: 8px;
+  margin-top: var(--s-2);
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg,
+    rgba(71, 255, 160, 0.06) 0%,
+    rgba(71, 255, 160, 0.35) 40%,
+    var(--em-5577) 72%,
+    #d9ffe9 100%);
+}
+
+/* The ramp as the globe draws it: each colour on its threshold, blending into the
+   next, with a hairline gap at each threshold as the globe has a contour. */
+.legend-steps {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1px;
+  height: 8px;
+  margin-top: var(--s-2);
+}
+
+.legend-steps i:first-child { border-radius: 4px 0 0 4px; }
+.legend-steps i:last-child { border-radius: 0 4px 4px 0; }
+.legend-steps i:nth-child(1) { background: linear-gradient(90deg, var(--prob-1), var(--prob-2)); }
+.legend-steps i:nth-child(2) { background: linear-gradient(90deg, var(--prob-2), var(--prob-3)); }
+.legend-steps i:nth-child(3) { background: linear-gradient(90deg, var(--prob-3), var(--prob-4)); }
+.legend-steps i:nth-child(4) { background: linear-gradient(90deg, var(--prob-4), var(--prob-5)); }
+.legend-steps i:nth-child(5) { background: linear-gradient(90deg, var(--prob-5), var(--prob-6)); }
+.legend-steps i:nth-child(6) { background: var(--prob-6); }
+
+.legend-ticks {
+  position: relative;
+  height: 1.25rem;
+  margin-top: var(--s-1);
+  font-size: var(--fs-xs);
+  line-height: 1.25rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.legend-ticks span {
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
+}
+
+.legend-ticks .tick-eye {
+  transform: translateX(-1px);
+  padding-left: 0.35rem;
+  border-left: 1px solid var(--ink);
+  color: var(--ink);
+}
+
+.legend-ticks-steps {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 3px;
+}
+
+.legend-ticks-steps span {
+  position: static;
+}
+
+/* Shown whenever the globe is on the model rather than NOAA's live grid. */
+.legend-model {
+  margin: var(--s-3) 0 0;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-inset);
+  background: var(--inset);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+/* ---------- The time slider ---------- */
+
+/* The middle of the dock. The track reads like a day planner: times along the top
+   on dashed rules, Kp as a bar per 3-hour slot in the Kp chart's storm colours, and
+   the night at the chosen place shaded behind them. */
+.timeline {
+  grid-area: timeline;
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  height: var(--dock-h);
+  padding: var(--s-3) var(--s-4) var(--s-3) var(--s-3);
+}
+
+.tl-play {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  cursor: pointer;
+  transition: transform 160ms ease;
+}
+
+.tl-play:hover {
+  transform: scale(1.05);
+}
+
+.tl-play svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  display: block;
+}
+
+.tl-track {
+  position: relative;
+  flex: 1;
+  align-self: stretch;
+  min-width: 0;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.tl-track:focus-visible {
+  outline-offset: 4px;
+  border-radius: var(--r-inset);
+}
+
+.tl-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.tl-thumb {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  pointer-events: none;
+}
+
+.tl-thumb::after {
+  content: "";
+  position: absolute;
+  top: 1.375rem;
+  bottom: 0.125rem;
+  left: -1px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+
+.tl-thumb-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translateX(-50%);
+  height: 1.375rem;
+  padding: 0 0.55rem;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.375rem;
+  white-space: nowrap;
+  color: var(--on-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Live: a quiet status while the globe is live, a white button to come back when
+   it isn't. The width never changes, so the track doesn't jump. */
+.tl-live {
+  flex: none;
+  min-width: 4.75rem;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.tl-live::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.tl-live:hover {
+  background: var(--accent);
+  opacity: 0.9;
+}
+
+.tl-live[aria-disabled="true"] {
+  border-color: var(--rule-strong);
+  background: transparent;
+  color: var(--ink-soft);
+}
+
+.tl-live[aria-disabled="true"]:hover {
+  opacity: 1;
+}
+
+/* ?demo=storm: on screen for as long as the simulated grid is. */
+.demo-badge {
+  position: fixed;
+  z-index: 25;
+  left: 50%;
+  top: calc(var(--header-h) + env(safe-area-inset-top, 0px));
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  height: 2rem;
+  padding: 0 0.875rem;
+  border: 1px solid var(--g1);
+  border-radius: var(--r-pill);
+  background: var(--card-solid);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.demo-badge::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--g1);
+}
+
+/* ---------- Fallbacks ---------- */
+
+.fallback {
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(30rem, calc(100vw - 2 * var(--gutter)));
+  background: var(--card-solid);
+}
+
+.fallback .card-note {
+  margin-top: var(--s-2);
+}
+
+.no-webgl .fallback {
+  position: static;
+  transform: none;
+  width: 100%;
+  margin: var(--s-4) 0 0;
+}
+
+/* ---------- Narrow screens ---------- */
+
+@media (max-width: 720px) {
+  .view-index { display: none; }
+}
+
+/* Too narrow for the slider between the two cards: they sit side by side above it. */
+/* Up to tablet width the dock folds to one row of conditions beside the colour key,
+   over the slider, so the globe keeps the middle of the screen; each + opens the rest. */
+@media (max-width: 1240px) {
+  :root {
+    --dock-h: 3.875rem;
+    --dock-space: calc(var(--dock-h) + var(--s-2) + var(--timeline-h));
+  }
+
+  .timeline {
+    height: var(--timeline-h);
+    padding-top: var(--s-2);
+    padding-bottom: var(--s-2);
+  }
+
+  .dock {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "conditions legend"
+      "timeline   timeline";
+    gap: var(--s-2);
+  }
+
+  .dock .conditions,
+  .dock .legend {
+    justify-content: center;
+    padding: var(--s-2) var(--s-4);
+  }
+
+  .dock .dock-more {
+    top: 0.9375rem;
+    right: var(--s-3);
+  }
+
+  .dock .conditions > .gauges {
+    grid-template-columns: auto auto minmax(0, 1fr);
+    gap: var(--s-4);
+    padding-right: 2.25rem;
+  }
+
+  .dock .conditions > .gauges dt {
+    white-space: nowrap;
+  }
+
+  .dock .conditions > .gauges dd {
+    flex-wrap: nowrap;
+    margin-top: 0.125rem;
+    white-space: nowrap;
+  }
+
+  .dock .conditions > .gauges .gauge-value {
+    font-size: 1.25rem;
+  }
+
+  .dock .conditions > .gauges :is(.kp-meter, .gauge-sub) {
+    display: none;
+  }
+
+  /* The colour key, closed: its name and bar. Open, it stands over the dock. */
+  .dock .legend {
+    width: 11rem;
+    max-width: none;
+  }
+
+  .dock .legend:not(:has(.dock-more[aria-expanded="true"])) :is(.card-meta, .legend-ticks, .legend-model) {
+    display: none;
+  }
+
+  .dock .legend:has(.dock-more[aria-expanded="true"]) {
+    grid-area: auto; /* out of its cell, so it measures against the whole dock */
+    position: absolute;
+    background: var(--card-solid);
+    right: 0;
+    bottom: calc(var(--timeline-h) + var(--s-2));
+    width: min(20rem, 100%);
+    padding: var(--s-4) var(--pad);
+  }
+}
+
+/* A phone: one card to a row. */
+
+@media (max-width: 900px) {
+  /* One column: the charts stack and the view simply runs longer. */
+  .drivers {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas: "wind" "kp" "magie" "alerts";
+  }
+
+  .chart-wind .chart-body {
+    min-height: 26rem;
+  }
+
+  .chart-magie .chart-body {
+    min-height: 15rem;
+  }
+
+  .episode {
+    grid-template-columns: 5.75rem 3rem minmax(0, 1fr);
+    gap: var(--s-3);
+  }
+}
+
+/* Landscape up to small-laptop width: the capsule keeps its one row, and the place's
+   figures fold into its + so the verdict has the room. */
+@media (max-width: 1000px) and (orientation: landscape) {
+  .top-seg:not(:has(.more[aria-expanded="true"])) .top-figures {
+    display: none;
+  }
+
+  .top-time .times-src {
+    display: none;
+  }
+}
+
+/* Phones and portrait tablets: the globe is the page (aurora-globe.js frames it wider
+   than the screen), the capsule a card over it with the time on one row and the place
+   under it. */
+@media (max-width: 900px) and (orientation: portrait) {
+  /* The capsule as a card: the time on one row, the place under it. The place's
+     figures show on a tablet; on a phone the verdict stands for them, and its +
+     brings them back. */
+  :root {
+    --header-h: calc(var(--s-3) + 2.625rem + var(--s-2) + 8.5rem);
+  }
+
+  .site-header {
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "brand controls"
+      "time  time"
+      "place place";
+    row-gap: 0;
+  }
+
+  .brand {
+    margin-bottom: var(--s-2);
+  }
+
+  .header-controls {
+    margin-bottom: var(--s-2);
+  }
+
+  .topdock {
+    grid-row: 2 / 4;
+    border-radius: var(--r-card);
+  }
+
+  .top-time {
+    padding: var(--s-3) var(--s-4) var(--s-2);
+  }
+
+  .top-seg {
+    gap: var(--s-4);
+    padding: var(--s-3) var(--s-4);
+  }
+
+  .top-seg::before {
+    left: var(--s-4);
+    right: var(--s-4);
+    top: 0;
+    bottom: auto;
+    width: auto;
+    height: 1px;
+  }
+
+  .top-figures dd {
+    font-size: 1.5rem;
+  }
+
+  .top-more {
+    right: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  :root {
+    --pad: 1rem;
+    --r-card: 20px;
+    --fs-lg: 1.625rem;
+  }
+
+  .layer-toggle button {
+    padding: 0 0.7rem;
+  }
+
+  .layer-gain {
+    display: none;
+  }
+
+  /* Beside the switches there's no room for both on one line: the byline goes under
+     the wordmark, the pair no taller than the switches. */
+  .brand {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.125rem;
+  }
+
+  .brand-by {
+    font-size: var(--fs-xs);
+    line-height: 1.2;
+  }
+
+  .top-seg:not(:has(.more[aria-expanded="true"])) .top-figures,
+  .top-time .times-src {
+    display: none;
+  }
+
+
+  .tl-play {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .tl-live {
+    min-width: 0;
+    padding: 0 0.7rem;
+  }
+
+  /* Phones: the colour key closes to its bar alone, and the bar is the button. */
+  .dock .legend:not(:has(.dock-more[aria-expanded="true"])) {
+    width: 3.5rem;
+    padding: 0 var(--s-3);
+  }
+
+  .dock .legend:not(:has(.dock-more[aria-expanded="true"])) .card-title {
+    display: none;
+  }
+
+  .dock .legend:not(:has(.dock-more[aria-expanded="true"])) :is(.legend-bar-seen, .legend-steps) {
+    margin: 0;
+  }
+
+  .dock .legend .dock-more[aria-expanded="false"] {
+    inset: 0;
+    width: auto;
+    height: auto;
+    border: 0;
+    border-radius: inherit;
+    background: none;
+  }
+
+  .dock .legend .dock-more[aria-expanded="false"]::before,
+  .dock .legend .dock-more[aria-expanded="false"]::after {
+    display: none;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .more {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #aurora-gl,
+  .dock,
+  .more,
+  .more::before,
+  .more::after,
+  .tl-play {
+    transition: none;
+  }
+}

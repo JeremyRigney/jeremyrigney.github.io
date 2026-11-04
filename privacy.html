@@ -70,7 +70,7 @@
 					<div class="article reveal">
 						<p class="article-meta">
 							Last updated<br />
-							8 October 2026
+							4 November 2026
 						</p>
 						<div class="article-body">
 							<p>The short version: this is a personal website. There are no accounts, ads or newsletters. The contact form uses Formspree to send your message to my inbox. Google Analytics cookies are used only if you say yes; submitting the contact form may also involve a spam check on Formspree&rsquo;s website.</p>
@@ -97,6 +97,7 @@
 								<li><b><code>jr-consent</code></b> (browser storage, not sent anywhere): remembers your yes or no so you are not asked on every page. Strictly necessary. You are asked again after 6 months.</li>
 								<li><b><code>jr-theme</code></b> (browser storage, not sent anywhere): only if you switch between the light and dark themes. It remembers which one you picked, so every page opens in it. Until you pick, the site follows your device&rsquo;s setting and stores nothing.</li>
 								<li><b><code>eclipse2026.location</code></b> (browser storage, not sent anywhere): only if you use &ldquo;Use my location&rdquo; on the <a href="eclipse">Eclipse</a> page. Your coordinates stay in your browser and are never sent to me or anyone else.</li>
+								<li><b><code>aurora.location</code></b> (browser storage): only if you use &ldquo;Use my location&rdquo; on the Aurora page. Your coordinates stay in your browser. The one thing sent anywhere is that place rounded to half a degree (about 50&nbsp;km), to Open-Meteo for the cloud forecast; see below.</li>
 							</ul>
 
 							<h2>Changing your mind</h2>
@@ -105,6 +106,7 @@
 							<h2>Hosting and other services</h2>
 							<p>The site is hosted on GitHub Pages. Like any web server, GitHub receives your IP address when you load a page and may keep it in its logs for security. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub&rsquo;s privacy statement</a>.</p>
 							<p>Some pages load fonts, scripts, map tiles or live data from other services, such as Google Fonts, cdnjs, unpkg, CARTO and OpenStreetMap, and public science and transport data feeds. Those services receive your IP address because your browser has to ask them for the files. This site doesn&rsquo;t use any of them to set cookies or track you. These requests are made because the site has a legitimate interest (Article 6(1)(f) GDPR) in working and looking right.</p>
+							<p>The Aurora page asks <a href="https://open-meteo.com/en/terms" target="_blank" rel="noopener">Open-Meteo</a> for the cloud forecast for the place it shows. Open-Meteo receives that place rounded to half a degree, about 50&nbsp;km, and your IP address. It never receives your exact location. Until you use &ldquo;Use my location&rdquo;, the place is Malin Head.</p>
 
 							<h2>Your rights</h2>
 							<p>Under the GDPR you have the right to access your personal data, and to have it corrected, erased or restricted. You can also object to its use and ask for a copy you can take elsewhere. Use the <a href="/#contact">contact form</a> to exercise any of these rights. Because analytics data is pseudonymous, I may not be able to find the records that belong to you.</p>

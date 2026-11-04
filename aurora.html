@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Aurora — the live aurora, on a globe</title>
+  <!-- Draft: kept out of search and off the nav until it is signed off. -->
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="canonical" href="https://jeremy.ie/aurora"/>
+  <meta property="og:site_name" content="Jeremy Rigney"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://jeremy.ie/aurora"/>
+  <meta property="og:title" content="Aurora — the live aurora, on a globe"/>
+  <meta property="og:description" content="Tonight's aurora as NOAA's OVATION model sees it, drawn in its own colours over a globe, with the solar wind, Kp and Ireland's magnetometers alongside."/>
+  <meta property="og:image" content="https://jeremy.ie/images/derived/og-default-1200x630.jpg"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta property="og:image:alt" content="Jeremy Rigney, Senior Data Scientist and astrophysicist"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="description" content="Tonight's aurora as NOAA's OVATION model sees it, drawn in its own colours over a globe, with the solar wind, Kp and Ireland's magnetometers alongside." />
+  <link rel="icon" href="assets/favicon-aurora.svg" type="image/svg+xml" />
+  <meta name="theme-color" content="#131317" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/aurora.css?v=20261104za" />
+
+  <!-- Cookie consent: sets the Consent Mode defaults, so it must come before the Google tag -->
+  <link rel="stylesheet" href="assets/css/consent.css?v=20261008" />
+  <script src="assets/js/consent.js?v=20261001b"></script>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-6G0WFV4TS8"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-6G0WFV4TS8');
+  </script>
+</head>
+<body>
+  <!--
+    The globe is one fixed stage behind three scrolling views. Scroll position drives
+    the camera (aurora-globe.js): 01 looks down on the north with Ireland in frame, 02
+    tilts to the south, 03 dims the globe behind the charts. A sideways drag spins the
+    globe; vertical drags still scroll.
+
+    Data comes straight from NOAA SWPC, which allows cross-origin reads, and from
+    MagIE's magnetometers through the site's Cloud Run relay, because MagIE does not
+    (aurora-data.js). Cloud is Open-Meteo's. Everything the readouts say is worked out
+    in the browser; a location from "Use my location" leaves it only rounded to half a
+    degree, for the cloud.
+
+    Everything over the globe is a card. A round + beside a card's title opens what the
+    card doesn't need to say at first (aurora-hud.js).
+  -->
+  <div class="stage" id="stage">
+    <canvas id="aurora-gl" role="img" aria-label="A globe with the current aurora drawn over it from NOAA's OVATION model. Scroll to move from the northern to the southern hemisphere; drag sideways to spin it."></canvas>
+    <canvas id="aurora-overlay" aria-hidden="true"></canvas>
+  </div>
+
+  <!--
+    The top capsule, mirroring the dock at the foot: the time shown, the place (or in
+    the south, the southern oval), and the switches. The capsule is the grid's own
+    background (.topdock), so the parts can rearrange by width without moving in the
+    DOM. Each + opens its card below the capsule, as the dock's open above it.
+  -->
+  <header class="site-header">
+    <div class="brand">
+      <a class="logo" href="#north">Aurora</a>
+      <a class="brand-by" href="https://jeremy.ie">A page by <b>Jeremy</b></a>
+    </div>
+    <div class="topdock" aria-hidden="true"></div>
+
+    <section class="top-time" aria-label="Time shown">
+      <p class="view-times" data-bind="times"><span class="stale-note">Waiting for NOAA&hellip;</span></p>
+      <p class="cloud" data-bind="cloud" role="img" hidden></p>
+    </section>
+
+    <section class="top-seg top-place" id="place-north" aria-labelledby="place-title">
+      <div class="top-seg-head">
+        <h2 class="top-label" id="place-title" data-bind="place-name">Malin Head, Ireland</h2>
+        <p class="place-verdict" data-bind="verdict" aria-live="polite">&nbsp;</p>
+      </div>
+      <button type="button" class="more" aria-expanded="false" aria-controls="place-more"><span class="visually-hidden">The place: more, and how these are worked out</span></button>
+      <div class="card-more top-more" id="place-more" hidden>
+        <dl class="top-figures">
+          <div><dt>Overhead</dt><dd><span data-bind="overhead">&ndash;</span><span class="unit">%</span></dd></div>
+          <div><dt>On the horizon</dt><dd><span data-bind="horizon">&ndash;</span><span class="unit">%</span><span class="bearing" data-bind="bearing"></span></dd></div>
+          <div><dt>Sky</dt><dd class="sky" data-bind="sky">&ndash;</dd></div>
+        </dl>
+        <p class="card-meta" data-bind="place-coords">55.38&deg;N 7.37&deg;W</p>
+        <p class="card-note"><b>Overhead</b> is NOAA&rsquo;s chance of aurora straight up, given a clear, dark sky.</p>
+        <p class="card-note"><b>On the horizon</b> is the best chance anywhere in sight, out to about 1,000&nbsp;km, wherever the aurora&rsquo;s upper edge would stand clear of the horizon. At low Kp the model&rsquo;s faint edge reaches further than the eye can follow, so the verdict also waits for Kp.</p>
+        <p class="card-note" data-bind="kp-rule"></p>
+        <p class="card-note"><b>Sky</b> is how dark it is here at the time shown. <b>Cloud</b>, beside the time, is the total cloud cover around here then, from Open-Meteo, which is sent this place rounded to half a degree.</p>
+        <div class="place-actions">
+          <button type="button" class="chip" data-action="locate">Use my location</button>
+          <button type="button" class="chip chip-quiet" data-action="reset-place" hidden>Back to Ireland</button>
+          <p class="place-status" data-bind="locate-status" role="status"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="top-seg top-oval" aria-labelledby="oval-title">
+      <div class="top-seg-head">
+        <h2 class="top-label" id="oval-title">The southern oval</h2>
+        <p class="place-verdict">Around the south magnetic pole</p>
+      </div>
+      <dl class="top-figures">
+        <div><dt>Power</dt><dd><span data-bind="hp-south">&ndash;</span><span class="unit">GW</span></dd></div>
+        <div><dt>Peak chance</dt><dd><span data-bind="peak-south">&ndash;</span><span class="unit">%</span></dd></div>
+        <div><dt>Reaches</dt><dd><span data-bind="edge-south">&ndash;</span><span class="unit">&deg;S</span></dd></div>
+      </dl>
+      <button type="button" class="more" aria-expanded="false" aria-controls="oval-more"><span class="visually-hidden">Where the southern aurora is seen</span></button>
+      <div class="card-more top-more" id="oval-more" hidden>
+        <p class="card-note">The southern oval rings the south magnetic pole, off the Antarctic coast below Australia, so it is Tasmania, the south of New Zealand and Patagonia that see it first when it grows.</p>
+      </div>
+    </section>
+
+    <div class="header-controls">
+      <nav class="seg view-index" aria-label="Views">
+        <a href="#north" data-view="0">North</a>
+        <a href="#south" data-view="1">South</a>
+        <a href="#drivers" data-view="2">Drivers</a>
+      </nav>
+      <div class="seg layer-toggle" id="layer-toggle" role="radiogroup" aria-label="What the globe shows">
+        <button type="button" role="radio" aria-checked="true" data-layer="seen">Seen <span class="layer-gain" id="layer-gain">&times;20,000</span></button>
+        <button type="button" role="radio" aria-checked="false" data-layer="probability">Probability</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="views" id="views">
+    <section class="view view-north" id="north" aria-labelledby="north-title">
+      <h1 class="visually-hidden" id="north-title">Aurora Borealis</h1>
+    </section>
+
+    <section class="view view-south" id="south" aria-labelledby="south-title">
+      <h2 class="visually-hidden" id="south-title">Aurora Australis</h2>
+    </section>
+
+    <section class="view view-drivers" id="drivers" aria-labelledby="drivers-title">
+      <h2 class="visually-hidden" id="drivers-title">What drives the aurora</h2>
+
+      <div class="drivers">
+        <figure class="card chart chart-wind" id="chart-wind">
+          <figcaption class="card-head">
+            <span class="card-heading"><span class="card-title">Solar wind at L1</span><span class="card-meta">Last 24 hours, by the half hour</span></span>
+            <span class="card-actions"><button type="button" class="chip chart-table-toggle" aria-pressed="false">Table</button><button type="button" class="more" aria-expanded="false" aria-controls="wind-more"><span class="visually-hidden">More on the solar wind</span></button></span>
+          </figcaption>
+          <div class="chart-body"></div>
+          <div class="card-more" id="wind-more" hidden>
+            <p class="card-note">What passes L1 reaches Earth 30&ndash;60 minutes later. Each column is a half hour&rsquo;s median. Bz stands from zero, and south (negative) is what lets the wind&rsquo;s energy in; speed and density stand from the past year&rsquo;s normal. Orange marks a half hour 3&sigma; to 5&sigma; beyond the past year&rsquo;s background.</p>
+            <p class="extra-title">Now, against the past year</p>
+            <div class="chart-extra" data-extra="wind-gauges" style="height:15.5rem"></div>
+            <p class="extra-title">Heat strips</p>
+            <div class="chart-extra" data-extra="wind-heat" style="height:11rem"></div>
+          </div>
+        </figure>
+        <figure class="card chart chart-kp" id="chart-kp">
+          <figcaption class="card-head">
+            <span class="card-heading"><span class="card-title">Planetary Kp</span><span class="card-meta">Past week and NOAA&rsquo;s next 3 days</span></span>
+            <span class="card-actions"><button type="button" class="chip chart-table-toggle" aria-pressed="false">Table</button><button type="button" class="more" aria-expanded="false" aria-controls="kp-more"><span class="visually-hidden">More on Kp</span></button></span>
+          </figcaption>
+          <div class="chart-body"></div>
+          <div class="card-more" id="kp-more" hidden>
+            <p class="card-note">A column for every 3 hours, over NOAA&rsquo;s storm bands; outlined columns are NOAA&rsquo;s forecast. From Ireland, aurora usually shows low in the north from G1 (Kp&nbsp;5).</p>
+            <p class="extra-title">Now</p>
+            <div class="chart-extra" data-extra="kp-gauge" style="height:6.5rem"></div>
+          </div>
+        </figure>
+        <figure class="card chart chart-magie" id="chart-magie">
+          <figcaption class="card-head">
+            <span class="card-heading"><span class="card-title">Ireland&rsquo;s magnetometers</span><span class="card-meta">Last 24 hours, from MagIE</span></span>
+            <span class="card-actions"><button type="button" class="chip chart-table-toggle" aria-pressed="false">Table</button><button type="button" class="more" aria-expanded="false" aria-controls="magie-more"><span class="visually-hidden">More on the magnetometers</span></button></span>
+          </figcaption>
+          <div class="chart-body"></div>
+          <div class="card-more" id="magie-more" hidden>
+            <p class="card-note">How far the field at Dunsink and Valentia strays from a quiet day: a sudden swing marks a substorm, when the aurora to the north brightens. K is each station&rsquo;s local K for the 3 hours now running. Orange marks a half hour 3&sigma; to 5&sigma; beyond the past year&rsquo;s background.</p>
+            <p class="extra-title">Now, against the past year</p>
+            <div class="chart-extra" data-extra="magie-gauges" style="height:11rem"></div>
+            <p class="extra-title">Heat strips</p>
+            <div class="chart-extra" data-extra="magie-heat" style="height:8rem"></div>
+          </div>
+        </figure>
+        <section class="card alerts" id="alerts" aria-labelledby="alerts-title">
+          <div class="card-head">
+            <div class="card-heading"><h3 class="card-title" id="alerts-title">Geomagnetic alerts</h3><p class="card-meta">From NOAA SWPC, the past week</p></div>
+            <button type="button" class="more" aria-expanded="false" aria-controls="alerts-more"><span class="visually-hidden">SWPC&rsquo;s messages</span></button>
+          </div>
+          <ol class="episodes" data-bind="alerts"></ol>
+          <p class="alerts-now" data-bind="alerts-now"></p>
+          <div class="card-more" id="alerts-more" hidden>
+            <ol class="alerts-full" data-bind="alerts-full"></ol>
+          </div>
+        </section>
+      </div>
+
+      <footer class="foot">
+        <section class="card about" aria-labelledby="about-title">
+          <div class="card-head">
+            <div class="card-heading"><h3 class="card-title" id="about-title">About the data</h3><p class="card-meta">NOAA SWPC, the L1 monitors and <a href="https://www.magie.ie" target="_blank" rel="noopener">MagIE</a>. Coastlines from Natural Earth, heights from NOAA&rsquo;s ETOPO1, night lights from NASA&rsquo;s Black Marble 2016. Cloud from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> (CC&nbsp;BY&nbsp;4.0).</p></div>
+            <button type="button" class="more" aria-expanded="false" aria-controls="about-more"><span class="visually-hidden">More about the data and the model</span></button>
+          </div>
+          <div class="card-more" id="about-more" hidden>
+            <p class="card-note">Aurora from NOAA SWPC&rsquo;s OVATION model, 30&ndash;90 minutes ahead. Solar wind from the L1 monitors; Kp, scales and alerts from SWPC. Magnetometers from <a href="https://www.magie.ie" target="_blank" rel="noopener">MagIE</a> (DIAS, Met &Eacute;ireann and Geological Survey Ireland).</p>
+            <p class="card-note">Away from live, the time slider shows OVATION-Prime 2010 driven by NOAA&rsquo;s observed and forecast Kp, as MagIE&rsquo;s forecast animation is. Each Kp stands in for the median solar-wind coupling seen at that Kp in NASA&rsquo;s OMNI record, 2012&ndash;2025, and the model is matched to NOAA&rsquo;s hemispheric power near the present. It runs small for storms above about Kp&nbsp;6, and a Kp forecast more than a day out is itself uncertain. Magnetic coordinates are AACGM-v2.</p>
+          </div>
+        </section>
+        <p class="byline"><a href="/#contact">Contact</a> &middot; <a href="privacy">Privacy</a> &middot; <a href="#" data-consent-open>Cookies</a></p>
+      </footer>
+    </section>
+  </main>
+
+
+  <!--
+    The dock along the foot of views 01 and 02: the conditions, which hold for both
+    hemispheres, the time slider between them and the legend. Each card is the
+    timeline's height and opens upward from its round +.
+  -->
+  <div class="dock" id="dock">
+    <section class="card conditions" aria-labelledby="conditions-title">
+      <h2 class="visually-hidden" id="conditions-title">Conditions</h2>
+      <button type="button" class="more dock-more" aria-expanded="false" aria-controls="conditions-more"><span class="visually-hidden">More on the conditions</span></button>
+      <dl class="gauges">
+        <div class="gauge gauge-kp">
+          <dt>Kp</dt>
+          <dd>
+            <span class="gauge-value" data-bind="kp">&ndash;</span>
+            <span class="gauge-sub" data-bind="kp-scale"></span>
+            <span class="kp-meter" data-bind="kp-meter" aria-hidden="true"></span>
+          </dd>
+        </div>
+        <div class="gauge"><dt><abbr title="The north–south part of the solar wind's magnetic field (GSM). Southward, negative, opens the door to aurora.">Bz</abbr></dt><dd><span class="gauge-value" data-bind="bz">&ndash;</span><span class="gauge-unit">nT</span></dd></div>
+        <div class="gauge"><dt>Solar wind</dt><dd><span class="gauge-value" data-bind="speed">&ndash;</span><span class="gauge-unit">km/s</span></dd></div>
+      </dl>
+      <div class="card-more" id="conditions-more" hidden>
+        <dl class="gauges">
+          <div class="gauge"><dt>Power, north</dt><dd><span class="gauge-value" data-bind="hp-north">&ndash;</span><span class="gauge-unit">GW</span></dd></div>
+        </dl>
+        <p class="card-note"><b>Kp</b> runs from 0 to 9: how disturbed the Earth&rsquo;s field is. From Ireland, aurora usually shows low in the north from about Kp&nbsp;5.</p>
+        <p class="card-note"><b>Bz</b> is the north&ndash;south part of the solar wind&rsquo;s magnetic field. While it points south (negative), the wind&rsquo;s energy gets in and the aurora grows.</p>
+        <p class="card-note"><b>Power</b> is NOAA&rsquo;s estimate of the energy going into the northern aurora.</p>
+      </div>
+    </section>
+
+    <!--
+      The time slider (aurora-timeline.js): 24 hours back to 3 days ahead. Live is NOAA's
+      own grid; every other time is OVATION-Prime driven by Kp (aurora-model.js), and the
+      times line under each view title says so whenever it is showing.
+    -->
+    <div class="card timeline" id="timeline">
+      <button type="button" class="tl-play" aria-pressed="false" aria-label="Play through time"></button>
+      <div class="tl-track" role="slider" tabindex="0" aria-label="Time shown on the globe" aria-valuemin="-24" aria-valuemax="72" aria-valuenow="0" aria-valuetext="Live">
+        <canvas class="tl-canvas" aria-hidden="true"></canvas>
+        <div class="tl-thumb" aria-hidden="true"><span class="tl-thumb-label">Now</span></div>
+      </div>
+      <button type="button" class="chip tl-live" aria-disabled="true">Live</button>
+    </div>
+
+    <aside class="card legend" id="legend" aria-label="Legend">
+      <button type="button" class="more dock-more" aria-expanded="false" aria-controls="legend-note-seen legend-note-prob"><span class="visually-hidden">About the colours</span></button>
+      <div class="legend-seen">
+        <p class="card-title">Brightness</p>
+        <p class="card-meta">kR at 557.7&nbsp;nm, drawn &times;<span data-bind="gain-text">20,000</span></p>
+        <div class="legend-bar legend-bar-seen" aria-hidden="true"></div>
+        <div class="legend-ticks" aria-hidden="true"><span style="left:0">0.1</span><span class="tick-eye" style="left:40%">1 &middot; naked eye</span><span style="left:80%">10</span></div>
+        <p class="card-more card-note" id="legend-note-seen" hidden>The model&rsquo;s brightness in its own colours, drawn <span data-bind="gain-text">20,000</span>&times; brighter than the real sky, taking a screen&rsquo;s white as 200&nbsp;nits. Aurora too faint for the naked eye isn&rsquo;t drawn. Heights drawn <span data-bind="lift-text">1.5</span>&times;.</p>
+      </div>
+      <div class="legend-prob" hidden>
+        <p class="card-title">Chance overhead</p>
+        <p class="card-meta">Percent, from NOAA OVATION</p>
+        <div class="legend-steps" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="legend-ticks legend-ticks-steps" aria-hidden="true"><span>5</span><span>10</span><span>30</span><span>50</span><span>70</span><span>90</span></div>
+        <p class="card-more card-note" id="legend-note-prob" hidden>The chance that aurora is visible straight up, assuming a clear, dark sky.</p>
+      </div>
+      <p class="legend-model" hidden>Modelled for this time: OVATION-Prime driven by Kp, not NOAA&rsquo;s live grid.</p>
+    </aside>
+  </div>
+
+  <div class="card fallback" id="aurora-fallback" hidden>
+    <p class="card-title">The globe needs WebGL2.</p>
+    <p class="card-note">Your browser or device doesn&rsquo;t offer it, or has it turned off. The readouts and charts on this page still work.</p>
+  </div>
+  <noscript>
+    <div class="card fallback">
+      <p class="card-title">This page is drawn and kept live with JavaScript.</p>
+      <p class="card-note">With it turned off there is nothing to show. NOAA&rsquo;s own <a href="https://www.swpc.noaa.gov/products/aurora-30-minute-forecast">30-minute aurora forecast</a> and <a href="https://www.magie.ie">MagIE</a> carry the same data.</p>
+    </div>
+  </noscript>
+
+  <script src="assets/js/aurora-geo.js?v=20261028b"></script>
+  <script src="assets/js/aurora-globe.js?v=20261104m"></script>
+  <script src="assets/js/aurora-data.js?v=20261104a"></script>
+  <script src="assets/js/aurora-model.js?v=20261028d"></script>
+  <script src="assets/js/aurora-hud.js?v=20261104x"></script>
+  <script src="assets/js/aurora-charts.js?v=20261103e"></script>
+  <script src="assets/js/aurora-timeline.js?v=20261103a"></script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="An aurora over the curve of the Earth">
+  <!--
+    The /aurora tab icon: the page's polar-night ground, the limb of the globe rising
+    from the bottom as on the opening view, and a band of 557.7 nm green over it. Same
+    rx as the other page icons so they sit together in a bookmark list. At 16px the
+    band only has to read as a green glow over a pale arc, so it is one soft stroke
+    rather than curtains.
+  -->
+  <defs>
+    <linearGradient id="fav-glow" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#47ffa0" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#47ffa0" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="#05080d" />
+  <path d="M 4 19.5 C 9 12.5, 23 12.5, 28 19.5 L 28 13 C 23 6.5, 9 6.5, 4 13 Z" fill="url(#fav-glow)" />
+  <path d="M -2 32 C 4 19, 28 19, 34 32" fill="#0b121b" stroke="#e8f0f3" stroke-opacity="0.7" stroke-width="1.4" />
+</svg>

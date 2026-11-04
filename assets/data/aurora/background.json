@@ -1,0 +1,52 @@
+{
+ "built": "2026-11-03",
+ "rule": "half-hour medians; level and sigma by iterative 3-sigma clipping about the median",
+ "sources": {
+  "solar wind": "NASA OMNI 5-minute (HRO), bow-shock shifted",
+  "dH": "MagIE (DIAS), through magie.py's FMI quiet-day fit"
+ },
+ "series": {
+  "bz": {
+   "level": -0.08,
+   "sigma": 2.93,
+   "n": 16532,
+   "clipped": 0.03,
+   "from": "2025-10-15",
+   "to": "2026-10-15"
+  },
+  "speed": {
+   "level": 444.35,
+   "sigma": 102.09,
+   "n": 16381,
+   "clipped": 0.013,
+   "from": "2025-10-15",
+   "to": "2026-10-15"
+  },
+  "density": {
+   "level": 4.02,
+   "sigma": 2.25,
+   "n": 16381,
+   "clipped": 0.105,
+   "from": "2025-10-15",
+   "to": "2026-10-15"
+  },
+  "dun": {
+   "level": -0.03,
+   "sigma": 3.29,
+   "n": 15145,
+   "clipped": 0.082,
+   "from": "2025-11-01",
+   "to": "2026-10-31",
+   "days": 331
+  },
+  "val": {
+   "level": 0.03,
+   "sigma": 2.92,
+   "n": 16601,
+   "clipped": 0.092,
+   "from": "2025-11-01",
+   "to": "2026-10-31",
+   "days": 361
+  }
+ }
+}
