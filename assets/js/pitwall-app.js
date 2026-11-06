@@ -30,11 +30,15 @@
   var feed = null;
   var demo = null;
 
+  /** Out of sight for this long, the page gives up its stream and polls slowly. */
+  var HIDDEN_AFTER = 60000;
+
   var settings = {
     view: VIEWS.indexOf(params.get('view')) >= 0 ? params.get('view') : UI.load('view', 'map'),
     gapMode: UI.load('gap', 'LEADER'),
     followed: new Set(followedAtStart()),
-    picked: null
+    picked: null,
+    keepAwake: UI.load('awake', true) !== false
   };
   if (VIEWS.indexOf(settings.view) < 0) { settings.view = 'map'; }
   if (GAP_MODES.indexOf(settings.gapMode) < 0) { settings.gapMode = 'LEADER'; }
@@ -106,6 +110,15 @@
     }
   }
 
+  /** How live data is reaching the page, for the badge's panel; nothing between sessions. */
+  function feedLine(state) {
+    if (demo || state.status !== 'LIVE') { return ''; }
+    if (state.transport === 'STREAM') {
+      return 'Feed: live stream' + (state.carRate != null ? ' · ' + state.carRate.toFixed(1) + ' updates/s' : '');
+    }
+    return 'Feed: polling (stream unavailable)';
+  }
+
   function standbyNote(state) {
     if (demo) { return 'A captured frame'; }
     if (state.status === 'CONNECTING') { return state.failing ? 'Can’t reach the timing feed — retrying' : 'Connecting to the timing feed'; }
@@ -153,6 +166,11 @@
     });
     P.Tower.render(frame, settings);
     ticker(frame);
+    UI.text('delayValue', now.state.delaySeconds + 's');
+    var range = document.getElementById('delay-range');
+    if (document.activeElement !== range && +range.value !== now.state.delaySeconds) { range.value = now.state.delaySeconds; }
+    UI.text('feedLine', feedLine(now.state));
+    syncWake();
     if (!frame && now.state.reason) { UI.text('towerEmpty', 'No session running. The running order fills in by itself when one starts.'); }
     document.title = frame ? F.flagWord(frame.flag ? frame.flag.state : 'GREEN') + ' · Pitwall' : 'Pitwall — live F1 timing';
   }
@@ -186,8 +204,91 @@
     }
   });
 
+  // ---------- The delay ----------
+
+  function setDelay(seconds) {
+    if (!feed) { return; }
+    feed.setDelay(seconds);
+    UI.save('delay', feed.state.delaySeconds);
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.step'), function (button) {
+    button.addEventListener('click', function () {
+      if (feed) { setDelay(feed.state.delaySeconds + Number(button.getAttribute('data-step'))); }
+    });
+  });
+
+  document.getElementById('delay-range').addEventListener('input', function (e) {
+    setDelay(Number(e.target.value));
+  });
+
+  // ---------- Keeping the screen on ----------
+
+  /*
+   * A wall propped up beside the TV shouldn't go to sleep mid-race: the screen stays on
+   * while a session is live (as the app keeps it on), if the setting allows. The browser
+   * lets the lock go whenever the page is out of sight, so it is asked for again on return.
+   */
+  var wake = { sentinel: null, pending: false };
+
+  function syncWake() {
+    var want = settings.keepAwake && !!feed && feed.state.status === 'LIVE' && document.visibilityState === 'visible';
+    if (want && !wake.sentinel && !wake.pending && navigator.wakeLock) {
+      wake.pending = true;
+      navigator.wakeLock.request('screen').then(function (sentinel) {
+        wake.sentinel = sentinel;
+        sentinel.addEventListener('release', function () { wake.sentinel = null; });
+      }).catch(function () {
+        // Refused (battery saver, an iframe): the screen keeps its own timeout.
+      }).then(function () {
+        wake.pending = false;
+        if (wake.sentinel && !settings.keepAwake) { syncWake(); }
+      });
+    } else if (!want && wake.sentinel) {
+      wake.sentinel.release();
+      wake.sentinel = null;
+    }
+  }
+
+  var awake = document.getElementById('keep-awake');
+  function drawAwake() {
+    awake.setAttribute('aria-pressed', settings.keepAwake ? 'true' : 'false');
+    awake.textContent = settings.keepAwake ? 'On' : 'Off';
+  }
+  drawAwake();
+  awake.addEventListener('click', function () {
+    settings.keepAwake = !settings.keepAwake;
+    UI.save('awake', settings.keepAwake);
+    drawAwake();
+    syncWake();
+  });
+
+  // ---------- Full screen ----------
+
+  var full = document.getElementById('fullscreen');
+  function toggleFullscreen() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      document.documentElement.requestFullscreen().catch(function () {});
+    }
+  }
+  if (document.fullscreenEnabled) {
+    full.hidden = false;
+    full.addEventListener('click', toggleFullscreen);
+    document.addEventListener('fullscreenchange', function () {
+      var on = !!document.fullscreenElement;
+      full.setAttribute('aria-pressed', on ? 'true' : 'false');
+      full.textContent = on ? 'Exit full screen' : 'Full screen';
+    });
+  }
+
   document.addEventListener('keydown', function (e) {
     if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest('input, select, textarea, [role="slider"]')) { return; }
+    if (e.key === 'F' && e.shiftKey && document.fullscreenEnabled) {
+      toggleFullscreen();
+      return;
+    }
     var view = { m: 'map', w: 'wall', f: 'feed' }[e.key];
     if (view && !e.shiftKey && !e.target.closest('.row')) {
       views.pick(view);
@@ -210,13 +311,31 @@
   }
 
   function startLive() {
-    feed = new P.LiveFeed({ fetch: P.Net.live, initialDelay: UI.load('delay', 0) });
+    feed = new P.LiveFeed({
+      fetch: P.Net.live,
+      // ?stream=off: polling alone, as the old wall did — for comparing the two.
+      stream: params.get('stream') === 'off' ? null : P.Net.openStream,
+      initialDelay: UI.load('delay', 0)
+    });
     feed.onState(draw);
     draw();
     feed.run();
-    // Back on the page after a while away: poll now rather than at the next tick.
+
+    /*
+     * Out of sight for a minute, the page gives up its stream — one of the server's few,
+     * which the app and other tabs need — and polls every 30 s. Back in sight, it polls at
+     * once and tries the stream again.
+     */
+    var hiddenTimer = null;
     document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'visible') { feed.wake(); }
+      if (document.visibilityState === 'hidden') {
+        hiddenTimer = setTimeout(function () { feed.setBackground(true); }, HIDDEN_AFTER);
+      } else {
+        clearTimeout(hiddenTimer);
+        feed.setBackground(false);
+        feed.wake();
+      }
+      syncWake();
     });
   }
 

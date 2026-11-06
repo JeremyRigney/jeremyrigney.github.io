@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261106a" />
+  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261106b" />
 </head>
 <body>
   <!--
@@ -45,6 +45,19 @@
             <button type="button" role="radio" data-view="wall" aria-checked="false" tabindex="-1">Wall</button>
             <button type="button" role="radio" data-view="feed" aria-checked="false" tabindex="-1">Feed</button>
           </div>
+          <button type="button" class="chip" id="fullscreen" aria-pressed="false" hidden>Full screen</button>
+          <button type="button" class="more" aria-controls="settings-panel" aria-expanded="false" aria-label="Settings"></button>
+          <div class="top-more" id="settings-panel" hidden>
+            <p class="panel-title">Settings</p>
+            <div class="setting">
+              <div>
+                <p class="setting-name">Keep the screen on</p>
+                <p class="panel-note">While a session is live, so a wall beside the TV doesn’t go to sleep mid-race.</p>
+              </div>
+              <button type="button" class="chip" id="keep-awake" aria-pressed="true">On</button>
+            </div>
+            <p class="panel-note panel-foot">Leave this tab in sight during a session. Out of sight for a minute, it gives up the live stream and checks for news every 30 seconds.</p>
+          </div>
         </div>
       </header>
 
@@ -69,6 +82,20 @@
         <div class="cap cap-badge" data-tone="quiet">
           <span class="tag tag-state" data-bind="badgeTag">Live</span>
           <p class="badge-clock"><b data-bind="badgeClock"></b><span class="badge-delay" data-bind="badgeDelay"></span></p>
+          <button type="button" class="more" aria-controls="badge-panel" aria-expanded="false" aria-label="Delay and feed"></button>
+          <div class="top-more" id="badge-panel" hidden>
+            <p class="panel-title">Delay</p>
+            <p class="panel-note">The timing feed runs ahead of the broadcast. Set how many seconds your stream is behind and the whole wall waits to match.</p>
+            <div class="delay">
+              <button type="button" class="step" data-step="-5" aria-label="5 seconds less">−5</button>
+              <button type="button" class="step" data-step="-1" aria-label="1 second less">−1</button>
+              <output class="delay-value" data-bind="delayValue" for="delay-range">0s</output>
+              <button type="button" class="step" data-step="1" aria-label="1 second more">+1</button>
+              <button type="button" class="step" data-step="5" aria-label="5 seconds more">+5</button>
+            </div>
+            <input type="range" class="delay-range" id="delay-range" min="0" max="60" step="1" value="0" aria-label="Delay in seconds" />
+            <p class="panel-feed" data-bind="feedLine"></p>
+          </div>
         </div>
       </section>
 
@@ -106,15 +133,15 @@
 
   <span class="tag tag-demo" id="demo" hidden>Demo frame — not live</span>
 
-  <script src="assets/js/pitwall-format.js?v=20261106a"></script>
-  <script src="assets/js/pitwall-parse.js?v=20261106a"></script>
-  <script src="assets/js/pitwall-season.js?v=20261106a"></script>
-  <script src="assets/js/pitwall-sse.js?v=20261106a"></script>
-  <script src="assets/js/pitwall-live.js?v=20261106a"></script>
-  <script src="assets/js/pitwall-ui.js?v=20261106a"></script>
-  <script src="assets/js/pitwall-net.js?v=20261106a"></script>
-  <script src="assets/js/pitwall-header.js?v=20261106a"></script>
-  <script src="assets/js/pitwall-tower.js?v=20261106a"></script>
-  <script src="assets/js/pitwall-app.js?v=20261106a"></script>
+  <script src="assets/js/pitwall-format.js?v=20261106b"></script>
+  <script src="assets/js/pitwall-parse.js?v=20261106b"></script>
+  <script src="assets/js/pitwall-season.js?v=20261106b"></script>
+  <script src="assets/js/pitwall-sse.js?v=20261106b"></script>
+  <script src="assets/js/pitwall-live.js?v=20261106b"></script>
+  <script src="assets/js/pitwall-ui.js?v=20261106b"></script>
+  <script src="assets/js/pitwall-net.js?v=20261106b"></script>
+  <script src="assets/js/pitwall-header.js?v=20261106b"></script>
+  <script src="assets/js/pitwall-tower.js?v=20261106b"></script>
+  <script src="assets/js/pitwall-app.js?v=20261106b"></script>
 </body>
 </html>

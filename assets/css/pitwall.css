@@ -314,6 +314,199 @@ button {
   color: var(--on-selected);
 }
 
+/* The round +. Turns to an x, inverted, while open. */
+.more {
+  position: relative;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--rule-strong);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.more::before,
+.more::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 1.5px;
+  margin: -0.75px 0 0 -6px;
+  border-radius: 1px;
+  background: currentColor;
+  transition: transform 220ms var(--ease);
+}
+
+.more::after {
+  transform: rotate(90deg);
+}
+
+.more:hover {
+  border-color: var(--ink-soft);
+  background: var(--hover);
+}
+
+.more[aria-expanded="true"] {
+  border-color: var(--selected);
+  background: var(--selected);
+  color: var(--on-selected);
+}
+
+.more[aria-expanded="true"]::before {
+  transform: rotate(45deg);
+}
+
+.more[aria-expanded="true"]::after {
+  transform: rotate(135deg);
+}
+
+/* What a + opens drops below its bar as a card of its own. It's read, not glanced at:
+   body-size type and room around it. Opening, it eases out of the bar; closing, it eases
+   back in, more slowly, so the eye follows it home (pitwall-ui.js marks it closing for
+   --close-ms before hiding it). */
+.top-more {
+  --close-ms: 600;
+  position: absolute;
+  top: calc(100% + var(--s-3));
+  right: 0;
+  z-index: 20;
+  width: min(25rem, calc(100vw - 2 * var(--gutter)));
+  padding: var(--s-5) 1.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-inset);
+  background: var(--card-solid);
+  box-shadow: var(--lift);
+  cursor: auto;
+  text-align: left;
+  white-space: normal;
+  transition: opacity 320ms var(--ease), translate 320ms var(--ease);
+}
+
+.top-more[data-closing] {
+  opacity: 0;
+  translate: 0 -0.75rem;
+  transition: opacity 600ms cubic-bezier(0.65, 0, 0.35, 1), translate 600ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@starting-style {
+  .top-more {
+    opacity: 0;
+    translate: 0 -0.75rem;
+  }
+}
+
+.panel-title {
+  font-size: var(--fs-read);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.panel-note {
+  margin-top: var(--s-1);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.panel-foot {
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-context);
+}
+
+/* The delay: steps either side of the figure, and a slider under it. */
+.delay {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-4);
+}
+
+.step {
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--hover);
+  font-size: var(--fs-context);
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.step:hover {
+  background: var(--rule-strong);
+}
+
+.delay-value {
+  flex: 1;
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.delay-range {
+  display: block;
+  width: 100%;
+  margin: var(--s-4) 0 0;
+  accent-color: var(--selected);
+  cursor: pointer;
+}
+
+.panel-feed {
+  min-height: 1.4rem;
+  margin-top: var(--s-4);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-context);
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.panel-feed:empty {
+  display: none;
+}
+
+/* A setting: what it is and what it does, with its switch on the right. */
+.setting {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+  margin-top: var(--s-4);
+}
+
+.setting-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.setting .panel-note {
+  font-size: var(--fs-context);
+}
+
+.setting .chip {
+  min-width: 3.5rem;
+}
+
 /* A value that has gone stale says so, and fades, but never moves. */
 [data-stale="true"] {
   opacity: 0.45;
@@ -457,6 +650,8 @@ button {
 }
 
 .header-controls {
+  position: relative;
+  z-index: 3;
   display: flex;
   flex: none;
   align-items: center;
@@ -468,8 +663,11 @@ button {
 /* The race's state in one pill: the flag, the lap, the fastest lap, and whether the wall
    is live. Small labels over large figures; hairlines between the parts. */
 .capsule {
+  position: relative;
+  z-index: 2;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  /* Flag, lap, fastest lap, badge. The flag never gives way; the badge does first. */
+  grid-template-columns: minmax(max-content, 1fr) max-content max-content minmax(0, max-content);
   align-items: stretch;
   min-width: 0;
   border: 1px solid var(--line);
@@ -585,7 +783,10 @@ button {
   color: var(--flag);
 }
 
+/* The note takes whatever width the word leaves it, and no more: it never widens the
+   flag's column, and a long message from race control ends in an ellipsis. */
 .flag-note {
+  contain: inline-size;
   overflow: hidden;
   min-height: 1.3rem;
   font-size: var(--fs-context);
@@ -641,7 +842,11 @@ button {
   align-items: center;
   justify-content: flex-start;
   gap: var(--s-3);
-  padding-right: 2rem;
+  padding-right: 1.25rem;
+}
+
+.cap-badge > .more {
+  margin-left: var(--s-2);
 }
 
 .tag-state {
@@ -671,9 +876,15 @@ button {
 .badge-clock {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.badge-clock > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .badge-clock b {
@@ -1066,7 +1277,7 @@ button {
   }
 
   .capsule {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(max-content, 1fr) max-content minmax(0, max-content);
   }
 
   .cap-fastest {
@@ -1074,6 +1285,18 @@ button {
   }
 
   .brand-by {
+    display: none;
+  }
+}
+
+/* Narrower still: the tower takes a step in, and the badge keeps its state and delay but
+   lets its clock go, so the flag's word keeps its room. */
+@media (max-width: 1100px) {
+  :root {
+    --tower-w: 22rem;
+  }
+
+  .badge-clock b {
     display: none;
   }
 }

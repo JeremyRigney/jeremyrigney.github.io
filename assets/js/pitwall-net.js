@@ -55,6 +55,99 @@
     return api('/f1/live', TIMEOUT_LIVE).then(P.Parse.frame);
   }
 
+  /*
+   * /f1/stream, read through fetch: each chunk goes through the SSE parser and each event
+   * the wall knows reaches onEvent; onEnd(error) comes once, when the server closes it
+   * (error null), or it is refused or drops (an Error). A 503 means the server's few stream
+   * slots are taken. Closing it from this side calls neither.
+   */
+  function stream(handlers) {
+    var controller = new AbortController();
+    var closed = false;
+
+    function deliver(pairs) {
+      pairs.forEach(function (pair) {
+        var ev = P.Sse.decode(pair[0], pair[1]);
+        if (ev && !closed) { handlers.onEvent(ev); }
+      });
+    }
+
+    fetch(apiBase() + '/f1/stream', {
+      cache: 'no-store',
+      headers: { Accept: 'text/event-stream' },
+      signal: controller.signal
+    }).then(function (response) {
+      if (!response.ok || !response.body) { throw new Error('HTTP ' + response.status); }
+      var reader = response.body.getReader();
+      var decoder = new TextDecoder();
+      var parser = new P.Sse.Parser();
+      function pump() {
+        return reader.read().then(function (chunk) {
+          if (chunk.done) {
+            deliver(parser.push(decoder.decode() + '\n'));
+            return;
+          }
+          deliver(parser.push(decoder.decode(chunk.value, { stream: true })));
+          return pump();
+        });
+      }
+      return pump();
+    }).then(function () {
+      if (!closed) { handlers.onEnd(null); }
+    }, function (error) {
+      if (!closed) { handlers.onEnd(error || new Error('stream failed')); }
+    });
+
+    return {
+      close: function () {
+        closed = true;
+        controller.abort();
+      }
+    };
+  }
+
+  /*
+   * The stream, one per browser. The server holds only a few open at once, and the app
+   * needs one, so a second tab of this page doesn't take another: it polls instead, and
+   * picks the stream up when the tab holding it lets go. Without Web Locks, every tab
+   * streams.
+   */
+  function openStream(handlers) {
+    if (!navigator.locks || typeof navigator.locks.request !== 'function') { return stream(handlers); }
+    var connection = null;
+    var release = null;
+    var closed = false;
+    navigator.locks.request('pitwall-stream', { ifAvailable: true }, function (lock) {
+      if (!lock) {
+        if (!closed) { handlers.onEnd(new Error('another tab has the stream')); }
+        return null;
+      }
+      return new Promise(function (resolve) {
+        release = resolve;
+        if (closed) {
+          resolve();
+          return;
+        }
+        connection = stream({
+          onEvent: handlers.onEvent,
+          onEnd: function (error) {
+            resolve();
+            handlers.onEnd(error);
+          }
+        });
+      });
+    }).catch(function (error) {
+      if (!closed) { handlers.onEnd(error); }
+    });
+    return {
+      close: function () {
+        closed = true;
+        if (connection) { connection.close(); }
+        if (release) { release(); }
+      }
+    };
+  }
+
   /** A file under assets/data/f1/, or null when the site doesn't have it. */
   function data(name, version) {
     return fetch('assets/data/f1/' + name + (version ? '?v=' + version : ''))
@@ -67,6 +160,8 @@
     getJson: getJson,
     api: api,
     live: live,
+    stream: stream,
+    openStream: openStream,
     data: data,
     TIMEOUT_REPLAY: TIMEOUT_REPLAY
   };
