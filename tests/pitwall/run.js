@@ -20,7 +20,8 @@ var MODULES = [
   'assets/js/pitwall-sse.js',
   'assets/js/pitwall-live.js',
   'assets/js/pitwall-replay.js',
-  'assets/js/pitwall-track.js'
+  'assets/js/pitwall-track.js',
+  'assets/js/pitwall-doom.js'
 ];
 
 var SUITES = [
@@ -32,6 +33,7 @@ var SUITES = [
   'tests/pitwall/stream.test.js',
   'tests/pitwall/replay.test.js',
   'tests/pitwall/map.test.js',
+  'tests/pitwall/doom.test.js',
   'tests/pitwall/lint.test.js'
 ];
 
