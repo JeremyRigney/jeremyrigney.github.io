@@ -949,6 +949,153 @@ button {
   max-width: 26rem;
 }
 
+/* ---------- The map ---------- */
+
+/* The map fills the stage: borderless canvases in a rounded frame, with its few controls
+   floating over the corners as small cards. */
+.map {
+  position: absolute;
+  inset: 0;
+  display: none;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--ground);
+  touch-action: none;
+  cursor: grab;
+}
+
+:root[data-view="map"] .map {
+  display: block;
+}
+
+.map:active {
+  cursor: grabbing;
+}
+
+.map:focus-visible {
+  outline-offset: -2px;
+}
+
+.map canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.map-notice {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--s-6);
+  font-size: var(--fs-context);
+  font-weight: 600;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+/* The wind: an arrow turned with the map, the speed, and where it blows from. */
+.map-wind {
+  position: absolute;
+  top: var(--s-3);
+  right: var(--s-3);
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-4) var(--s-2) var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  box-shadow: var(--lift);
+  pointer-events: none;
+}
+
+.map-wind svg {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  padding: 0.3rem;
+  border-radius: 50%;
+  background: var(--hover);
+  color: var(--ink);
+  transition: transform 600ms var(--ease);
+}
+
+.map-wind p {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+
+.map-wind b {
+  font-size: var(--fs-context);
+  font-weight: 700;
+}
+
+.map-wind span {
+  font-size: var(--fs-label);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.map-whole,
+.map-follow {
+  position: absolute;
+  background: var(--card);
+  box-shadow: var(--lift);
+}
+
+.map-whole {
+  top: var(--s-3);
+  left: var(--s-3);
+}
+
+.map-follow {
+  bottom: var(--s-3);
+  left: var(--s-3);
+}
+
+.map-follow::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--team, currentColor);
+}
+
+/* Following someone: inverted, like any selected control, with their team's dot. */
+.map-follow[aria-pressed="true"] {
+  border-color: var(--selected);
+  background: var(--selected);
+  color: var(--on-selected);
+}
+
+.map-note {
+  position: absolute;
+  bottom: var(--s-4);
+  left: 50%;
+  max-width: calc(100% - 22rem);
+  transform: translateX(-50%);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  text-align: center;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
+.map-credit {
+  position: absolute;
+  right: var(--s-4);
+  bottom: var(--s-2);
+  font-size: var(--fs-label);
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+
 :root[data-view="map"] .stage-note:not([data-for="map"]),
 :root[data-view="wall"] .stage-note:not([data-for="wall"]),
 :root[data-view="feed"] .stage-note:not([data-for="feed"]) {
@@ -1569,7 +1716,7 @@ button {
 .tag-demo {
   position: fixed;
   left: 50%;
-  bottom: var(--s-4);
+  bottom: calc(var(--gutter) + var(--dock-h) + var(--s-3));
   z-index: 30;
   height: 2rem;
   padding: 0 var(--s-4);
@@ -1632,7 +1779,7 @@ button {
   }
 
   .stage {
-    min-height: 12rem;
+    min-height: 24rem;
   }
 
   .capsule {

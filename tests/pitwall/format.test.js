@@ -107,6 +107,15 @@
     isNull(F.sessionShort(null));
   });
 
+  test('wind from the compass', function () {
+    eq(F.compass(0), 'N');
+    eq(F.compass(22), 'N');
+    eq(F.compass(23), 'NE');
+    eq(F.compass(180), 'S');
+    eq(F.compass(350), 'N');
+    eq(F.compass(290), 'W');
+  });
+
   test('flag words and notes', function () {
     eq(F.flagWord('VSC'), 'Virtual SC');
     eq(F.flagWord(null), 'Standby');
