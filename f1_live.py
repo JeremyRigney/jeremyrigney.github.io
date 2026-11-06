@@ -27,6 +27,7 @@ can be built and tested against a past race on the free tier.
 """
 
 import bisect
+import json
 import os
 import re
 import threading
@@ -36,7 +37,10 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 
 import requests
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, Response, jsonify, request, stream_with_context
+
+import f1_stream
+import f1_strategy
 
 bp = Blueprint("f1_live", __name__)
 
@@ -198,6 +202,12 @@ _token_lock = threading.Lock()
 # a burst of visitor polls collapses into a single refresh rather than a stampede.
 _refresh_lock = threading.Lock()
 _composed = {"payload": None, "ts": 0.0}
+
+# Around every change to, and every read of, the live _Session's accumulators. REST folds
+# them inside _refresh and the stream folds them from its queue on other threads; _compose
+# reads them. Held only for the fold or the read itself, never across a network call, so
+# the stream's 250 ms ticks never wait on an upstream request.
+_state_lock = threading.RLock()
 
 
 # ---------------------------------------------------------------------------
@@ -382,22 +392,41 @@ def _fold_flag(messages, until=None):
 
     Returns (state, since, message, sectors, ending).
     """
+    since = {}
+    triggered = {}
+    sectors = {}
+    ending = False
+    for when, state, row, sectors, ending in _flag_steps(messages, until):
+        # Only the moment a state was entered, so "since" does not reset on every repeat.
+        if since.get("state") != state:
+            since["state"] = state
+            since["at"] = when
+            triggered["message"] = row.get("message") or ""
+
+    return (
+        since.get("state", "GREEN"),
+        since.get("at"),
+        triggered.get("message", ""),
+        sorted(s for s in sectors if s is not None),
+        ending,
+    )
+
+
+def _flag_steps(messages, until=None):
+    """
+    The state machine behind _fold_flag, one step per race-control record.
+
+    Yields (when, state, row, sectors, ending) after each record up to `until`. A generator
+    so that _fold_flag (the state now) and _flag_periods (every state the race has been in)
+    run the same machine in one pass each, rather than the second re-folding from the top
+    at every record.
+    """
     sectors = {}
     safety = None            # "SAFETY_CAR" | "VSC" | None
     ending = False           # safety car called in, but not yet green
     track = "GREEN"          # the track-wide flag: GREEN, RED or CHEQUERED
     suspended = False        # the session itself is stopped, not merely neutralised
     finished = False
-    since = {}
-    triggered = {}
-
-    def mark(state, when, text):
-        # Only the moment a state was entered, so "since" does not reset on every repeat.
-        if since.get("state") != state:
-            since["state"] = state
-            since["at"] = when
-            triggered["message"] = text
-
     for row in sorted(messages, key=lambda r: str(r.get("date") or "")):
         when = _parse_dt(row.get("date"))
         if until is not None and when is not None and when > until:
@@ -479,15 +508,27 @@ def _fold_flag(messages, until=None):
             state = "CHEQUERED"
         else:
             state = "GREEN"
-        mark(state, when, row.get("message") or "")
+        yield when, state, row, sectors, ending and safety is not None
 
-    return (
-        since.get("state", "GREEN"),
-        since.get("at"),
-        triggered.get("message", ""),
-        sorted(s for s in sectors if s is not None),
-        ending and safety is not None,
-    )
+
+def _flag_periods(messages, until=None):
+    """
+    Every flag state the session has been through, as [(start, end, state)] in order.
+
+    `end` is None for the period still running. Records that share a timestamp settle
+    into one period rather than leaving zero-length ones between them.
+    """
+    periods = []
+    for when, state, _row, _sectors, _ending in _flag_steps(messages, until):
+        if when is None:
+            continue
+        if periods and periods[-1][0] == when:
+            periods.pop()
+        if periods and periods[-1][2] == state:
+            continue
+        periods.append((when, None, state))
+    return [(start, periods[i + 1][0] if i + 1 < len(periods) else None, state)
+            for i, (start, _end, state) in enumerate(periods)]
 
 
 # ---------------------------------------------------------------------------
@@ -699,6 +740,11 @@ class _Session:
         self.driver_best_sectors = {}   # num -> [s1, s2, s3]
         self.stints = {}         # num -> list of stint records
         self.pit = {}            # num -> {"stops", "last"}
+        # The history the strategy view needs and nothing above keeps: every completed lap
+        # per car, and every stop rather than only the last. Both fill from rows already
+        # fetched for `laps` and `pit`, so they cost no upstream calls. See f1_strategy.
+        self.lap_history = {}    # num -> {lap_number: lap row}
+        self.stops = {}          # num -> {date: pit row}
         self.race_control = []
         # Radio clips, held flat like race_control rather than per driver: it is an
         # append-only log, and the page groups it by driver itself.
@@ -708,6 +754,9 @@ class _Session:
         # Session-wide, not per-driver, so it is a flat list like race_control rather than
         # a dict keyed on driver_number.
         self.weather = []
+        # num -> latest telemetry sample (speed, throttle, brake, gear, rpm). Only the
+        # stream carries it: polling it at 3.7 Hz a car is far outside the REST budget.
+        self.car_data = {}
         # Refresh intervals for this session; _refresh retunes once the type is known.
         self.ttl = dict(TTL)
 
@@ -756,8 +805,21 @@ def _merge_latest(target, rows, key="date"):
 # Refresh
 # ---------------------------------------------------------------------------
 
-def _refresh(state, session, until=None, authed=True):
-    """Bring every stale stream up to date. Individual failures leave the last good data."""
+# While the stream is delivering a stream, REST still reads these now and then: the broker
+# sends at most once, so a message lost in a reconnect is otherwise lost for good. Race
+# control drives the flag and the voice alerts, and `position` only reports changes, so a
+# missed one would leave a car in the wrong place until it next moved.
+SAFETY_TTL = {"race_control": 60.0, "position": 60.0}
+
+
+def _refresh(state, session, until=None, authed=True, covered=frozenset()):
+    """
+    Bring every stale stream up to date. Individual failures leave the last good data.
+
+    `covered` is what the stream is delivering right now (see _covered): those are left to
+    it, apart from SAFETY_TTL's occasional check. Everything else polls on its TTL, as it
+    did before there was a stream, so the moment the stream falters the table carries on.
+    """
     key = session["session_key"]
     is_race = (session.get("session_type") == "Race")
     state.tune(is_race)
@@ -779,6 +841,12 @@ def _refresh(state, session, until=None, authed=True):
 
         if state.first_time(stream):
             lookback = FIRST_WINDOW.get(stream)
+            # A race reads its laps whole the first time. The strategy view calibrates pit
+            # loss from every stop so far, and a server that cold-starts at lap 40 would
+            # otherwise know nothing before lap 38. It is about 1,200 rows for a full
+            # race — nothing like the intervals stream FIRST_WINDOW exists to bound.
+            if stream == "laps" and is_race:
+                lookback = None
         else:
             lookback = WINDOW.get(stream)
 
@@ -793,38 +861,45 @@ def _refresh(state, session, until=None, authed=True):
         return out
 
     plan = [
-        ("position", lambda: _merge_latest(state.position, _get("position", filters("position"), authed))),
+        ("position", lambda rows: _merge_latest(state.position, rows)),
         # Replaced wholesale rather than merged: the whole stream is about a hundred rows a
         # race, and the fold that reads it is stateless, so there is nothing to accumulate.
-        ("race_control", lambda: _replace(state.race_control, _get("race_control", filters("race_control"), authed))),
+        ("race_control", lambda rows: _replace(state.race_control, rows)),
     ]
     if is_race:
-        plan.append(
-            ("intervals", lambda: _merge_latest(state.intervals, _get("intervals", filters("intervals"), authed)))
-        )
+        plan.append(("intervals", lambda rows: _merge_latest(state.intervals, rows)))
     plan.extend([
-        ("location", lambda: _merge_latest(state.location, _get("location", filters("location"), authed))),
-        ("laps", lambda: _merge_laps(state, _get("laps", filters("laps"), authed))),
-        ("pit", lambda: _merge_pit(state, _get("pit", filters("pit"), authed))),
-        ("stints", lambda: _merge_stints(state, _get("stints", filters("stints"), authed))),
-        ("drivers", lambda: _by_driver(state.drivers, _get("drivers", filters("drivers"), authed))),
-        ("session_result", lambda: _by_driver(state.result, _get("session_result", filters("session_result"), authed))),
+        ("location", lambda rows: _merge_latest(state.location, rows)),
+        ("laps", lambda rows: _merge_laps(state, rows)),
+        ("pit", lambda rows: _merge_pit(state, rows)),
+        ("stints", lambda rows: _merge_stints(state, rows)),
+        ("drivers", lambda rows: _by_driver(state.drivers, rows)),
+        ("session_result", lambda rows: _by_driver(state.result, rows)),
         # Replaced rather than merged, like race_control: only the latest reading is ever
         # read out of it, so there is nothing to accumulate.
-        ("weather", lambda: _replace(state.weather, _get("weather", filters("weather"), authed))),
+        ("weather", lambda rows: _replace(state.weather, rows)),
         # Replaced rather than merged, for race_control's reason: no WINDOW entry means it
         # is always read whole, so there is nothing to accumulate.
-        ("team_radio", lambda: _replace(state.team_radio, _get("team_radio", filters("team_radio"), authed))),
+        ("team_radio", lambda rows: _replace(state.team_radio, rows)),
     ])
 
-    for stream, run in plan:
-        if not state.stale(stream):
+    for stream, fold in plan:
+        if stream in covered:
+            safety = SAFETY_TTL.get(stream)
+            last = state.fetched.get(stream)
+            if safety is None or (last is not None and time.monotonic() - last < safety):
+                continue
+        elif not state.stale(stream):
             continue
         # Under budget pressure, keep the running order and the flags and drop the rest.
         if stream in OPTIONAL and budget < 8 and not state.first_time(stream):
             continue
         try:
-            run()
+            # The request outside the lock, the fold inside it: the stream's ticks must
+            # never wait on an upstream call.
+            rows = _get(stream, filters(stream), authed)
+            with _state_lock:
+                fold(rows)
             state.fetched[stream] = time.monotonic()
         except Exception:
             # A single bad refresh must not blank the page; the previous values stand.
@@ -864,6 +939,8 @@ def _merge_laps(state, rows):
         if duration:
             if state.best.get(num) is None or duration < state.best[num]:
                 state.best[num] = duration
+            if row.get("lap_number") is not None:
+                state.lap_history.setdefault(num, {})[row["lap_number"]] = row
 
         # Sector bests ride along on rows already in hand. A sector is timed even on a lap
         # that never completes — an in-lap has a good S1 and S2 — so these are folded per
@@ -887,6 +964,7 @@ def _merge_pit(state, rows):
         entry["laps"].add(row.get("lap_number"))
         if entry["last"] is None or str(row.get("date") or "") >= str(entry["last"].get("date") or ""):
             entry["last"] = row
+        state.stops.setdefault(num, {})[str(row.get("date") or "")] = row
 
 
 def _merge_stints(state, rows):
@@ -898,6 +976,91 @@ def _merge_stints(state, rows):
         grouped.setdefault(num, []).append(row)
     for num, items in grouped.items():
         state.stints[num] = sorted(items, key=lambda r: r.get("stint_number") or 0)
+
+
+# ---------------------------------------------------------------------------
+# Stream ingest
+# ---------------------------------------------------------------------------
+
+# What makes two rows of a session-wide stream the same row. Not the broker's `_key`: rows
+# read over REST don't carry one, and the same message arriving both ways must count once.
+_SAME_ROW = {
+    "race_control": ("date", "message"),
+    "team_radio": ("date", "driver_number"),
+    "weather": ("date",),
+}
+
+
+def _append_unique(target, row, fields):
+    """Add one row to a date-ordered log, replacing it if it is already there."""
+    identity = tuple(row.get(f) for f in fields)
+    for i, existing in enumerate(target):
+        if tuple(existing.get(f) for f in fields) == identity:
+            target[i] = row
+            return
+    stamp = str(row.get("date") or "")
+    if not target or stamp >= str(target[-1].get("date") or ""):
+        target.append(row)
+    else:
+        at = bisect.bisect_right([str(r.get("date") or "") for r in target], stamp)
+        target.insert(at, row)
+
+
+def _upsert_stint(state, row):
+    """One stint row from the stream: the stint is updated as it runs, so replace by number."""
+    num = row.get("driver_number")
+    if num is None:
+        return
+    stints = [s for s in state.stints.get(num, []) if s.get("stint_number") != row.get("stint_number")]
+    stints.append(row)
+    state.stints[num] = sorted(stints, key=lambda r: r.get("stint_number") or 0)
+
+
+def _ingest(state, stream, row):
+    """Fold one row from the stream with the same merges REST uses. Under _state_lock."""
+    # `_id` and `_key` are the broker's bookkeeping, not part of the data.
+    row = {k: v for k, v in row.items() if not k.startswith("_")}
+    if stream in ("position", "intervals", "location", "car_data"):
+        _merge_latest(getattr(state, stream), [row])
+    elif stream == "laps":
+        _merge_laps(state, [row])
+    elif stream == "pit":
+        _merge_pit(state, [row])
+    elif stream == "stints":
+        _upsert_stint(state, row)
+    elif stream == "drivers":
+        _by_driver(state.drivers, [row])
+    elif stream == "session_result":
+        _by_driver(state.result, [row])
+    elif stream in _SAME_ROW:
+        _append_unique(getattr(state, stream), row, _SAME_ROW[stream])
+
+
+def _pump():
+    """Fold whatever the stream has delivered since the last call into the live session."""
+    source = f1_stream.current()
+    state = _session
+    if source is None or state is None:
+        return
+    rows = source.drain()
+    if not rows:
+        return
+    with _state_lock:
+        for stream, row in rows:
+            if row.get("session_key") not in (None, state.key):
+                continue
+            try:
+                _ingest(state, stream, row)
+            except Exception:
+                pass
+
+
+def _covered():
+    """The streams the stream is delivering for this session, which REST can leave alone."""
+    source = f1_stream.current()
+    if source is None or _session is None or source.session_key != _session.key:
+        return frozenset()
+    return frozenset(source.covered())
 
 
 # ---------------------------------------------------------------------------
@@ -982,6 +1145,8 @@ def _weather_now(rows):
         "track": latest.get("track_temperature"),
         "humidity": latest.get("humidity"),
         "wind": latest.get("wind_speed"),
+        "windDir": latest.get("wind_direction"),
+        "pressure": latest.get("pressure"),
         "rain": bool(latest.get("rainfall")),
     }
 
@@ -1050,6 +1215,9 @@ def _compose(state, session, flag_until=None):
             "speed": timed.get("st_speed"),
             # The lap they are on now, which is the in-progress one.
             "lap": lap.get("lap_number"),
+            # When the lap in progress began. The Wall tab anchors its ring on the leader's,
+            # so the field turns at the pace of the lap rather than jumping a poll at a time.
+            "lapStart": lap.get("date_start"),
             "compound": compound,
             "tyreAge": tyre_age,
             "inPit": in_pit,
@@ -1099,7 +1267,24 @@ def _compose(state, session, flag_until=None):
     timed = [(t, n) for n, t in state.best.items() if t]
     fastest, fastest_num = min(timed) if timed else (None, None)
 
-    return {
+    # Pit loss and the ring's lap, for the Wall tab. Only a race has gaps to put a car
+    # on the ring by, or a pit window worth projecting. Never allowed to cost the frame.
+    strategy = None
+    if session.get("session_type") == "Race":
+        try:
+            strategy = f1_strategy.compute(
+                state,
+                _flag_periods(state.race_control, flag_until),
+                flag_state,
+                session.get("circuit_key"),
+                [r["num"] for r in rows if not r["dnf"]],
+                flag_until or _now(),
+                _parse_dt,
+            )
+        except Exception:
+            strategy = None
+
+    payload = {
         "live": True,
         "generated": _iso(_now()),
         "session": {
@@ -1113,6 +1298,7 @@ def _compose(state, session, flag_until=None):
             "location": session.get("location"),
             "start": _iso(start),
             "end": _iso(_parse_dt(session.get("date_end"))),
+            **_meeting_fields(session),
         },
         "flag": {
             "state": flag_state,
@@ -1136,6 +1322,57 @@ def _compose(state, session, flag_until=None):
         # last handful. Bounded by the same `flag_until` that rewinds everything else.
         "radio": build_radio(state.team_radio, flag_until)[:40],
     }
+    if strategy is not None:
+        payload["strategy"] = strategy
+    return payload
+
+
+# ---------------------------------------------------------------------------
+# Meetings
+# ---------------------------------------------------------------------------
+
+# What each weekend is called. A session carries only its circuit's short name, so the 2026
+# Bahrain Grand Prix, held at Sepang, arrives as "Kuala Lumpur" and the two pre-season tests
+# at Sakhir are told apart by nothing at all. OpenF1 rebuilds its meetings index once a day,
+# so one call per season every few hours covers every payload that names a session.
+MEETINGS_TTL = 6 * 3600.0
+# After a failed fetch, how long to go without names before asking again. Long enough that
+# a 429 during a race is not retried on every compose.
+MEETINGS_RETRY = 600.0
+_meetings_cache = {}      # year -> (fetched at, {meeting_key: row})
+_meetings_lock = threading.Lock()
+
+
+def _meetings(year):
+    """The season's meetings by meeting_key; empty, not an error, when they can't be had."""
+    now = time.time()
+    with _meetings_lock:
+        cached = _meetings_cache.get(year)
+        if cached is not None and now < cached[0]:
+            return cached[1]
+        try:
+            rows = _get("meetings", [("year", int(year))], authed=_replay_authed())
+            by_key = {r.get("meeting_key"): r for r in rows if r.get("meeting_key") is not None}
+            _meetings_cache[year] = (now + MEETINGS_TTL, by_key)
+        except Exception:
+            by_key = cached[1] if cached is not None else {}
+            _meetings_cache[year] = (now + MEETINGS_RETRY, by_key)
+        return by_key
+
+
+def _meeting_fields(session):
+    """`meeting` and `meetingKey` for a session's payload; nothing when the name is unknown."""
+    key = session.get("meeting_key")
+    if key is None:
+        return {}
+    year = session.get("year")
+    if year is None:
+        start = _parse_dt(session.get("date_start"))
+        year = start.year if start is not None else None
+    if year is None:
+        return {"meetingKey": key}
+    row = _meetings(year).get(key) or {}
+    return {"meeting": row.get("meeting_name"), "meetingKey": key}
 
 
 # ---------------------------------------------------------------------------
@@ -1168,6 +1405,7 @@ def _idle(session=None, reason="no session"):
             "name": session.get("session_name"),
             "circuit": session.get("circuit_short_name"),
             "start": _iso(_parse_dt(session.get("date_start"))),
+            **_meeting_fields(session),
         }
     return payload
 
@@ -1190,6 +1428,7 @@ def f1_replay_sessions():
         "country": s.get("country_name"),
         "start": _iso(_parse_dt(s.get("date_start"))),
         "end": _iso(_parse_dt(s.get("date_end"))),
+        **_meeting_fields(s),
     } for s in rows if not s.get("is_cancelled")]
     out.sort(key=lambda s: str(s["start"] or ""), reverse=True)
     return jsonify({"year": int(year), "sessions": out})
@@ -1214,23 +1453,14 @@ def f1_replay_timeline():
 
     session = replay.session
     start = _parse_dt(session.get("date_start"))
-    end = _parse_dt(session.get("date_end"))
+    end = replay.end
 
-    # Re-fold the flag machine at each race-control timestamp and record where the answer
-    # changes. Using the real state machine means the marks cannot disagree with the panel.
-    periods = []
-    for row in replay.race_control:
-        when = _parse_dt(row.get("date"))
-        if when is None:
-            continue
-        state = _fold_flag(replay.race_control, when)[0]
-        if periods and periods[-1]["state"] == state:
-            continue
-        if periods:
-            periods[-1]["to"] = _iso(when)
-        periods.append({"state": state, "from": _iso(when), "to": None})
-    if periods:
-        periods[-1]["to"] = _iso(end) if end else None
+    # The real state machine, stepped once through the whole race, so the marks cannot
+    # disagree with the panel.
+    periods = [
+        {"state": state, "from": _iso(begin), "to": _iso(until or end) if (until or end) else None}
+        for begin, until, state in _flag_periods(replay.race_control)
+    ]
 
     events, _, _, _ = build_events(replay.race_control)
     events.reverse()  # chronological, for laying marks along a timeline
@@ -1244,6 +1474,7 @@ def f1_replay_timeline():
             # short names above disagree with our circuit names on a third of the calendar.
             "circuitKey": session.get("circuit_key"),
             "country": session.get("country_name"),
+            **_meeting_fields(session),
         },
         "start": _iso(start),
         "end": _iso(end),
@@ -1262,16 +1493,25 @@ def f1_live():
             with_location=request.args.get("nolocation") != "1",
         ))
 
+    payload, status = _live_payload()
+    return jsonify(payload), status
+
+
+def _live_payload():
+    """
+    The live frame and its HTTP status, composed at most once a COMPOSE_TTL however many
+    pollers and streams ask for it.
+    """
     now = time.time()
     cached = _composed["payload"]
     if cached is not None and (now - _composed["ts"]) < COMPOSE_TTL:
-        return jsonify(cached)
+        return cached, 200
 
     with _refresh_lock:
         # Another thread may have refreshed while this one waited for the lock.
         now = time.time()
         if _composed["payload"] is not None and (now - _composed["ts"]) < COMPOSE_TTL:
-            return jsonify(_composed["payload"])
+            return _composed["payload"], 200
 
         try:
             payload = _build()
@@ -1279,15 +1519,182 @@ def f1_live():
             if _composed["payload"] is not None:
                 stale = dict(_composed["payload"])
                 stale["stale"] = True
-                return jsonify(stale)
-            return jsonify({"live": False, "error": str(error)}), 502
+                return stale, 200
+            return {"live": False, "error": str(error)}, 502
 
         _composed["payload"] = payload
         _composed["ts"] = time.time()
-        return jsonify(payload)
+        return payload, 200
+
+
+# ---------------------------------------------------------------------------
+# Push: /f1/stream
+# ---------------------------------------------------------------------------
+
+# Server-Sent Events for the app: the same frame /f1/live serves, sent when it changes, and
+# between frames every car's position and telemetry as fast as the stream brings them. The
+# frame keeps a two-second floor so the tower isn't re-sent four times a second, except when
+# the flag or race control changes: those go at once, because the app speaks them.
+STREAM_MAX = 3              # held-open streams; each holds one of gunicorn's eight threads
+STREAM_TICK = 0.2           # how often positions and telemetry go out: above their 3.7 Hz
+STREAM_FRAME_EVERY = 2.0
+STREAM_PING = 15.0
+STREAM_LIFETIME = 55 * 60   # inside Cloud Run's request limit; the app reconnects on `bye`
+_streams = {"open": 0}
+_streams_lock = threading.Lock()
+
+
+def _live_payload_nowait():
+    """
+    The cached frame at once, rebuilding it in the background when it has aged.
+
+    A stream must not wait on its own rebuild: a rebuild can include a REST call, and a
+    second spent on that is a second of cars standing still on the map.
+    """
+    if _composed["payload"] is None:
+        return _live_payload()
+    if time.time() - _composed["ts"] >= COMPOSE_TTL and not _refresh_lock.locked():
+        threading.Thread(target=_live_payload, name="f1-compose", daemon=True).start()
+    return _composed["payload"], 200
+
+
+def _sse(event, data):
+    return "event: %s\ndata: %s\n\n" % (event, json.dumps(data, separators=(",", ":"), default=str))
+
+
+def _frame_signature(frame):
+    """
+    (what the frame says, what in it is urgent). The first decides whether to send it at all,
+    the second whether to send it now. Positions are left out of both: `cars` carries them.
+    """
+    drivers = [{k: v for k, v in d.items() if k != "xy"} for d in frame.get("drivers") or ()]
+    body = dict(frame, drivers=drivers)
+    body.pop("generated", None)
+    body.pop("stale", None)
+    flag = frame.get("flag") or {}
+    newest = (frame.get("events") or [None])[0]
+    urgent = (flag.get("state"), flag.get("message"), flag.get("ending"),
+              json.dumps(newest, sort_keys=True, default=str))
+    return hash(json.dumps(body, sort_keys=True, default=str)), urgent
+
+
+def _cars_since(sent):
+    """
+    Every position and telemetry sample newer than this stream last sent, or None.
+
+    `sent` is the stream's own record of what it has sent, by car, so each stream gets every
+    car once per new sample however its ticks fall. Positions of exactly (0, 0) are skipped,
+    as in _compose: that is the feed saying it has none.
+    """
+    c, tel, newest = [], [], ""
+    with _state_lock:
+        state = _session
+        if state is None:
+            return None
+        for num, row in state.location.items():
+            date = row.get("date")
+            if not date or sent.get(("c", num)) == date:
+                continue
+            sent[("c", num)] = date
+            x, y = row.get("x"), row.get("y")
+            if x is not None and (x or y):
+                c.append([num, x, y])
+                newest = max(newest, str(date))
+        for num, row in state.car_data.items():
+            date = row.get("date")
+            if not date or sent.get(("t", num)) == date:
+                continue
+            sent[("t", num)] = date
+            tel.append([num, row.get("speed"), row.get("throttle"), row.get("brake"),
+                        row.get("n_gear"), row.get("rpm")])
+            newest = max(newest, str(date))
+    if not c and not tel:
+        return None
+    return {"t": newest or None, "c": c, "tel": tel}
+
+
+def _stream_events():
+    yield "retry: 3000\n\n"
+    payload, _ = _live_payload()
+    if not payload.get("live"):
+        # Nothing on track: say so and close. The app polls slowly until a session starts.
+        yield _sse("idle", payload)
+        return
+
+    key = (payload.get("session") or {}).get("key")
+    sent = {}
+    last_payload, signature, urgent = None, None, None
+    last_signature, last_urgent, last_frame, last_ping = None, None, 0.0, 0.0
+    deadline = time.time() + STREAM_LIFETIME
+    while time.time() < deadline:
+        # Every tick says the stream is still wanted, and reconnects one that was let go.
+        f1_stream.ensure(key)
+        _pump()
+        payload, _ = _live_payload_nowait()
+        if not payload.get("live"):
+            yield _sse("idle", payload)
+            return
+        session_key = (payload.get("session") or {}).get("key")
+        if session_key != key:
+            key = session_key
+            sent.clear()
+
+        if payload is not last_payload:
+            signature, urgent = _frame_signature(payload)
+            last_payload = payload
+        now = time.time()
+        if signature != last_signature and (urgent != last_urgent or now - last_frame >= STREAM_FRAME_EVERY):
+            yield _sse("frame", payload)
+            last_signature, last_urgent, last_frame = signature, urgent, now
+
+        cars = _cars_since(sent)
+        if cars:
+            yield _sse("cars", cars)
+        if now - last_ping >= STREAM_PING:
+            # An event, not an SSE comment, so the app can count it as a sign of life: in a
+            # stoppage nothing else may change for minutes.
+            yield _sse("ping", {})
+            last_ping = now
+        time.sleep(STREAM_TICK)
+    yield _sse("bye", {})
+
+
+@bp.route("/f1/stream")
+def f1_stream_route():
+    with _streams_lock:
+        if _streams["open"] >= STREAM_MAX:
+            return jsonify({"error": "too many open streams; poll /f1/live instead"}), 503
+        _streams["open"] += 1
+
+    def closed():
+        with _streams_lock:
+            _streams["open"] -= 1
+
+    response = Response(stream_with_context(_stream_events()), mimetype="text/event-stream")
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["X-Accel-Buffering"] = "no"
+    response.call_on_close(closed)
+    return response
+
+
+@bp.route("/f1/stream/status")
+def f1_stream_status():
+    """The stream's health, rates and delay per topic. `?drop=1|0` silences the simulator."""
+    drop = request.args.get("drop")
+    if drop is not None:
+        f1_stream.set_drop(drop == "1")
+    source = f1_stream.current()
+    out = source.status() if source is not None else {"source": None, "connected": False, "healthy": False}
+    out["streamsOpen"] = _streams["open"]
+    out["covered"] = sorted(_covered())
+    out["frameAge"] = round(time.time() - _composed["ts"], 1) if _composed["payload"] is not None else None
+    if f1_stream.SIMULATE:
+        out["simulatedNow"] = _iso(f1_stream.sim_now())
+    return jsonify(out)
 
 
 _session_cache = {"session": None, "ts": 0.0}
+_simulated = {}
 
 
 def _current_session():
@@ -1301,7 +1708,16 @@ def _current_session():
     contains now makes the panel appear at the lead-in, every time.
 
     Cached for a minute: this is called on every compose, and the calendar does not move.
+
+    Under F1_STREAM_SIMULATE it is the simulated session, whatever the date.
     """
+    if f1_stream.SIMULATE:
+        key = f1_stream.SIMULATE[0]
+        if key not in _simulated:
+            rows = _get("sessions", [("session_key", key)], authed=_replay_authed())
+            _simulated[key] = rows[0] if rows else None
+        return _simulated[key]
+
     now = time.time()
     if _session_cache["session"] is not None and (now - _session_cache["ts"]) < TTL["sessions"]:
         return _session_cache["session"]
@@ -1330,10 +1746,17 @@ def _build():
         return _idle(reason="no session running")
 
     if _session is None or _session.key != session["session_key"]:
-        _session = _Session(session["session_key"])
+        with _state_lock:
+            _session = _Session(session["session_key"])
 
-    _refresh(_session, session)
-    return _compose(_session, session)
+    # Under the simulator the "live" session is a past one, read up to its clock from
+    # history. On the real feed both are what they always were: now, authenticated.
+    until = f1_stream.sim_now() if f1_stream.SIMULATE else None
+    authed = _replay_authed() if f1_stream.SIMULATE else True
+    _pump()
+    _refresh(_session, session, until=until, authed=authed, covered=_covered())
+    with _state_lock:
+        return _compose(_session, session, flag_until=until)
 
 
 # ---------------------------------------------------------------------------
@@ -1382,6 +1805,7 @@ class _ReplaySession:
         self.streams = {}        # stream -> {driver_number: ([sort keys], [rows])}
         self.session_streams = {}   # stream -> [rows sorted by date]
         self.start = _parse_dt(session.get("date_start"))
+        self.end = None          # set below, once the laps are in hand
         # Car positions, in time blocks, loaded as the playhead reaches them.
         self.location_blocks = OrderedDict()
 
@@ -1392,6 +1816,34 @@ class _ReplaySession:
                     rows, key=lambda r: str(r.get("date") or ""))
                 continue
             self.streams[name] = self._index(name, rows)
+
+        self.end = self._actual_end()
+
+    def _actual_end(self):
+        """
+        When the session really finished, which is not always when it was scheduled to.
+
+        OpenF1's `date_end` is the timetable's. The 2026 Singapore sprint is listed as
+        09:00-09:30, but the start was delayed with the cars on the grid until 09:30 and
+        the flag fell at 10:16. Bounded by the timetable, the scrubber covered only the
+        wait on the grid, and every flag period of the actual race fell off its end. So
+        the end is the later of the timetable and the last completed lap, plus a couple
+        of minutes for the in-lap.
+        """
+        scheduled = _parse_dt(self.session.get("date_end"))
+        latest = None
+        for _keys, rows in self.streams.get("laps", {}).values():
+            for row in rows:
+                begun = _parse_dt(row.get("date_start"))
+                duration = row.get("lap_duration")
+                if begun is not None and duration:
+                    finished = begun + timedelta(seconds=duration)
+                    if latest is None or finished > latest:
+                        latest = finished
+        if latest is None:
+            return scheduled
+        latest += timedelta(minutes=2)
+        return latest if scheduled is None or latest > scheduled else scheduled
 
     @property
     def race_control(self):
@@ -1486,6 +1938,7 @@ class _ReplaySession:
                     "laps": set(r.get("lap_number") for r in stops),
                     "last": stops[-1],
                 }
+                state.stops[num] = {str(r.get("date") or ""): r for r in stops}
 
             for name, target in (("drivers", state.drivers), ("session_result", state.result)):
                 rows = self._upto(name, num, moment)
@@ -1584,7 +2037,7 @@ def _replay(session_key, at, with_location=True):
 
     session = replay.session
     start = _parse_dt(session.get("date_start"))
-    end = _parse_dt(session.get("date_end"))
+    end = replay.end
     moment = _parse_dt(at) or end or start
     if moment is None:
         return {"live": False, "error": "could not resolve a replay time"}
@@ -1606,3 +2059,11 @@ def _replay(session_key, at, with_location=True):
     }
     payload["generated"] = _iso(moment)
     return payload
+
+
+# The stream module needs the credentials and the REST fetch, and must not import this one.
+f1_stream.configure(
+    OPENF1_USER,
+    _bearer,
+    lambda stream, filters: _get(stream, filters, authed=_replay_authed()),
+)

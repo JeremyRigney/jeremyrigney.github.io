@@ -1,0 +1,27 @@
+# The Cloud Run image only needs the Flask API (app.py) and requirements.txt.
+# Everything below is the static site or local cruft that would just bloat the
+# build context / image.
+
+# Version control & CI
+.git
+.gitignore
+.github
+
+# Editor / tooling
+.claude
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+
+# Static site content
+*.html
+*.pdf
+*.txt
+!requirements.txt
+sitemap.xml
+CNAME
+LICENSE.txt
+README.txt
+images/
+assets/

@@ -1,0 +1,7 @@
+.github
+
+*.pdf
+# Local dev: python venv and OpenF1 credentials. Never commit either.
+.venv/
+__pycache__/
+.env.local
