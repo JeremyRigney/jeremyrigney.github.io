@@ -79,10 +79,10 @@
         h.polls += 1;
         return Promise.resolve(live(100 + h.polls));
       },
-      stream: function (handlers) {
+      stream: stream ? function (handlers) {
         h.attempts += 1;
         return stream(handlers, h.attempts, h.time);
-      },
+      } : null,
       clock: h.time.clock,
       setTimer: h.time.setTimer,
       clearTimer: h.time.clearTimer,
@@ -203,7 +203,18 @@
     near(h.feed.state.carRate, 5, 0.3);
   });
 
-  // ---------- The web's own: out of sight ----------
+  // ---------- The web's own: stopped for replay, and out of sight ----------
+
+  test('stopped and started again, it runs one loop, not two', function () {
+    var h = harness(null, { fetch: function () { return live(1); } });
+    h.time.advance(100);
+    h.feed.stop();
+    h.feed.run();
+    var polls = h.polls;
+    h.time.advance(15000);
+    // One loop polls about ten times in 15 s; two would poll about twenty.
+    ok(h.polls - polls <= 11, 'polls ' + (h.polls - polls));
+  });
 
   test('out of sight, the stream is given up and polls slow down', function () {
     var h = harness(function (handlers, n, time) {

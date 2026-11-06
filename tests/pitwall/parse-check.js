@@ -10,10 +10,12 @@ var FILES = [
   'pitwall-season.js',
   'pitwall-sse.js',
   'pitwall-live.js',
+  'pitwall-replay.js',
   'pitwall-ui.js',
   'pitwall-net.js',
   'pitwall-header.js',
   'pitwall-tower.js',
+  'pitwall-timeline.js',
   'pitwall-app.js'
 ];
 

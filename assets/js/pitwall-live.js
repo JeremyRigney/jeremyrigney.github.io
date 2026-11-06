@@ -156,16 +156,26 @@
     }
   };
 
+  /*
+   * Start following, or start again after stop() — for replay, which the wall switches to
+   * and back from. Each run has its own generation, so a loop still waiting on a reply from
+   * before the stop ends there rather than running on beside the new one.
+   */
   LiveFeed.prototype.run = function () {
     if (this.running) { return; }
     this.running = true;
+    var gen = this.gen = (this.gen || 0) + 1;
     var self = this;
     (function tick() {
-      if (!self.running) { return; }
+      if (!self.running || gen !== self.gen) { return; }
       self.flush();
       self.flushTimer = self.setTimer(tick, FLUSH_MS);
     }());
-    this.loop();
+    this.loop(gen);
+  };
+
+  LiveFeed.prototype.current = function (gen) {
+    return this.running && gen === this.gen;
   };
 
   LiveFeed.prototype.stop = function () {
@@ -193,22 +203,22 @@
     });
   };
 
-  LiveFeed.prototype.loop = async function () {
-    while (this.running) {
+  LiveFeed.prototype.loop = async function (gen) {
+    while (this.current(gen)) {
       var source = this.background ? null : this.stream;
       if (source && this.clock() >= this.nextStream) {
         this.streamTried = this.clock();
         var end = await this.follow(source);
         var took = this.clock() - this.streamTried;
-        if (took < FOLLOW_MIN && this.running) { await this.sleep(FOLLOW_MIN - took); }
-        if (!this.running) { return; }
+        if (took < FOLLOW_MIN && this.current(gen)) { await this.sleep(FOLLOW_MIN - took); }
+        if (!this.current(gen)) { return; }
         if (end === 'BYE' && !this.background) { continue; }
         // Given up for the background: try it again as soon as the page is back in sight.
         this.nextStream = this.background ? 0 : end === 'IDLE' ? NEVER : this.clock() + STREAM_RETRY;
         this.update({ transport: 'POLL', carRate: null });
       }
       var wait = await this.poll();
-      if (!this.running) { return; }
+      if (!this.current(gen)) { return; }
       if (this.background && wait === POLL_LIVE) { wait = POLL_HIDDEN; }
       // A session on track is the cue to try the stream again — though never sooner than
       // STREAM_MIN_GAP after the last try, whatever the two disagree about.
