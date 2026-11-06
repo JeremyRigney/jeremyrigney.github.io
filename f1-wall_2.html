@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" data-view="map">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Pitwall — live F1 timing</title>
+  <!-- Draft of a new /f1-wall, built beside the old one: kept out of search and off the
+       nav until it is signed off. -->
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="description" content="A live Formula 1 timing wall: the flag, the running order, the track and the pit wall's view of the race." />
+  <link rel="icon" href="assets/favicon-f1.svg" type="image/svg+xml" />
+  <meta name="theme-color" content="#111214" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261106a" />
+</head>
+<body>
+  <!--
+    Pitwall: the website's live timing wall, rebuilt from Pocket Pitwall, the Android app
+    that grew out of the first /f1-wall. The app is the reference: each pitwall-*.js names
+    the Kotlin file it ports. The look is /aurora's design language in the wall's own
+    colours: one face, cards and inset tiles, pills for every control, a round + for what a
+    card doesn't need to say at first, and no accent hue at all — a selected control is
+    inverted, so every colour on the page is data: the flag, team colours, timing purple and
+    green, the tyres.
+
+    Data comes from the site's Cloud Run timing API (f1_live.py), which keeps the OpenF1
+    account on the server. ?api=http://localhost:8080 points the page at a local one;
+    ?demo=green|sc|yellow|chequered|quali|idle draws a captured frame instead.
+  -->
+  <div class="wash" aria-hidden="true"><div class="beacon"></div></div>
+
+  <div class="wall" id="wall">
+    <div class="main">
+      <header class="topbar">
+        <div class="brand">
+          <a class="logo" href="f1-wall_2.html">Pitwall</a>
+          <a class="brand-by" href="/">A page by <b>Jeremy</b></a>
+        </div>
+        <p class="session-title" data-bind="title"></p>
+        <div class="header-controls">
+          <div class="seg" role="radiogroup" aria-label="View" id="views">
+            <button type="button" role="radio" data-view="map" aria-checked="true">Map</button>
+            <button type="button" role="radio" data-view="wall" aria-checked="false" tabindex="-1">Wall</button>
+            <button type="button" role="radio" data-view="feed" aria-checked="false" tabindex="-1">Feed</button>
+          </div>
+        </div>
+      </header>
+
+      <section class="capsule" aria-label="Race status">
+        <div class="cap cap-flag">
+          <span class="flag-block" aria-hidden="true"><span class="flag-mark" data-bind="flagMark"></span></span>
+          <div class="flag-text">
+            <p class="flag-word" data-bind="flagWord" aria-live="polite">Standby</p>
+            <p class="flag-note" data-bind="flagNote">Connecting to the timing feed</p>
+          </div>
+        </div>
+        <div class="cap cap-lap">
+          <p class="cap-label">Lap</p>
+          <p class="lap-value"><b data-bind="lap">—</b><span class="lap-of" data-bind="lapOf"></span></p>
+          <p class="cap-sub" data-bind="lapSub"></p>
+        </div>
+        <div class="cap cap-fastest">
+          <p class="cap-label">Fastest lap</p>
+          <p class="fastest-value"><b class="fastest-time" data-bind="fastestTime">—</b> <span class="fastest-who" data-bind="fastestWho"></span></p>
+          <p class="cap-sub"><span class="tag tag-rain" data-bind="rain" hidden>Rain</span></p>
+        </div>
+        <div class="cap cap-badge" data-tone="quiet">
+          <span class="tag tag-state" data-bind="badgeTag">Live</span>
+          <p class="badge-clock"><b data-bind="badgeClock"></b><span class="badge-delay" data-bind="badgeDelay"></span></p>
+        </div>
+      </section>
+
+      <div class="ticker" aria-label="Race control" aria-live="polite">
+        <span class="ticker-when" data-bind="tickerWhen"></span>
+        <span class="ticker-text" data-bind="tickerText">Nothing from race control yet.</span>
+      </div>
+
+      <main class="stage" id="stage">
+        <div class="stage-note card" data-for="map">
+          <p class="card-title">The track map comes next</p>
+          <p class="card-note">This draft is being built in phases. The map, with the cars, turn numbers and flagged sectors, is phase 4.</p>
+        </div>
+        <div class="stage-note card" data-for="wall">
+          <p class="card-title">The Wall comes next</p>
+          <p class="card-note">The ring of one lap, with pit-stop ghosts and where each car would rejoin, is phase 5.</p>
+        </div>
+        <div class="stage-note card" data-for="feed">
+          <p class="card-title">The feed comes next</p>
+          <p class="card-note">Race control, team radio and the track conditions are phase 6.</p>
+        </div>
+      </main>
+    </div>
+
+    <aside class="tower" aria-label="Running order">
+      <div class="tower-head">
+        <p class="cap-label">Running order</p>
+        <button type="button" class="chip chip-figure" id="figure" hidden></button>
+        <p class="cap-label figure-label" data-bind="figureLabel"></p>
+      </div>
+      <ol class="tower-list" id="tower"></ol>
+      <p class="tower-empty card-note" data-bind="towerEmpty">The running order fills in by itself when a session starts.</p>
+    </aside>
+  </div>
+
+  <span class="tag tag-demo" id="demo" hidden>Demo frame — not live</span>
+
+  <script src="assets/js/pitwall-format.js?v=20261106a"></script>
+  <script src="assets/js/pitwall-parse.js?v=20261106a"></script>
+  <script src="assets/js/pitwall-season.js?v=20261106a"></script>
+  <script src="assets/js/pitwall-sse.js?v=20261106a"></script>
+  <script src="assets/js/pitwall-live.js?v=20261106a"></script>
+  <script src="assets/js/pitwall-ui.js?v=20261106a"></script>
+  <script src="assets/js/pitwall-net.js?v=20261106a"></script>
+  <script src="assets/js/pitwall-header.js?v=20261106a"></script>
+  <script src="assets/js/pitwall-tower.js?v=20261106a"></script>
+  <script src="assets/js/pitwall-app.js?v=20261106a"></script>
+</body>
+</html>
