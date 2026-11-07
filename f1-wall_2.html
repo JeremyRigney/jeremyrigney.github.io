@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261107b" />
+  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261107c" />
 </head>
 <body>
   <!--
@@ -30,6 +30,8 @@
     ?demo=green|sc|yellow|chequered|quali|idle draws a captured frame instead.
   -->
   <div class="wash" aria-hidden="true"><div class="beacon"></div></div>
+  <!-- Between sessions, a photograph of where the next one is, behind everything. -->
+  <div class="backdrop" aria-hidden="true"></div>
 
   <div class="wall" id="wall">
     <div class="main">
@@ -69,6 +71,18 @@
               <button type="button" class="chip" id="voice-test">Test the voice</button>
             </div>
             <p class="panel-note" data-bind="voiceNote"></p>
+            <div class="setting">
+              <div>
+                <p class="setting-name">Reminders</p>
+                <p class="panel-note">A notification an hour before each session you pick, while this page is open in a tab. To be reminded with it closed, add the weekend to your calendar from the poster between sessions.</p>
+              </div>
+              <button type="button" class="chip" id="remind-on" aria-pressed="false">Off</button>
+            </div>
+            <div class="chips remind-kinds" id="remind-kinds" aria-label="Which sessions"></div>
+            <div class="voice-row">
+              <button type="button" class="chip" id="remind-test">Send a test</button>
+            </div>
+            <p class="panel-note" data-bind="remindNote"></p>
             <p class="panel-note panel-foot">Leave this tab in sight during a session. Out of sight for a minute, it gives up the live stream and checks for news every 30 seconds.</p>
           </div>
         </div>
@@ -130,6 +144,34 @@
       </button>
 
       <main class="stage" id="stage">
+        <!-- Between sessions: what's next, as a poster over the photograph of where it is
+             (pitwall-standby.js). -->
+        <section class="standby" id="standby" aria-label="Next session" hidden>
+          <div class="poster">
+            <p class="poster-when" data-bind="nextWhen"></p>
+            <h1 class="poster-event" data-bind="nextEvent"></h1>
+            <p class="poster-place" data-bind="nextPlace"></p>
+            <div class="countdown" role="timer" aria-label="Time to go">
+              <p class="countdown-days" data-bind="nextDays" hidden></p>
+              <div class="countdown-clock">
+                <p class="countdown-unit"><b data-bind="nextH">00</b><span>hrs</span></p>
+                <p class="countdown-sep" aria-hidden="true">:</p>
+                <p class="countdown-unit"><b data-bind="nextM">00</b><span>min</span></p>
+                <p class="countdown-sep" aria-hidden="true">:</p>
+                <p class="countdown-unit"><b data-bind="nextS">00</b><span>sec</span></p>
+              </div>
+              <p class="countdown-now" hidden>Starting now</p>
+            </div>
+            <ol class="weekend" id="weekend" aria-label="The weekend"></ol>
+            <div class="poster-actions">
+              <button type="button" class="chip chip-poster" id="poster-replay">Replay a past session</button>
+              <button type="button" class="chip chip-poster" id="poster-ics">Add the weekend to your calendar</button>
+              <button type="button" class="chip chip-poster" id="poster-remind" aria-pressed="false">Remind me an hour before</button>
+            </div>
+            <p class="poster-note" data-bind="posterNote"></p>
+          </div>
+          <a class="poster-credit" data-bind="photoCredit" target="_blank" rel="noopener" hidden></a>
+        </section>
         <!-- The track map: the street map, track, flagged sectors and turn numbers on one
              canvas, the cars on another over it (pitwall-map.js). -->
         <div class="map" id="map" tabindex="0" aria-label="Track map. Scroll or pinch to zoom, drag to look about, double-click to zoom in or back out.">
@@ -270,26 +312,27 @@
 
   <span class="tag tag-demo" id="demo" hidden>Demo frame — not live</span>
 
-  <script src="assets/js/pitwall-format.js?v=20261107b"></script>
-  <script src="assets/js/pitwall-parse.js?v=20261107b"></script>
-  <script src="assets/js/pitwall-season.js?v=20261107b"></script>
-  <script src="assets/js/pitwall-sse.js?v=20261107b"></script>
-  <script src="assets/js/pitwall-live.js?v=20261107b"></script>
-  <script src="assets/js/pitwall-replay.js?v=20261107b"></script>
-  <script src="assets/js/pitwall-track.js?v=20261107b"></script>
-  <script src="assets/js/pitwall-doom.js?v=20261107b"></script>
-  <script src="assets/js/pitwall-alerts.js?v=20261107b"></script>
-  <script src="assets/js/pitwall-ui.js?v=20261107b"></script>
-  <script src="assets/js/pitwall-net.js?v=20261107b"></script>
-  <script src="assets/js/pitwall-header.js?v=20261107b"></script>
-  <script src="assets/js/pitwall-tower.js?v=20261107b"></script>
-  <script src="assets/js/pitwall-timeline.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-format.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-parse.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-season.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-sse.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-live.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-replay.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-track.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-doom.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-alerts.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-ui.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-net.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-header.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-tower.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-timeline.js?v=20261107c"></script>
   <script src="assets/js/carto-basemap.js?v=20261106"></script>
-  <script src="assets/js/pitwall-map.js?v=20261107b"></script>
-  <script src="assets/js/pitwall-ring.js?v=20261107b"></script>
-  <script src="assets/js/pitwall-audio.js?v=20261107b"></script>
-  <script src="assets/js/pitwall-feed.js?v=20261107b"></script>
-  <script src="assets/js/pitwall-driver.js?v=20261107b"></script>
-  <script src="assets/js/pitwall-app.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-map.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-ring.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-audio.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-feed.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-driver.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-standby.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-app.js?v=20261107c"></script>
 </body>
 </html>

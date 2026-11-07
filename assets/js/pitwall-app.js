@@ -379,6 +379,7 @@
     ticker(frame);
     feedView(frame);
     driverCard(frame, season);
+    standby(frame, now.state);
     UI.text('delayValue', now.state.delaySeconds + 's');
     var range = document.getElementById('delay-range');
     if (document.activeElement !== range && +range.value !== now.state.delaySeconds) { range.value = now.state.delaySeconds; }
@@ -449,6 +450,198 @@
       setView('wall');
     }
   });
+
+  // ---------- Between sessions ----------
+
+  /** What's coming, from this year's sessions and next year's once they're listed. */
+  var calendar = { sessions: [], next: null, weekend: [] };
+  var calendarTimer = null;
+  var backdrops = null;
+
+  /* Read again a minute after the next session starts, so the poster moves along, and at
+     least every 6 h; with nothing to go on yet, in a minute. */
+  function loadCalendar() {
+    clearTimeout(calendarTimer);
+    var year = new Date().getUTCFullYear();
+    return Promise.all([year, year + 1].map(function (y) {
+      return P.Net.api('/f1/replay/sessions?year=' + y).then(P.Parse.sessions).catch(function () { return null; });
+    })).then(function (lists) {
+      var now = Date.now();
+      var got = lists.filter(Boolean);
+      if (got.length) {
+        calendar = P.Calendar.upcoming([].concat.apply([], got), now);
+        scheduleReminder();
+        if (feed || demo) { draw(); }
+      }
+      calendarTimer = setTimeout(loadCalendar, calendar.next ? P.Calendar.recheckIn(calendar.next, now) : 60000);
+    });
+  }
+
+  /** Live with nothing on: the poster, once the calendar says what's next. */
+  function standby(frame, state) {
+    var on = !frame && settings.mode === 'live' && !!calendar.next && (demo ? !demo.live : state.status === 'NO_SESSION');
+    P.Standby.render({
+      shown: on,
+      next: calendar.next,
+      weekend: calendar.weekend,
+      backdrop: on ? P.Backdrops.find(backdrops, calendar.next) : null,
+      remind: { on: remindersOn(), note: remindNote(true) }
+    });
+  }
+
+  /* Adds the weekend's sessions still to come to whatever calendar opens the file. */
+  function downloadWeekend() {
+    var now = Date.now();
+    var ahead = calendar.weekend.filter(function (s) { return s.start > now; });
+    if (!calendar.next) { return; }
+    var text = P.Ics.build(ahead.length ? ahead : [calendar.next], { now: now, url: window.location.origin + window.location.pathname });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([text], { type: 'text/calendar;charset=utf-8' }));
+    link.download = P.Ics.fileName(calendar.next);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(function () { URL.revokeObjectURL(link.href); }, 10000);
+  }
+
+  P.Standby.on({
+    onReplay: function () {
+      modes.pick('replay');
+      setMode('replay');
+      // After this click has finished, or the + would take it for a click elsewhere and close.
+      setTimeout(function () { UI.setMore(document.querySelector('[aria-controls="badge-panel"]'), true); }, 0);
+    },
+    onIcs: downloadWeekend,
+    onRemind: function () { setReminders(!remindersOn()); }
+  });
+
+  // ---------- Reminders ----------
+
+  /*
+   * A notification an hour before each session of the kinds picked, while the page is open:
+   * one timer at a time, for the next reminder due, checked again at least every 6 h (a
+   * timer can't wait weeks, and a laptop sleeps). Waking late, a reminder still comes if
+   * its session hasn't started. Each is tagged with its session, so two tabs show one.
+   */
+  var canNotify = 'Notification' in window;
+  var reminders = {
+    on: UI.load('remind.on', false) === true,
+    off: new Set(UI.load('remind.off', [])),
+    timer: null,
+    sent: null
+  };
+
+  var remindDay = new Intl.DateTimeFormat('en-GB', { weekday: 'short' });
+
+  function permission() {
+    return canNotify ? window.Notification.permission : 'denied';
+  }
+
+  function remindersOn() {
+    return reminders.on && permission() === 'granted';
+  }
+
+  function remindKinds() {
+    return new Set(Object.keys(P.Reminders.KINDS).filter(function (k) { return !reminders.off.has(k); }));
+  }
+
+  function nextReminder() {
+    return P.Reminders.due(calendar.sessions, Date.now(), remindKinds());
+  }
+
+  /** What the reminders are doing, in a line; on the poster, nothing while they're off. */
+  function remindNote(poster) {
+    if (!canNotify) { return 'This browser can’t show notifications.'; }
+    if (reminders.on && permission() === 'denied') { return 'Notifications are blocked for this page in the browser’s settings.'; }
+    if (!remindersOn()) { return poster ? '' : 'Off.'; }
+    var next = nextReminder();
+    if (!next) { return 'Nothing to remind you of on the calendar yet.'; }
+    var at = next.start - P.Reminders.LEAD;
+    return 'Next: ' + (next.name || 'Session') + ', reminded ' + remindDay.format(at) + ' ' + F.clock(at) + '. Keep this page open in a tab.';
+  }
+
+  function notify(session) {
+    var w = P.Reminders.words(session);
+    try {
+      var n = new window.Notification(w[0], { body: w[1], tag: 'pitwall-' + session.key });
+      n.onclick = function () {
+        window.focus();
+        n.close();
+      };
+    } catch (e) {
+      // A browser that only notifies from a service worker: the reminder is lost, not the page.
+    }
+  }
+
+  function scheduleReminder() {
+    clearTimeout(reminders.timer);
+    if (!remindersOn()) { return; }
+    var next = nextReminder();
+    if (!next) { return; }
+    var at = next.start - P.Reminders.LEAD;
+    reminders.timer = setTimeout(function () {
+      var now = Date.now();
+      if (now >= at - 1000 && next.start > now && reminders.sent !== next.key) {
+        reminders.sent = next.key;
+        notify(next);
+      }
+      scheduleReminder();
+    }, Math.min(Math.max(0, at - Date.now()), 6 * 3600000));
+  }
+
+  /* Turning them on asks the browser's leave first; that has to come from a click. */
+  function setReminders(on) {
+    if (on && canNotify && permission() === 'default') {
+      window.Notification.requestPermission().then(function (answer) { setReminders(answer === 'granted'); });
+      return;
+    }
+    reminders.on = on;
+    UI.save('remind.on', on);
+    scheduleReminder();
+    drawReminders();
+    if (feed || demo) { draw(); }
+  }
+
+  var remindOn = document.getElementById('remind-on');
+  var remindKindsEl = document.getElementById('remind-kinds');
+  var remindTest = document.getElementById('remind-test');
+
+  Object.keys(P.Reminders.KINDS).forEach(function (kind) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip';
+    b.textContent = P.Reminders.KINDS[kind];
+    b.setAttribute('data-kind', kind);
+    b.addEventListener('click', function () {
+      if (reminders.off.has(kind)) { reminders.off.delete(kind); } else { reminders.off.add(kind); }
+      UI.save('remind.off', Array.from(reminders.off));
+      scheduleReminder();
+      drawReminders();
+      if (feed || demo) { draw(); }
+    });
+    remindKindsEl.appendChild(b);
+  });
+
+  function drawReminders() {
+    var on = remindersOn();
+    remindOn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    remindOn.textContent = on ? 'On' : 'Off';
+    remindOn.disabled = !canNotify;
+    Array.prototype.forEach.call(remindKindsEl.children, function (b) {
+      b.setAttribute('aria-pressed', on && !reminders.off.has(b.getAttribute('data-kind')) ? 'true' : 'false');
+      b.disabled = !on;
+    });
+    remindTest.disabled = !on || !calendar.next;
+    UI.text('remindNote', remindNote(false));
+  }
+
+  remindOn.addEventListener('click', function () { setReminders(!remindersOn()); });
+  remindTest.addEventListener('click', function () {
+    if (calendar.next) { notify(calendar.next); }
+  });
+  // Opening the settings shows the reminder's time as it stands, the calendar having moved on.
+  document.querySelector('[aria-controls="settings-panel"]').addEventListener('click', drawReminders);
+  drawReminders();
 
   // ---------- The Wall ----------
 
@@ -948,6 +1141,12 @@
       syncWake();
     });
   }
+
+  P.Net.data('backdrops.json', DATA_V).then(function (json) {
+    backdrops = json ? P.Backdrops.parse(json) : null;
+    if (feed || demo) { draw(); }
+  });
+  loadCalendar();
 
   loadSeasons().then(function () {
     var name = params.get('demo');
