@@ -24,6 +24,8 @@
   var tel = card.querySelector('.telemetry');
   var handlers = {};
   var shown = null;
+  /** What had the keyboard's focus when the card opened, to give it back on closing. */
+  var opener = null;
 
   function esc(t) {
     return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
@@ -62,9 +64,22 @@
 
   function render(frame, c) {
     var driver = frame && c.open != null ? frame.byNumber[c.open] : null;
+    var was = shown;
+    var inside = card.contains(document.activeElement);
     card.hidden = !driver;
     shown = driver ? driver.num : null;
-    if (!driver) { return; }
+    if (!driver) {
+      // Closed with the keyboard inside it: focus goes back where it came from.
+      if (was != null && opener && inside) { opener.focus(); }
+      if (was != null) { opener = null; }
+      return;
+    }
+    if (was == null) {
+      // Opened from the keyboard (Enter on a row), it takes the focus; a click leaves it be.
+      var from = document.activeElement;
+      opener = from && from.matches && from.matches(':focus-visible') ? from : null;
+      if (opener) { setTimeout(function () { card.querySelector('.driver-close').focus(); }, 0); }
+    }
     var team = F.teamColour(driver.colour) || UI.token('--ink-soft');
     card.style.setProperty('--team', team);
     var best = frame.best;

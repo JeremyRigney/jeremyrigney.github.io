@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261107c" />
+  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261107d" />
 </head>
 <body>
   <!--
@@ -43,6 +43,8 @@
         <p class="session-title" data-bind="title"></p>
         <div class="header-controls">
           <div class="seg" role="radiogroup" aria-label="View" id="views">
+            <!-- On a narrow screen the running order is a view of its own, as in the app. -->
+            <button type="button" role="radio" data-view="tower" aria-checked="false" tabindex="-1" class="view-tower">Tower</button>
             <button type="button" role="radio" data-view="map" aria-checked="true">Map</button>
             <button type="button" role="radio" data-view="wall" aria-checked="false" tabindex="-1">Wall</button>
             <button type="button" role="radio" data-view="feed" aria-checked="false" tabindex="-1">Feed<span class="unread" data-bind="unread" hidden></span></button>
@@ -312,27 +314,27 @@
 
   <span class="tag tag-demo" id="demo" hidden>Demo frame — not live</span>
 
-  <script src="assets/js/pitwall-format.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-parse.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-season.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-sse.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-live.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-replay.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-track.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-doom.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-alerts.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-ui.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-net.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-header.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-tower.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-timeline.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-format.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-parse.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-season.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-sse.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-live.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-replay.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-track.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-doom.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-alerts.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-ui.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-net.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-header.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-tower.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-timeline.js?v=20261107d"></script>
   <script src="assets/js/carto-basemap.js?v=20261106"></script>
-  <script src="assets/js/pitwall-map.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-ring.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-audio.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-feed.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-driver.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-standby.js?v=20261107c"></script>
-  <script src="assets/js/pitwall-app.js?v=20261107c"></script>
+  <script src="assets/js/pitwall-map.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-ring.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-audio.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-feed.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-driver.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-standby.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-app.js?v=20261107d"></script>
 </body>
 </html>
