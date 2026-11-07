@@ -13,6 +13,7 @@ var FILES = [
   'pitwall-replay.js',
   'pitwall-track.js',
   'pitwall-doom.js',
+  'pitwall-alerts.js',
   'pitwall-ui.js',
   'pitwall-net.js',
   'pitwall-header.js',
@@ -20,6 +21,8 @@ var FILES = [
   'pitwall-timeline.js',
   'pitwall-map.js',
   'pitwall-ring.js',
+  'pitwall-audio.js',
+  'pitwall-feed.js',
   'pitwall-app.js'
 ];
 

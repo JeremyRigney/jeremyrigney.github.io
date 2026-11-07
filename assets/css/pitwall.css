@@ -935,6 +935,340 @@ button {
   color: var(--ink-soft);
 }
 
+/* It's a button: it opens the feed at that message. */
+.ticker {
+  width: 100%;
+  border: 0;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background-color 600ms var(--ease), box-shadow 600ms var(--ease);
+}
+
+.ticker:hover {
+  background: var(--hover);
+}
+
+/* A message worth interrupting for lights the line for a few seconds, in the shade of its
+   kind, with one pulse: colour and motion, never a change of size. */
+.ticker[data-tone] {
+  background: color-mix(in srgb, var(--tone) 22%, var(--card-solid));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 55%, transparent);
+  animation: ticker-in 900ms var(--ease) 1;
+}
+
+.ticker[data-tone="alert"] { --tone: var(--alert-soft); }
+.ticker[data-tone="caution"] { --tone: var(--caution); }
+.ticker[data-tone="good"] { --tone: var(--timing-personal); }
+.ticker[data-tone="rain"] { --tone: var(--rain); }
+.ticker[data-tone="plain"] { --tone: var(--ink-soft); }
+
+@keyframes ticker-in {
+  from { box-shadow: inset 0 0 0 3px var(--tone); }
+}
+
+.ticker-kind {
+  flex: none;
+  padding: 0.1rem 0.55rem;
+  border-radius: var(--r-pill);
+  background: var(--tone, var(--hover));
+  font-size: var(--fs-label);
+  font-weight: 700;
+  color: var(--on-selected);
+}
+
+/* How many messages arrived while the feed was closed. */
+.unread {
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.35rem;
+  border-radius: var(--r-pill);
+  background: var(--alert-fill);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  line-height: 1.25rem;
+  text-align: center;
+  color: var(--ink);
+}
+
+/* ---------- The feed ---------- */
+
+.feed {
+  position: absolute;
+  inset: 0;
+  display: none;
+  grid-template-columns: minmax(0, 1.4fr) minmax(19rem, 1fr);
+  gap: var(--s-3);
+}
+
+:root[data-view="feed"] .feed {
+  display: grid;
+}
+
+.feed-rc {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: var(--s-4) var(--s-3) var(--s-3) var(--s-5);
+  background: var(--card-solid);
+}
+
+.rc-list,
+.clip-list {
+  margin: var(--s-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rc-list {
+  min-height: 0;
+  padding-right: var(--s-2);
+  overflow-y: auto;
+}
+
+.rc-row {
+  --tone: var(--ink-faint);
+  padding: var(--s-3) var(--s-4);
+  border-radius: 14px;
+  border-left: 3px solid var(--tone);
+  background: var(--inset);
+  transition: background-color 900ms var(--ease);
+}
+
+.rc-row + .rc-row {
+  margin-top: var(--s-2);
+}
+
+.rc-row[data-tone="alert"] { --tone: var(--alert-soft); }
+.rc-row[data-tone="caution"] { --tone: var(--caution); }
+.rc-row[data-tone="good"] { --tone: var(--timing-personal); }
+.rc-row[data-tone="rain"] { --tone: var(--rain); }
+
+.rc-row[data-tone] {
+  background: color-mix(in srgb, var(--tone) 12%, var(--card-solid));
+}
+
+.rc-row[data-lit] {
+  background: color-mix(in srgb, var(--tone) 34%, var(--card-solid));
+  transition-duration: 250ms;
+}
+
+.rc-when {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.rc-kind {
+  color: var(--tone);
+  font-weight: 700;
+}
+
+.rc-driver {
+  padding: 0 0.4rem;
+  border: 1px solid var(--team, var(--rule-strong));
+  border-radius: 6px;
+  font-weight: 700;
+  color: var(--team, var(--ink));
+}
+
+.rc-text {
+  margin-top: var(--s-1);
+  font-size: var(--fs-read);
+  line-height: 1.45;
+}
+
+.rc-empty {
+  padding: var(--s-3) 0;
+  font-size: var(--fs-context);
+  color: var(--ink-soft);
+}
+
+.feed-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.cond,
+.radio {
+  padding: var(--s-4) var(--s-5);
+  background: var(--card-solid);
+}
+
+.cond-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+/* The track temperature large, with which way it has moved. */
+.cond-track {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.cond-track b {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.cond-track span {
+  font-size: var(--fs-context);
+  font-weight: 700;
+}
+
+.cond-track span[data-tone="warm"] { color: var(--caution); }
+.cond-track span[data-tone="cool"] { color: var(--rain); }
+.cond-track span[data-tone="quiet"] { color: var(--ink-soft); }
+
+.cond-spark {
+  display: block;
+  width: 100%;
+  height: 3rem;
+  margin: var(--s-2) 0 var(--s-3);
+}
+
+.cond-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2);
+  margin: 0;
+}
+
+.cond-tiles div {
+  padding: var(--s-2) var(--s-3);
+  border-radius: 12px;
+  background: var(--inset);
+}
+
+.cond-tiles dt {
+  overflow: hidden;
+  font-size: var(--fs-label);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ink-soft);
+}
+
+.cond-tiles dd {
+  margin: 0;
+  font-size: var(--fs-key);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Rain: the whole card turns to it. */
+.cond[data-rain] {
+  border-color: color-mix(in srgb, var(--rain) 50%, transparent);
+  background: color-mix(in srgb, var(--rain) 22%, var(--card-solid));
+}
+
+.tag-weather::before {
+  background: var(--caution);
+}
+
+.cond[data-rain] .tag-weather::before {
+  background: var(--rain);
+}
+
+.clip-list li + li {
+  margin-top: var(--s-1);
+}
+
+.clip {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  padding: var(--s-2) var(--s-3);
+  border: 0;
+  border-radius: 12px;
+  background: var(--inset);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.clip:hover {
+  background: var(--hover);
+}
+
+.clip[aria-pressed="true"] {
+  background: var(--selected);
+  color: var(--on-selected);
+}
+
+.clip-icon {
+  width: 1rem;
+  font-size: var(--fs-label);
+}
+
+.clip b {
+  font-size: var(--fs-read);
+  font-weight: 700;
+  color: var(--team, inherit);
+}
+
+.clip[aria-pressed="true"] b {
+  color: inherit;
+}
+
+.clip-when {
+  margin-left: auto;
+  font-size: var(--fs-label);
+  font-weight: 600;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The voice's settings. */
+.voice-kinds {
+  margin-top: var(--s-3);
+}
+
+.voice-row {
+  display: flex;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+
+.voice-row select {
+  flex: 1;
+  min-width: 0;
+  height: 2rem;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-pill);
+  background: var(--card-solid);
+  font: inherit;
+  font-size: var(--fs-label);
+  color: var(--ink);
+}
+
+#settings-panel {
+  max-height: calc(100vh - 7rem);
+  overflow-y: auto;
+}
+
+@media (max-width: 1240px) {
+  .feed {
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.9fr);
+  }
+}
+
 /* ---------- The stage ---------- */
 
 .stage {
