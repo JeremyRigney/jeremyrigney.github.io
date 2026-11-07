@@ -46,7 +46,7 @@
 
   test('colours read by scripts are six-digit hex', function () {
     var read = {};
-    ['pitwall-ui.js', 'pitwall-tower.js', 'pitwall-header.js', 'pitwall-timeline.js', 'pitwall-replay.js', 'pitwall-map.js', 'pitwall-ring.js', 'pitwall-feed.js', 'pitwall-driver.js', 'pitwall-standby.js', 'pitwall-app.js'].forEach(function (f) {
+    ['pitwall-intro.js', 'pitwall-ui.js', 'pitwall-tower.js', 'pitwall-header.js', 'pitwall-timeline.js', 'pitwall-replay.js', 'pitwall-map.js', 'pitwall-ring.js', 'pitwall-feed.js', 'pitwall-driver.js', 'pitwall-standby.js', 'pitwall-app.js'].forEach(function (f) {
       var src = readFile('assets/js/' + f);
       var re = /(?:token|colour)\('(--[\w-]+)'\)/g;
       var m;
@@ -111,6 +111,9 @@
     var re = /<script src="assets\/js\/(pitwall-[\w-]+)\.js/g;
     var m;
     while ((m = re.exec(html))) { order.push(m[1]); }
+    // The intro needs nothing and runs at the top of the page, before the wall can show.
+    eq(order.shift(), 'pitwall-intro');
+    ok(html.indexOf('pitwall-intro.js') < html.indexOf('<div class="wall"'), 'the intro loads before the wall');
     var pure = ['pitwall-format', 'pitwall-parse', 'pitwall-season', 'pitwall-sse', 'pitwall-live'];
     eq(order.slice(0, pure.length), pure);
     eq(order[order.length - 1], 'pitwall-app');

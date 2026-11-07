@@ -13,9 +13,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261107d" />
+  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261107e" />
 </head>
 <body>
+  <!-- The opening seconds: the wordmark and the five compounds rolling off, over the wall as
+       it loads (pitwall-intro.js). First in the page, so the wall never shows before it. -->
+  <div class="intro" aria-hidden="true" hidden>
+    <p class="intro-word">Pitwall</p>
+    <canvas></canvas>
+  </div>
+  <script src="assets/js/pitwall-intro.js?v=20261107e"></script>
   <!--
     Pitwall: the website's live timing wall, rebuilt from Pocket Pitwall, the Android app
     that grew out of the first /f1-wall. The app is the reference: each pitwall-*.js names
@@ -314,27 +321,27 @@
 
   <span class="tag tag-demo" id="demo" hidden>Demo frame — not live</span>
 
-  <script src="assets/js/pitwall-format.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-parse.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-season.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-sse.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-live.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-replay.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-track.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-doom.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-alerts.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-ui.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-net.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-header.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-tower.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-timeline.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-format.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-parse.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-season.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-sse.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-live.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-replay.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-track.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-doom.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-alerts.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-ui.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-net.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-header.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-tower.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-timeline.js?v=20261107e"></script>
   <script src="assets/js/carto-basemap.js?v=20261106"></script>
-  <script src="assets/js/pitwall-map.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-ring.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-audio.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-feed.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-driver.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-standby.js?v=20261107d"></script>
-  <script src="assets/js/pitwall-app.js?v=20261107d"></script>
+  <script src="assets/js/pitwall-map.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-ring.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-audio.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-feed.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-driver.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-standby.js?v=20261107e"></script>
+  <script src="assets/js/pitwall-app.js?v=20261107e"></script>
 </body>
 </html>
