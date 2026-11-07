@@ -23,6 +23,7 @@ var FILES = [
   'pitwall-ring.js',
   'pitwall-audio.js',
   'pitwall-feed.js',
+  'pitwall-driver.js',
   'pitwall-app.js'
 ];
 

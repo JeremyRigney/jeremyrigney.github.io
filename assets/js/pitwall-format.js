@@ -287,6 +287,13 @@
     return out;
   }
 
+  /** "Max VERSTAPPEN" → "Max Verstappen". */
+  function titleCase(name) {
+    return String(name).split(' ').map(function (part) {
+      return part.length > 1 && part === part.toUpperCase() ? part.charAt(0) + part.slice(1).toLowerCase() : part;
+    }).join(' ');
+  }
+
   function driverLabel(driver) {
     return driver.code || '#' + driver.num;
   }
@@ -398,6 +405,7 @@
     compass: compass,
     sentence: sentence,
     driverLabel: driverLabel,
+    titleCase: titleCase,
     same: same,
     teamColour: teamColour
   };

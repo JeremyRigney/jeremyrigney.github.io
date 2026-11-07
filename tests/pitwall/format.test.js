@@ -107,6 +107,13 @@
     isNull(F.sessionShort(null));
   });
 
+  test('names in title case', function () {
+    eq(F.titleCase('Max VERSTAPPEN'), 'Max Verstappen');
+    eq(F.titleCase('Kimi ANTONELLI'), 'Kimi Antonelli');
+    eq(F.titleCase('Oliver BEARMAN'), 'Oliver Bearman');
+    eq(F.titleCase('A B'), 'A B');
+  });
+
   test('wind from the compass', function () {
     eq(F.compass(0), 'N');
     eq(F.compass(22), 'N');

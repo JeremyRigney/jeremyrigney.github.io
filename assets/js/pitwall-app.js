@@ -80,6 +80,8 @@
     gapMode: UI.load('gap', 'LEADER'),
     followed: new Set(followedAtStart()),
     picked: null,
+    /** The car whose card is open, if any. */
+    open: null,
     keepAwake: UI.load('awake', true) !== false,
     sound: UI.load('sound', true) !== false,
     voice: {
@@ -376,6 +378,7 @@
     ring(frame, season, now.state);
     ticker(frame);
     feedView(frame);
+    driverCard(frame, season);
     UI.text('delayValue', now.state.delaySeconds + 's');
     var range = document.getElementById('delay-range');
     if (document.activeElement !== range && +range.value !== now.state.delaySeconds) { range.value = now.state.delaySeconds; }
@@ -409,9 +412,41 @@
   }
 
   P.Map.on({
-    onCar: function (num) {
-      settings.picked = settings.picked === num ? null : num;
+    onCar: function (num) { pickAndOpen(num); }
+  });
+
+  // ---------- One car in full ----------
+
+  function driverCard(frame, season) {
+    var live = settings.mode === 'live' && !demo;
+    P.Driver.render(frame, {
+      open: settings.open,
+      followed: settings.followed,
+      // The ghost belongs to races with a pit loss to project from.
+      canGhost: !!(frame && P.Format.isRace(frame.session) && frame.strategy && frame.strategy.pitLoss),
+      live: live,
+      cars: live && feed ? feed.cars : null,
+      totalLaps: frame ? P.Season.totalLaps(season, frame.session) : null
+    });
+  }
+
+  P.Driver.on({
+    /** Closing keeps the pick: the car stays ringed in the tower and on the Wall. */
+    onClose: function () {
+      settings.open = null;
       draw();
+    },
+    onFollow: function (num) {
+      if (settings.followed.has(num)) { settings.followed.delete(num); } else { settings.followed.add(num); }
+      UI.save('follow', Array.from(settings.followed));
+      draw();
+    },
+    /** The ghost is on the Wall: go there with the car picked. */
+    onGhost: function (num) {
+      settings.picked = num;
+      settings.open = null;
+      views.pick('wall');
+      setView('wall');
     }
   });
 
@@ -727,11 +762,15 @@
   views.pick(settings.view);
   setView(settings.view);
 
+  /** A click on a car in the tower or on the map: pick it and open its card, or let go of it. */
+  function pickAndOpen(num) {
+    settings.picked = settings.picked === num ? null : num;
+    settings.open = settings.picked;
+    draw();
+  }
+
   P.Tower.on({
-    onPick: function (num) {
-      settings.picked = settings.picked === num ? null : num;
-      draw();
-    },
+    onPick: pickAndOpen,
     onFollow: function (num) {
       if (settings.followed.has(num)) { settings.followed.delete(num); } else { settings.followed.add(num); }
       UI.save('follow', Array.from(settings.followed));
@@ -875,7 +914,10 @@
     });
     // The stream's car updates, several a second, move the map alone.
     feed.onCars(function (cars) {
-      if (settings.mode === 'live') { P.Map.stream(cars); }
+      if (settings.mode === 'live') {
+        P.Map.stream(cars);
+        P.Driver.telemetry(cars);
+      }
     });
 
     // A link to a moment of a past session opens straight onto it.

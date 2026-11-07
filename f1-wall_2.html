@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261107a" />
+  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261107b" />
 </head>
 <body>
   <!--
@@ -205,6 +205,29 @@
             </section>
           </div>
         </div>
+        <!-- One car in full, over the stage's right edge (pitwall-driver.js). -->
+        <aside class="card driver" id="driver" aria-label="Driver" hidden>
+          <button type="button" class="more driver-close" aria-expanded="true" aria-label="Close the driver card"></button>
+          <div class="driver-top"></div>
+          <section class="tile telemetry" aria-label="Live telemetry">
+            <p class="cap-label">Live telemetry</p>
+            <p class="tel-none">Live telemetry needs the stream</p>
+            <div class="tel-read">
+              <p class="tel-big"><b data-bind="telSpeed">—</b><span>km/h</span></p>
+              <p class="tel-big tel-gear"><b data-bind="telGear">—</b><span>Gear</span></p>
+            </div>
+            <div class="tel-bars">
+              <p>Throttle</p><div class="tel-bar"><i data-level="throttle" data-tone="good"></i></div>
+              <p>Brake</p><div class="tel-bar"><i data-level="brake" data-tone="alert"></i></div>
+              <p data-bind="telRpm">rpm</p><div class="tel-bar tel-thin"><i data-level="rpm"></i></div>
+            </div>
+          </section>
+          <div class="driver-body"></div>
+          <div class="driver-actions">
+            <button type="button" class="chip driver-follow" aria-pressed="false">Follow driver</button>
+            <button type="button" class="chip driver-ghost">Show pit ghost</button>
+          </div>
+        </aside>
       </main>
 
       <!-- The dock: the session as a track. In replay a slider, with play, speed and the
@@ -247,25 +270,26 @@
 
   <span class="tag tag-demo" id="demo" hidden>Demo frame — not live</span>
 
-  <script src="assets/js/pitwall-format.js?v=20261107a"></script>
-  <script src="assets/js/pitwall-parse.js?v=20261107a"></script>
-  <script src="assets/js/pitwall-season.js?v=20261107a"></script>
-  <script src="assets/js/pitwall-sse.js?v=20261107a"></script>
-  <script src="assets/js/pitwall-live.js?v=20261107a"></script>
-  <script src="assets/js/pitwall-replay.js?v=20261107a"></script>
-  <script src="assets/js/pitwall-track.js?v=20261107a"></script>
-  <script src="assets/js/pitwall-doom.js?v=20261107a"></script>
-  <script src="assets/js/pitwall-alerts.js?v=20261107a"></script>
-  <script src="assets/js/pitwall-ui.js?v=20261107a"></script>
-  <script src="assets/js/pitwall-net.js?v=20261107a"></script>
-  <script src="assets/js/pitwall-header.js?v=20261107a"></script>
-  <script src="assets/js/pitwall-tower.js?v=20261107a"></script>
-  <script src="assets/js/pitwall-timeline.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-format.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-parse.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-season.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-sse.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-live.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-replay.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-track.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-doom.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-alerts.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-ui.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-net.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-header.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-tower.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-timeline.js?v=20261107b"></script>
   <script src="assets/js/carto-basemap.js?v=20261106"></script>
-  <script src="assets/js/pitwall-map.js?v=20261107a"></script>
-  <script src="assets/js/pitwall-ring.js?v=20261107a"></script>
-  <script src="assets/js/pitwall-audio.js?v=20261107a"></script>
-  <script src="assets/js/pitwall-feed.js?v=20261107a"></script>
-  <script src="assets/js/pitwall-app.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-map.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-ring.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-audio.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-feed.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-driver.js?v=20261107b"></script>
+  <script src="assets/js/pitwall-app.js?v=20261107b"></script>
 </body>
 </html>

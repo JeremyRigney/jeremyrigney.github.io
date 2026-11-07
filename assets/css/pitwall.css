@@ -1575,6 +1575,257 @@ button {
   }
 }
 
+/* ---------- One car in full ---------- */
+
+/* Over the stage's right edge, next to the tower: the car's code in its team colour on a
+   shade of it, then its telemetry, figures, sectors and tyres as inset tiles. */
+.driver {
+  position: absolute;
+  top: var(--s-3);
+  right: var(--s-3);
+  bottom: var(--s-3);
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  width: min(24rem, calc(100% - 2 * var(--s-3)));
+  padding: var(--s-3);
+  overflow-y: auto;
+  background: var(--card-solid);
+}
+
+.driver-close {
+  position: absolute;
+  top: var(--s-4);
+  right: var(--s-4);
+  z-index: 1;
+}
+
+.driver-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-3) 3.5rem var(--s-3) var(--s-4);
+  border-radius: var(--r-inset);
+  background: color-mix(in srgb, var(--team) 22%, var(--card-solid));
+}
+
+.driver-code {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--team);
+}
+
+.driver-name {
+  margin-top: var(--s-1);
+  font-size: var(--fs-context);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.driver-pos {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-variant-numeric: tabular-nums;
+}
+
+.driver-pos b {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.driver-note {
+  padding: 0 var(--s-2);
+  font-size: var(--fs-context);
+  font-weight: 700;
+  color: var(--alert-soft);
+}
+
+.tile {
+  padding: var(--s-3) var(--s-4);
+  border-radius: 14px;
+  background: var(--inset);
+}
+
+.driver-figs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-2);
+}
+
+.fig {
+  padding: var(--s-2) var(--s-3);
+  border-radius: 14px;
+  background: var(--inset);
+}
+
+.fig-value {
+  font-size: var(--fs-glance);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.driver-sectors {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+
+.driver-sectors i {
+  display: block;
+  height: 0.3125rem;
+  border-radius: 3px;
+  background: var(--ink);
+}
+
+.driver-sectors b {
+  display: block;
+  margin-top: var(--s-1);
+  font-size: var(--fs-read);
+  font-variant-numeric: tabular-nums;
+}
+
+.driver-sectors .is-none i {
+  background: var(--rule-strong);
+}
+
+.driver-sectors .is-none b {
+  color: var(--ink-faint);
+}
+
+.driver-sectors .is-best i { background: var(--timing-best); }
+.driver-sectors .is-best b { color: var(--timing-best); }
+.driver-sectors .is-personal i { background: var(--timing-personal); }
+.driver-sectors .is-personal b { color: var(--timing-personal); }
+
+.driver-tyre {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-read);
+}
+
+.driver-tyre .tyre-ring {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.driver .stint-bar {
+  margin: var(--s-3) 0 var(--s-1);
+}
+
+.driver .ring-hint {
+  margin-top: var(--s-1);
+}
+
+/* Live telemetry, straight under the name: speed and gear large, throttle and brake as bars,
+   the revs thin. */
+.telemetry[data-none] .tel-read,
+.telemetry[data-none] .tel-bars,
+.telemetry:not([data-none]) .tel-none {
+  display: none;
+}
+
+.tel-none {
+  margin-top: var(--s-1);
+  font-size: var(--fs-context);
+  color: var(--ink-soft);
+}
+
+.tel-read {
+  display: flex;
+  justify-content: space-between;
+  margin: var(--s-1) 0 var(--s-2);
+}
+
+.tel-big {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.tel-big b {
+  font-size: 2.75rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.tel-big span {
+  font-size: var(--fs-label);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.tel-bars {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+}
+
+.tel-bars p {
+  font-size: var(--fs-label);
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.tel-bar {
+  height: 0.875rem;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+  background: var(--inset);
+}
+
+.tel-thin {
+  height: 0.375rem;
+}
+
+/* Eased between samples, so four a second read as motion. */
+.tel-bar i {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: var(--ink-soft);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 180ms linear;
+}
+
+.tel-bar i[data-tone="good"] { background: var(--timing-personal); }
+.tel-bar i[data-tone="alert"] { background: var(--alert-soft); }
+
+.driver-top,
+.driver-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+/* Kept in reach at the foot while the card scrolls. */
+.driver-actions {
+  position: sticky;
+  bottom: calc(-1 * var(--s-3));
+  display: flex;
+  gap: var(--s-2);
+  margin: auto calc(-1 * var(--s-3)) calc(-1 * var(--s-3));
+  padding: var(--s-2) var(--s-3) var(--s-3);
+  background: var(--card-solid);
+}
+
+.driver-actions .chip {
+  flex: 1;
+}
+
 /* ---------- The map ---------- */
 
 /* The map fills the stage: borderless canvases in a rounded frame, with its few controls
