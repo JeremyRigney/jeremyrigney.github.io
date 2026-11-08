@@ -11,11 +11,13 @@ var FILES = [
   'pitwall-sse.js',
   'pitwall-live.js',
   'pitwall-replay.js',
+  'pitwall-track.js',
   'pitwall-ui.js',
   'pitwall-net.js',
   'pitwall-header.js',
   'pitwall-tower.js',
   'pitwall-timeline.js',
+  'pitwall-map.js',
   'pitwall-app.js'
 ];
 

@@ -224,6 +224,7 @@
       standbyNote: standbyNote(now.state)
     });
     P.Tower.render(frame, settings);
+    map(frame, season);
     ticker(frame);
     UI.text('delayValue', now.state.delaySeconds + 's');
     var range = document.getElementById('delay-range');
@@ -236,6 +237,33 @@
     if (!frame && now.state.reason) { UI.text('towerEmpty', 'No session running. The running order fills in by itself when one starts.'); }
     document.title = frame ? F.flagWord(frame.flag ? frame.flag.state : 'GREEN') + ' · Pitwall' : 'Pitwall — live F1 timing';
   }
+
+  // ---------- The map ----------
+
+  /** Live, the stream's car positions move the map between frames; in replay the frames do. */
+  function streamed() {
+    return settings.mode === 'live' && feed && !demo ? feed.cars : null;
+  }
+
+  function map(frame, season) {
+    var session = frame && frame.session;
+    var round = P.Season.roundFor(season, session);
+    P.Map.render(frame, {
+      geoId: round ? round.geoId : null,
+      circuit: session ? session.circuit || session.location : null,
+      followed: settings.followed,
+      shown: settings.view === 'map',
+      streamed: streamed(),
+      streamRate: feed && feed.state.carRate
+    });
+  }
+
+  P.Map.on({
+    onCar: function (num) {
+      settings.picked = settings.picked === num ? null : num;
+      draw();
+    }
+  });
 
   // ---------- The dock ----------
 
@@ -435,6 +463,7 @@
     settings.view = view;
     document.documentElement.setAttribute('data-view', view);
     UI.save('view', view);
+    if (feed || demo) { draw(); }
   }
 
   var views = UI.seg(document.getElementById('views'), 'data-view', setView);
@@ -586,6 +615,10 @@
     });
     feed.onState(function () {
       if (settings.mode === 'live') { draw(); }
+    });
+    // The stream's car updates, several a second, move the map alone.
+    feed.onCars(function (cars) {
+      if (settings.mode === 'live') { P.Map.stream(cars); }
     });
 
     // A link to a moment of a past session opens straight onto it.

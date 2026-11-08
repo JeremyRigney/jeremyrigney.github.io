@@ -244,6 +244,12 @@
     return value == null ? DASH : Math.round(value) + '°';
   }
 
+  /** Where the wind blows from, as eight points: "NE" for 40°. */
+  function compass(deg) {
+    var points = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    return points[((Math.trunc((deg + 22.5) / 45) % 8) + 8) % 8];
+  }
+
   // ---------- Race control's capitals ----------
 
   var KEEP_UPPER = { FIA: 1, VSC: 1, SC: 1, DRS: 1, DSQ: 1, DNF: 1, DNS: 1, NC: 1, TV: 1, CCTV: 1, FP1: 1, FP2: 1, FP3: 1 };
@@ -389,6 +395,7 @@
     countdown: countdown,
     minutesSeconds: minutesSeconds,
     degrees: degrees,
+    compass: compass,
     sentence: sentence,
     driverLabel: driverLabel,
     same: same,

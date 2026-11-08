@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261106d" />
+  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261106e" />
 </head>
 <body>
   <!--
@@ -116,9 +116,20 @@
       </div>
 
       <main class="stage" id="stage">
-        <div class="stage-note card" data-for="map">
-          <p class="card-title">The track map comes next</p>
-          <p class="card-note">This draft is being built in phases. The map, with the cars, turn numbers and flagged sectors, is phase 4.</p>
+        <!-- The track map: the street map, track, flagged sectors and turn numbers on one
+             canvas, the cars on another over it (pitwall-map.js). -->
+        <div class="map" id="map" tabindex="0" aria-label="Track map. Scroll or pinch to zoom, drag to look about, double-click to zoom in or back out.">
+          <canvas class="map-base" aria-hidden="true"></canvas>
+          <canvas class="map-cars" aria-hidden="true"></canvas>
+          <p class="map-notice" hidden></p>
+          <div class="map-wind" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 18.5 11h-4.25v10.5h-4.5V11H5.5z" fill="currentColor"/></svg>
+            <p><b data-bind="windSpeed"></b><span data-bind="windFrom"></span></p>
+          </div>
+          <button type="button" class="chip map-whole" hidden>Whole track</button>
+          <button type="button" class="chip map-follow" aria-pressed="false" hidden>Follow</button>
+          <p class="map-note" hidden></p>
+          <p class="map-credit" hidden>© OpenStreetMap contributors © CARTO</p>
         </div>
         <div class="stage-note card" data-for="wall">
           <p class="card-title">The Wall comes next</p>
@@ -170,17 +181,20 @@
 
   <span class="tag tag-demo" id="demo" hidden>Demo frame — not live</span>
 
-  <script src="assets/js/pitwall-format.js?v=20261106d"></script>
-  <script src="assets/js/pitwall-parse.js?v=20261106d"></script>
-  <script src="assets/js/pitwall-season.js?v=20261106d"></script>
-  <script src="assets/js/pitwall-sse.js?v=20261106d"></script>
-  <script src="assets/js/pitwall-live.js?v=20261106d"></script>
-  <script src="assets/js/pitwall-replay.js?v=20261106d"></script>
-  <script src="assets/js/pitwall-ui.js?v=20261106d"></script>
-  <script src="assets/js/pitwall-net.js?v=20261106d"></script>
-  <script src="assets/js/pitwall-header.js?v=20261106d"></script>
-  <script src="assets/js/pitwall-tower.js?v=20261106d"></script>
-  <script src="assets/js/pitwall-timeline.js?v=20261106d"></script>
-  <script src="assets/js/pitwall-app.js?v=20261106d"></script>
+  <script src="assets/js/pitwall-format.js?v=20261106e"></script>
+  <script src="assets/js/pitwall-parse.js?v=20261106e"></script>
+  <script src="assets/js/pitwall-season.js?v=20261106e"></script>
+  <script src="assets/js/pitwall-sse.js?v=20261106e"></script>
+  <script src="assets/js/pitwall-live.js?v=20261106e"></script>
+  <script src="assets/js/pitwall-replay.js?v=20261106e"></script>
+  <script src="assets/js/pitwall-track.js?v=20261106e"></script>
+  <script src="assets/js/pitwall-ui.js?v=20261106e"></script>
+  <script src="assets/js/pitwall-net.js?v=20261106e"></script>
+  <script src="assets/js/pitwall-header.js?v=20261106e"></script>
+  <script src="assets/js/pitwall-tower.js?v=20261106e"></script>
+  <script src="assets/js/pitwall-timeline.js?v=20261106e"></script>
+  <script src="assets/js/carto-basemap.js?v=20261106"></script>
+  <script src="assets/js/pitwall-map.js?v=20261106e"></script>
+  <script src="assets/js/pitwall-app.js?v=20261106e"></script>
 </body>
 </html>
