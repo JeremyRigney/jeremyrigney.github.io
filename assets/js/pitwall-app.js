@@ -81,6 +81,13 @@
     followed: new Set(followedAtStart()),
     picked: null,
     keepAwake: UI.load('awake', true) !== false,
+    sound: UI.load('sound', true) !== false,
+    voice: {
+      on: UI.load('voice.on', true) !== false,
+      // Stored as the kinds switched off, so a new kind starts on.
+      off: new Set(UI.load('voice.off', [])),
+      name: UI.load('voice.name', null)
+    },
     mode: 'live'
   };
   if (VIEWS.indexOf(settings.view) < 0) { settings.view = 'map'; }
@@ -182,23 +189,163 @@
 
   // ---------- Race control's line ----------
 
+  /*
+   * On a wide screen the ticker is the banner: a message worth interrupting for (a penalty,
+   * an investigation, one cleared, the weather) lights it in the shade of its kind for 12 s
+   * if serious, 8 s otherwise. The rest of the time it shows the newest message, plain.
+   */
+  var banner = { event: null, timer: null };
+  var tickerShows = null;
+
+  function raiseBanner(event) {
+    clearTimeout(banner.timer);
+    banner.event = event;
+    banner.timer = setTimeout(function () {
+      banner.event = null;
+      draw();
+    }, event.severity === 'high' ? 12000 : 8000);
+  }
+
   function ticker(frame) {
     var newest = null;
     (frame ? frame.events : []).forEach(function (e) {
       if (!newest || (e.t || 0) > (newest.t || 0)) { newest = e; }
     });
+    var shown = banner.event || newest;
+    tickerShows = shown;
     var el = document.querySelector('.ticker');
-    UI.setAttr(el, 'data-empty', newest ? null : '');
-    if (!newest) {
+    UI.setAttr(el, 'data-empty', shown ? null : '');
+    var kind = banner.event ? P.eventKind(banner.event) : null;
+    UI.setAttr(el, 'data-tone', banner.event ? (kind ? kind[1] : 'plain') : null);
+    UI.show('tickerKind', !!kind);
+    UI.text('tickerKind', kind ? kind[0] : '');
+    if (!shown) {
       UI.text('tickerWhen', '');
       UI.text('tickerText', frame ? 'Nothing from race control yet.' : 'Race control’s messages show here.');
       return;
     }
     var codes = {};
-    frame.drivers.forEach(function (d) { if (d.code) { codes[d.code] = true; } });
-    UI.text('tickerWhen', [F.clock(newest.t), newest.lap != null ? 'Lap ' + newest.lap : null].filter(Boolean).join(' · '));
-    UI.text('tickerText', F.sentence(newest.text, codes));
+    (frame ? frame.drivers : []).forEach(function (d) { if (d.code) { codes[d.code] = true; } });
+    UI.text('tickerWhen', [F.clock(shown.t), shown.lap != null ? 'Lap ' + shown.lap : null].filter(Boolean).join(' · '));
+    UI.text('tickerText', F.sentence(shown.text, codes));
   }
+
+  /* Clicking the ticker opens the feed at that message, lit for a moment. */
+  document.querySelector('.ticker').addEventListener('click', function () {
+    if (tickerShows) { P.Feed.highlight(tickerShows); }
+    banner.event = null;
+    views.pick('feed');
+    setView('feed');
+  });
+
+  // ---------- What's news in each drawn frame ----------
+
+  var alerts = new P.Alerts();
+  var announcer = new P.Announcer();
+  var weather = new P.WeatherHistory();
+  var processed = null;
+  var unread = 0;
+
+  /** Pause a replay while a clicked clip plays; true if it did. */
+  function holdReplay() {
+    if (settings.mode === 'replay' && replay.state.playing) {
+      replay.stop();
+      return true;
+    }
+    return false;
+  }
+
+  var radio = new P.Radio({
+    player: P.Audio.player,
+    follow: function () { return settings.followed; },
+    soundOn: function () { return settings.sound; },
+    hold: holdReplay,
+    release: function () { replay.play(); },
+    onChange: function () { draw(); }
+  });
+
+  /** Whether flag changes may be said: live, or a replay playing at 10× or slower. */
+  function mayAnnounce() {
+    if (demo) { return false; }
+    if (settings.mode === 'replay') { return replay.state.playing && replay.state.speed <= 10; }
+    return true;
+  }
+
+  /** Whether followed drivers' radio plays by itself: live, or a replay playing at 1×. */
+  function mayAutoplay() {
+    if (demo) { return false; }
+    if (settings.mode === 'replay') { return replay.state.playing && replay.state.speed <= 1; }
+    return true;
+  }
+
+  function speak(a) {
+    if (!a || !settings.voice.on || settings.voice.off.has(a.kind)) { return; }
+    P.Audio.say(a.words, settings.voice.name);
+  }
+
+  /** A newly drawn frame: banners, the voice, the conditions' record, team radio. */
+  function process(frame) {
+    if (!frame || frame === processed) { return; }
+    processed = frame;
+    var feedOpen = settings.view === 'feed';
+    var news = alerts.sync(frame, feedOpen);
+    if (news && !feedOpen) { raiseBanner(news); }
+    var allowed = mayAnnounce();
+    speak(announcer.next(frame, allowed));
+    var rain = announcer.rain(frame, allowed);
+    speak(rain);
+    // Rain starting or stopping is news on the ticker too, said in the wall's own words.
+    if (rain && !feedOpen) {
+      raiseBanner({ t: frame.raceAt, type: 'weather', severity: 'info', lap: frame.lap, drivers: [], text: rain.words });
+    }
+    weather.add(frame);
+    radio.sync(frame, mayAutoplay());
+    unread = feedOpen ? 0 : alerts.unread(frame);
+  }
+
+  /** A new mode or session: nothing carries over. */
+  function forget() {
+    alerts.reset();
+    announcer.reset();
+    weather = new P.WeatherHistory();
+    radio.reset();
+    processed = null;
+    unread = 0;
+    clearTimeout(banner.timer);
+    banner.event = null;
+  }
+
+  function feedView(frame) {
+    if (settings.view === 'feed' && frame) {
+      alerts.markRead(frame);
+      unread = 0;
+    }
+    UI.show('unread', unread > 0);
+    UI.text('unread', unread > 9 ? '9+' : unread);
+    P.Feed.render(frame, {
+      weather: weather,
+      radio: radio,
+      followed: settings.followed,
+      soundOn: settings.sound,
+      unlocked: P.Audio.unlocked(),
+      mode: settings.mode,
+      shown: settings.view === 'feed'
+    });
+  }
+
+  P.Feed.on({
+    onClip: function (key) {
+      var clip = (radio.clips || []).filter(function (c) { return c.key === key; })[0];
+      if (!clip) { return; }
+      if (radio.playing && radio.playing.key === key) { radio.stopClip(); } else { radio.playClip(clip); }
+    },
+    onSound: function () {
+      settings.sound = !settings.sound;
+      UI.save('sound', settings.sound);
+      if (!settings.sound) { radio.silence(); }
+      draw();
+    }
+  });
 
   // ---------- Drawing ----------
 
@@ -223,10 +370,12 @@
       badge: badgeFor(now.state, frame),
       standbyNote: standbyNote(now.state)
     });
+    process(frame);
     P.Tower.render(frame, settings);
     map(frame, season);
     ring(frame, season, now.state);
     ticker(frame);
+    feedView(frame);
     UI.text('delayValue', now.state.delaySeconds + 's');
     var range = document.getElementById('delay-range');
     if (document.activeElement !== range && +range.value !== now.state.delaySeconds) { range.value = now.state.delaySeconds; }
@@ -354,6 +503,7 @@
     settings.mode = mode;
     document.documentElement.setAttribute('data-mode', mode);
     modes.pick(mode);
+    forget();
     if (mode === 'replay') {
       if (feed) { feed.stop(); }
       if (!replay.state.sessions) { replay.loadYear(replay.state.year); }
@@ -500,8 +650,78 @@
     settings.view = view;
     document.documentElement.setAttribute('data-view', view);
     UI.save('view', view);
+    if (view === 'feed') {
+      clearTimeout(banner.timer);
+      banner.event = null;
+    }
     if (feed || demo) { draw(); }
   }
+
+  // ---------- The voice's settings ----------
+
+  var voiceOn = document.getElementById('voice-on');
+  var voiceKinds = document.getElementById('voice-kinds');
+  var voicePick = document.getElementById('voice-pick');
+
+  Object.keys(P.Announcer.KINDS).forEach(function (kind) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip';
+    b.textContent = P.Announcer.KINDS[kind];
+    b.setAttribute('data-kind', kind);
+    b.addEventListener('click', function () {
+      if (settings.voice.off.has(kind)) { settings.voice.off.delete(kind); } else { settings.voice.off.add(kind); }
+      UI.save('voice.off', Array.from(settings.voice.off));
+      drawVoice();
+    });
+    voiceKinds.appendChild(b);
+  });
+
+  function drawVoice() {
+    var v = settings.voice;
+    voiceOn.setAttribute('aria-pressed', v.on ? 'true' : 'false');
+    voiceOn.textContent = v.on ? 'On' : 'Off';
+    Array.prototype.forEach.call(voiceKinds.children, function (b) {
+      b.setAttribute('aria-pressed', v.on && !v.off.has(b.getAttribute('data-kind')) ? 'true' : 'false');
+      b.disabled = !v.on;
+    });
+    var list = P.Audio.voices();
+    var names = list.map(function (x) { return x.name; }).join('|');
+    if (voicePick.__names !== names) {
+      voicePick.__names = names;
+      voicePick.innerHTML = '';
+      list.forEach(function (x, i) {
+        var o = document.createElement('option');
+        o.value = x.name;
+        o.textContent = 'Voice ' + String.fromCharCode(65 + i) + ' — ' + x.name;
+        voicePick.appendChild(o);
+      });
+    }
+    if (v.name && list.some(function (x) { return x.name === v.name; })) { voicePick.value = v.name; }
+    voicePick.hidden = !list.length;
+    UI.text('voiceNote', !P.Audio.canSpeak ? 'This browser can’t speak, so the alerts stay on the screen.' :
+      !list.length ? 'No UK English voice that runs on this computer; the browser’s own voice is used.' :
+      !P.Audio.unlocked() ? 'The browser lets the page speak after one click anywhere on it.' : '');
+  }
+
+  voiceOn.addEventListener('click', function () {
+    settings.voice.on = !settings.voice.on;
+    UI.save('voice.on', settings.voice.on);
+    drawVoice();
+  });
+  voicePick.addEventListener('change', function () {
+    settings.voice.name = voicePick.value;
+    UI.save('voice.name', settings.voice.name);
+    P.Audio.say('Safety car alert', settings.voice.name);
+  });
+  document.getElementById('voice-test').addEventListener('click', function () {
+    P.Audio.say('Safety car alert', settings.voice.name);
+  });
+  P.Audio.onChange(function () {
+    drawVoice();
+    if (feed || demo) { draw(); }
+  });
+  drawVoice();
 
   var views = UI.seg(document.getElementById('views'), 'data-view', setView);
   views.pick(settings.view);
@@ -552,7 +772,7 @@
   var wake = { sentinel: null, pending: false };
 
   function syncWake() {
-    var on = settings.mode === 'replay' ? replay.state.playing : !!feed && feed.state.status === 'LIVE';
+    var on = settings.mode === 'replay' ? replay.state.playing : !!feed && feed.state.status === 'LIVE' && !demo;
     var want = settings.keepAwake && on && document.visibilityState === 'visible';
     if (want && !wake.sentinel && !wake.pending && navigator.wakeLock) {
       wake.pending = true;

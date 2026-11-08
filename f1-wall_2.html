@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261106f" />
+  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261107a" />
 </head>
 <body>
   <!--
@@ -43,7 +43,7 @@
           <div class="seg" role="radiogroup" aria-label="View" id="views">
             <button type="button" role="radio" data-view="map" aria-checked="true">Map</button>
             <button type="button" role="radio" data-view="wall" aria-checked="false" tabindex="-1">Wall</button>
-            <button type="button" role="radio" data-view="feed" aria-checked="false" tabindex="-1">Feed</button>
+            <button type="button" role="radio" data-view="feed" aria-checked="false" tabindex="-1">Feed<span class="unread" data-bind="unread" hidden></span></button>
           </div>
           <button type="button" class="chip" id="fullscreen" aria-pressed="false" hidden>Full screen</button>
           <button type="button" class="more" aria-controls="settings-panel" aria-expanded="false" aria-label="Settings"></button>
@@ -56,6 +56,19 @@
               </div>
               <button type="button" class="chip" id="keep-awake" aria-pressed="true">On</button>
             </div>
+            <div class="setting">
+              <div>
+                <p class="setting-name">Voice alerts</p>
+                <p class="panel-note">A tone, then the flag said out loud as the wall shows it. Set the delay a second ahead of your stream to hear it just before the picture.</p>
+              </div>
+              <button type="button" class="chip" id="voice-on" aria-pressed="true">On</button>
+            </div>
+            <div class="chips voice-kinds" id="voice-kinds" aria-label="Which alerts"></div>
+            <div class="voice-row">
+              <select id="voice-pick" aria-label="Voice"></select>
+              <button type="button" class="chip" id="voice-test">Test the voice</button>
+            </div>
+            <p class="panel-note" data-bind="voiceNote"></p>
             <p class="panel-note panel-foot">Leave this tab in sight during a session. Out of sight for a minute, it gives up the live stream and checks for news every 30 seconds.</p>
           </div>
         </div>
@@ -110,10 +123,11 @@
         </div>
       </section>
 
-      <div class="ticker" aria-label="Race control" aria-live="polite">
+      <button type="button" class="ticker" aria-label="Race control's newest message; opens the feed" aria-live="polite">
         <span class="ticker-when" data-bind="tickerWhen"></span>
+        <span class="ticker-kind" data-bind="tickerKind" hidden></span>
         <span class="ticker-text" data-bind="tickerText">Nothing from race control yet.</span>
-      </div>
+      </button>
 
       <main class="stage" id="stage">
         <!-- The track map: the street map, track, flagged sectors and turn numbers on one
@@ -160,9 +174,36 @@
             <ol class="stint-list"></ol>
           </section>
         </div>
-        <div class="stage-note card" data-for="feed">
-          <p class="card-title">The feed comes next</p>
-          <p class="card-note">Race control, team radio and the track conditions are phase 6.</p>
+        <!-- The Feed: race control, the conditions and team radio (pitwall-feed.js). -->
+        <div class="feed" id="feed">
+          <section class="card feed-rc" aria-label="Race control">
+            <p class="card-title">Race control</p>
+            <ol class="rc-list" id="rc-list"></ol>
+          </section>
+          <div class="feed-side">
+            <section class="card cond" id="conditions" aria-label="Conditions" hidden>
+              <div class="cond-head">
+                <p class="cap-label">Track temperature</p>
+                <span class="tag tag-weather" data-bind="rainState">Dry</span>
+              </div>
+              <p class="cond-track"><b data-bind="trackTemp">—</b><span data-bind="trackTrend"></span></p>
+              <canvas class="cond-spark" aria-hidden="true"></canvas>
+              <dl class="cond-tiles">
+                <div><dt>Air</dt><dd data-bind="airTemp">—</dd></div>
+                <div><dt>Humidity</dt><dd data-bind="humidity">—</dd></div>
+                <div><dt data-bind="windLabel">Wind</dt><dd data-bind="windValue">—</dd></div>
+                <div><dt>Pressure</dt><dd data-bind="pressure">—</dd></div>
+              </dl>
+            </section>
+            <section class="card radio" id="radio" aria-label="Team radio" hidden>
+              <div class="cond-head">
+                <p class="card-title">Team radio</p>
+                <button type="button" class="chip" id="sound" aria-pressed="true">Sound on</button>
+              </div>
+              <p class="ring-hint" data-bind="radioNote"></p>
+              <ol class="clip-list" id="radio-clips"></ol>
+            </section>
+          </div>
         </div>
       </main>
 
@@ -206,22 +247,25 @@
 
   <span class="tag tag-demo" id="demo" hidden>Demo frame — not live</span>
 
-  <script src="assets/js/pitwall-format.js?v=20261106f"></script>
-  <script src="assets/js/pitwall-parse.js?v=20261106f"></script>
-  <script src="assets/js/pitwall-season.js?v=20261106f"></script>
-  <script src="assets/js/pitwall-sse.js?v=20261106f"></script>
-  <script src="assets/js/pitwall-live.js?v=20261106f"></script>
-  <script src="assets/js/pitwall-replay.js?v=20261106f"></script>
-  <script src="assets/js/pitwall-track.js?v=20261106f"></script>
-  <script src="assets/js/pitwall-doom.js?v=20261106f"></script>
-  <script src="assets/js/pitwall-ui.js?v=20261106f"></script>
-  <script src="assets/js/pitwall-net.js?v=20261106f"></script>
-  <script src="assets/js/pitwall-header.js?v=20261106f"></script>
-  <script src="assets/js/pitwall-tower.js?v=20261106f"></script>
-  <script src="assets/js/pitwall-timeline.js?v=20261106f"></script>
+  <script src="assets/js/pitwall-format.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-parse.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-season.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-sse.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-live.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-replay.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-track.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-doom.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-alerts.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-ui.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-net.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-header.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-tower.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-timeline.js?v=20261107a"></script>
   <script src="assets/js/carto-basemap.js?v=20261106"></script>
-  <script src="assets/js/pitwall-map.js?v=20261106f"></script>
-  <script src="assets/js/pitwall-ring.js?v=20261106f"></script>
-  <script src="assets/js/pitwall-app.js?v=20261106f"></script>
+  <script src="assets/js/pitwall-map.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-ring.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-audio.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-feed.js?v=20261107a"></script>
+  <script src="assets/js/pitwall-app.js?v=20261107a"></script>
 </body>
 </html>
