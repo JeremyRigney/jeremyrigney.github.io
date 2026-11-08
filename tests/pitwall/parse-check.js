@@ -5,6 +5,7 @@
  *   /System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc tests/pitwall/parse-check.js
  */
 var FILES = [
+  'pitwall-intro.js',
   'pitwall-format.js',
   'pitwall-parse.js',
   'pitwall-season.js',

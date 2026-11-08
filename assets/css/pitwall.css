@@ -75,6 +75,21 @@
   --tyre-inter: #3ecf78;
   --tyre-wet: #3aa0ff;
 
+  /* The intro's tyre, side on, as the app's launcher icon draws it: rubber, the tread's lit
+     and shaded edge, the wheel cover with its bolts, the rim's lip and the hub. */
+  --rubber: #0b0c0e;
+  --rubber-sheen: #1c1e22;
+  --rubber-edge: #08090a;
+  --tread-lit: #5a606a;
+  --tread-shade: #191b1f;
+  --wheel-cover: #1e2126;
+  --wheel-line: #2c3036;
+  --wheel-bolt: #3a3e45;
+  --rim-lit: #9aa1ab;
+  --rim-shade: #464b53;
+  --hub: #a9afb8;
+  --hub-nut: #2a2d32;
+
   --font: "Figtree", "Helvetica Neue", Arial, sans-serif;
 
   /* Six tiers, by how much a figure matters at a glance. */
@@ -1573,6 +1588,41 @@ button {
   .stints {
     inset: var(--s-4);
   }
+}
+
+/* ---------- The intro ---------- */
+
+/* The first seconds of a visit: the wordmark, and the five compounds popping in, spinning
+   up and rolling off to the right, while the wall loads underneath (pitwall-intro.js). */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.875rem;
+  background: var(--ground);
+  cursor: pointer;
+}
+
+.intro-word {
+  font-size: 2.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--logo-mid);
+  background: linear-gradient(100deg, var(--logo-from) 0%, var(--logo-mid) 55%, var(--logo-to) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  opacity: 0;
+}
+
+.intro canvas {
+  display: block;
+  width: 100%;
 }
 
 /* ---------- Between sessions ---------- */
