@@ -178,7 +178,7 @@
   // ---------- The weekend as an .ics file ----------
 
   test('a calendar file of the weekend', function () {
-    var text = Ics.build([us[4], austin(6, 'Sprint', 'Race', null)], { now: at('2026-10-20T09:30:15Z'), url: 'https://jeremy.ie/f1-wall_2.html' });
+    var text = Ics.build([us[4], austin(6, 'Sprint', 'Race', null)], { now: at('2026-10-20T09:30:15Z'), url: 'https://jeremy.ie/f1-wall.html' });
     var lines = text.split('\r\n');
     eq(lines[0], 'BEGIN:VCALENDAR');
     eq(lines[lines.length - 2], 'END:VCALENDAR');
@@ -191,7 +191,7 @@
     ok(lines.indexOf('DTEND:20261025T220000Z') > 0, 'end');
     ok(lines.indexOf('SUMMARY:F1 Race · United States Grand Prix') > 0, 'summary');
     ok(lines.indexOf('TRIGGER:-PT1H') > 0, 'alarm');
-    ok(lines.indexOf('URL:https://jeremy.ie/f1-wall_2.html') > 0, 'url');
+    ok(lines.indexOf('URL:https://jeremy.ie/f1-wall.html') > 0, 'url');
   });
 
   test('the server’s own end is used, and text is escaped', function () {

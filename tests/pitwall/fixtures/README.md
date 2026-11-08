@@ -11,4 +11,4 @@ Copied unchanged from Pocket Pitwall (`f1_app/app/src/test/resources/`, commit `
 | `sessions-2026.json`, `sessions-meetings.json` | `/f1/replay/sessions`, without and with meeting names |
 | `sepang-cars.json`, `sakhir-cars.json`, `jeddah-cars.json` | Car positions from the stream, for the map's tests |
 
-`f1-wall_2.html?demo=green|sc|yellow|chequered|quali|idle` draws the frames from here too.
+`f1-wall.html?demo=green|sc|yellow|chequered|quali|idle` draws the frames from here too.
