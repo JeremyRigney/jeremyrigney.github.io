@@ -24,6 +24,7 @@ var FILES = [
   'pitwall-audio.js',
   'pitwall-feed.js',
   'pitwall-driver.js',
+  'pitwall-standby.js',
   'pitwall-app.js'
 ];
 

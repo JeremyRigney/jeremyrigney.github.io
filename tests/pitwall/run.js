@@ -36,6 +36,7 @@ var SUITES = [
   'tests/pitwall/map.test.js',
   'tests/pitwall/doom.test.js',
   'tests/pitwall/alerts.test.js',
+  'tests/pitwall/standby.test.js',
   'tests/pitwall/lint.test.js'
 ];
 

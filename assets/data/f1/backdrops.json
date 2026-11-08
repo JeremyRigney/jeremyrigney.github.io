@@ -1,0 +1,270 @@
+{
+ "source": "Wikimedia Commons",
+ "backdrops": {
+  "9": {
+   "place": "Austin, Texas",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/96/Austin_Texas_skyline%2C_December_2023_-_Evening.jpg/1920px-Austin_Texas_skyline%2C_December_2023_-_Evening.jpg",
+   "width": 1920,
+   "height": 848,
+   "credit": "Steve",
+   "licence": "CC BY-SA 2.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Austin_Texas_skyline,_December_2023_-_Evening.jpg"
+  },
+  "65": {
+   "place": "Mexico City",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b6/Evening_Palacio_de_Bellas_Artes_view_from_southwest.jpg/1920px-Evening_Palacio_de_Bellas_Artes_view_from_southwest.jpg",
+   "width": 1920,
+   "height": 1422,
+   "credit": "Daniel Case",
+   "licence": "CC BY-SA 3.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Evening_Palacio_de_Bellas_Artes_view_from_southwest.jpg"
+  },
+  "14": {
+   "place": "São Paulo",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0e/Ponte_estaiada_Octavio_Frias_-_Sao_Paulo.jpg/1920px-Ponte_estaiada_Octavio_Frias_-_Sao_Paulo.jpg",
+   "width": 1920,
+   "height": 1265,
+   "credit": "Marcosleal",
+   "licence": "CC BY-SA 3.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Ponte_estaiada_Octavio_Frias_-_Sao_Paulo.jpg"
+  },
+  "152": {
+   "place": "Las Vegas",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/Las_Vegas_%28Nevada%2C_USA%29%2C_The_Strip_--_2012_--_6232.jpg/1920px-Las_Vegas_%28Nevada%2C_USA%29%2C_The_Strip_--_2012_--_6232.jpg",
+   "width": 1920,
+   "height": 1321,
+   "credit": "Dietmar Rabich",
+   "licence": "CC BY-SA 4.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Las_Vegas_(Nevada,_USA),_The_Strip_--_2012_--_6232.jpg"
+  },
+  "150": {
+   "place": "Doha, Qatar",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Doha_Dhow_Harbour_Skyline_View_at_Night_07.jpg/1920px-Doha_Dhow_Harbour_Skyline_View_at_Night_07.jpg",
+   "width": 1920,
+   "height": 1355,
+   "credit": "Zairon",
+   "licence": "CC BY 4.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Doha_Dhow_Harbour_Skyline_View_at_Night_07.jpg",
+   "focus": 0.27
+  },
+  "70": {
+   "place": "Abu Dhabi",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c5/Abu_Dhabi_Skyline_fron_Corniche_Rd.JPG/1920px-Abu_Dhabi_Skyline_fron_Corniche_Rd.JPG",
+   "width": 1920,
+   "height": 1440,
+   "credit": "FritzDaCat",
+   "licence": "CC BY-SA 3.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Abu_Dhabi_Skyline_fron_Corniche_Rd.JPG",
+   "focus": 0.12
+  },
+  "63": {
+   "place": "Manama, Bahrain",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/Bahrain_World_trade_Center_.jpg/1920px-Bahrain_World_trade_Center_.jpg",
+   "width": 1920,
+   "height": 1280,
+   "credit": "B.alotaby",
+   "licence": "CC BY-SA 4.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Bahrain_World_trade_Center_.jpg",
+   "focus": 0.24
+  },
+  "10": {
+   "place": "Melbourne",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/Melbourne_%28AU%29%2C_Melbourne_City_Centre_--_2019_--_1504-8.jpg/1920px-Melbourne_%28AU%29%2C_Melbourne_City_Centre_--_2019_--_1504-8.jpg",
+   "width": 1920,
+   "height": 1280,
+   "credit": "Dietmar Rabich",
+   "licence": "CC BY-SA 4.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Melbourne_(AU),_Melbourne_City_Centre_--_2019_--_1504-8.jpg"
+  },
+  "49": {
+   "place": "Shanghai",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/A_night_at_the_Bund_-_Shanghai.jpg/1920px-A_night_at_the_Bund_-_Shanghai.jpg",
+   "width": 1920,
+   "height": 1176,
+   "credit": "David Zhang from Canada",
+   "licence": "CC BY-SA 2.0",
+   "page": "https://commons.wikimedia.org/wiki/File:A_night_at_the_Bund_-_Shanghai.jpg"
+  },
+  "46": {
+   "place": "Mount Fuji, Japan",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/66/Mount_Fuji_at_sunset%2C_March_2025.jpg/1920px-Mount_Fuji_at_sunset%2C_March_2025.jpg",
+   "width": 1920,
+   "height": 1280,
+   "credit": "Romain Guy from San Francisco, USA",
+   "licence": "CC0",
+   "page": "https://commons.wikimedia.org/wiki/File:Mount_Fuji_at_sunset,_March_2025.jpg"
+  },
+  "151": {
+   "place": "Miami",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/Night_Panorama_Miami_Florida_5462.jpg/1920px-Night_Panorama_Miami_Florida_5462.jpg",
+   "width": 1920,
+   "height": 1280,
+   "credit": "Dori",
+   "licence": "CC BY-SA 3.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Night_Panorama_Miami_Florida_5462.jpg"
+  },
+  "23": {
+   "place": "Montreal",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Montreal_night_view.jpg/1920px-Montreal_night_view.jpg",
+   "width": 1920,
+   "height": 699,
+   "credit": "Paolostefano1412",
+   "licence": "CC BY-SA 3.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Montreal_night_view.jpg"
+  },
+  "22": {
+   "place": "Monaco",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Hafen_und_Felsen_von_Monaco-La_Turbie.jpg/1920px-Hafen_und_Felsen_von_Monaco-La_Turbie.jpg",
+   "width": 1920,
+   "height": 873,
+   "credit": "Tobi 87",
+   "licence": "CC BY-SA 3.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Hafen_und_Felsen_von_Monaco-La_Turbie.jpg"
+  },
+  "15": {
+   "place": "Barcelona",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Antoni_Gaudi%27s_Sagrada_Familia%2C_Barcelona_%28Ank_Kumar%29_11.jpg/1920px-Antoni_Gaudi%27s_Sagrada_Familia%2C_Barcelona_%28Ank_Kumar%29_11.jpg",
+   "width": 1920,
+   "height": 2880,
+   "credit": "Ank Kumar",
+   "licence": "CC BY-SA 4.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Antoni_Gaudi%27s_Sagrada_Familia,_Barcelona_(Ank_Kumar)_11.jpg",
+   "focus": 0.5,
+   "focusY": 0.3
+  },
+  "19": {
+   "place": "Styria, Austria",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a4/Turnau_Hochanger_-_Hochschwab_20171014_01.jpg/1920px-Turnau_Hochanger_-_Hochschwab_20171014_01.jpg",
+   "width": 1920,
+   "height": 1610,
+   "credit": "Uoaei1",
+   "licence": "CC BY-SA 4.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Turnau_Hochanger_-_Hochschwab_20171014_01.jpg"
+  },
+  "2": {
+   "place": "Castle Combe, the Cotswolds",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Castle_combe_cotswolds.jpg/1920px-Castle_combe_cotswolds.jpg",
+   "width": 1920,
+   "height": 1371,
+   "credit": "Saffron Blaze",
+   "licence": "CC BY-SA 3.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Castle_combe_cotswolds.jpg"
+  },
+  "7": {
+   "place": "The Ardennes, near Spa",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e1/Ardenne_%28Lorc%C3%A9%2C_Stoumont%29.jpg/1920px-Ardenne_%28Lorc%C3%A9%2C_Stoumont%29.jpg",
+   "width": 1920,
+   "height": 1440,
+   "credit": "Cafedelyon",
+   "licence": "CC BY-SA 4.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Ardenne_(Lorc%C3%A9,_Stoumont).jpg"
+  },
+  "4": {
+   "place": "Budapest",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Hungarian_Parliament_Building_2023-9.jpg/1920px-Hungarian_Parliament_Building_2023-9.jpg",
+   "width": 1920,
+   "height": 1080,
+   "credit": "Pierre Blaché",
+   "licence": "CC0",
+   "page": "https://commons.wikimedia.org/wiki/File:Hungarian_Parliament_Building_2023-9.jpg"
+  },
+  "55": {
+   "place": "Kinderdijk, the Netherlands",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b3/Kinderdijk_windmills_12.jpg/1920px-Kinderdijk_windmills_12.jpg",
+   "width": 1920,
+   "height": 1440,
+   "credit": "John Samuel",
+   "licence": "CC BY-SA 4.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Kinderdijk_windmills_12.jpg"
+  },
+  "39": {
+   "place": "Milan",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ea/20110724_Milan_Cathedral_5260.jpg/1920px-20110724_Milan_Cathedral_5260.jpg",
+   "width": 1920,
+   "height": 1668,
+   "credit": "Jakub Hałun",
+   "licence": "CC BY-SA 4.0",
+   "page": "https://commons.wikimedia.org/wiki/File:20110724_Milan_Cathedral_5260.jpg"
+  },
+  "153": {
+   "place": "Madrid",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Gran_Via_Madrid_November_2024_01.jpg/1920px-Gran_Via_Madrid_November_2024_01.jpg",
+   "width": 1920,
+   "height": 2876,
+   "credit": "Javier Perez Montes",
+   "licence": "CC BY-SA 4.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Gran_Via_Madrid_November_2024_01.jpg",
+   "focus": 0.5,
+   "focusY": 0.3
+  },
+  "144": {
+   "place": "Baku",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/Baku_1.JPG/1920px-Baku_1.JPG",
+   "width": 1920,
+   "height": 1440,
+   "credit": "Peter in s",
+   "licence": "CC BY-SA 3.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Baku_1.JPG"
+  },
+  "12": {
+   "place": "Kuala Lumpur",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/2016_Kuala_Lumpur%2C_Petronas_Towers_%2818%29.jpg/1920px-2016_Kuala_Lumpur%2C_Petronas_Towers_%2818%29.jpg",
+   "width": 1920,
+   "height": 4243,
+   "credit": "Marcin Konsek",
+   "licence": "CC BY-SA 4.0",
+   "page": "https://commons.wikimedia.org/wiki/File:2016_Kuala_Lumpur,_Petronas_Towers_(18).jpg",
+   "focus": 0.5,
+   "focusY": 0.35
+  },
+  "61": {
+   "place": "Singapore",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Marina_Bay_Singapore-3499.jpg/1920px-Marina_Bay_Singapore-3499.jpg",
+   "width": 1920,
+   "height": 1280,
+   "credit": "Bijay Chaurasia",
+   "licence": "CC BY-SA 4.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Marina_Bay_Singapore-3499.jpg"
+  },
+  "149": {
+   "place": "Jeddah, Saudi Arabia",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c8/King_Fahd_Fountain.jpg/1920px-King_Fahd_Fountain.jpg",
+   "width": 1920,
+   "height": 2560,
+   "credit": "AndLikeThings From Los Angeles CA",
+   "licence": "CC BY-SA 2.0",
+   "page": "https://commons.wikimedia.org/wiki/File:King_Fahd_Fountain.jpg"
+  },
+  "portimao": {
+   "place": "Portimão, the Algarve",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/Ponta_da_Piedade_%2848462178692%29.jpg/1920px-Ponta_da_Piedade_%2848462178692%29.jpg",
+   "width": 1920,
+   "height": 1280,
+   "credit": "Theo Crazzolara",
+   "licence": "CC BY 2.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Ponta_da_Piedade_(48462178692).jpg",
+   "match": [
+    "Portimão",
+    "Portimao",
+    "Algarve",
+    "Portugal"
+   ]
+  },
+  "istanbul": {
+   "place": "Istanbul",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/84/Bosphorus_Bridge_at_night.jpg/1920px-Bosphorus_Bridge_at_night.jpg",
+   "width": 1920,
+   "height": 1280,
+   "credit": "Andrey Filippov 安德烈",
+   "licence": "CC BY 2.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Bosphorus_Bridge_at_night.jpg",
+   "match": [
+    "Istanbul",
+    "Istanbul Park",
+    "Turkey",
+    "Türkiye",
+    "Turkiye"
+   ]
+  }
+ }
+}
