@@ -3200,9 +3200,13 @@ button {
     flex: none;
   }
 
-  /* The map's hint can't fit between Follow and the credit on a narrow map: it goes on
-     its own line above them, on a card like the map's other overlays, as it may sit over
-     the track and the cars. */
+  /* On a narrow map the hint about race positions would cover the track, so it's left
+     out. A note saying why the map is empty still shows, on its own line above Follow and
+     the credit, on a card like the map's other overlays. */
+  .map-note[data-hint] {
+    display: none;
+  }
+
   .map-note {
     bottom: calc(var(--s-3) + 2.75rem);
     width: max-content;
