@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261106e" />
+  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261106f" />
 </head>
 <body>
   <!--
@@ -131,9 +131,34 @@
           <p class="map-note" hidden></p>
           <p class="map-credit" hidden>© OpenStreetMap contributors © CARTO</p>
         </div>
-        <div class="stage-note card" data-for="wall">
-          <p class="card-title">The Wall comes next</p>
-          <p class="card-note">The ring of one lap, with pit-stop ghosts and where each car would rejoin, is phase 5.</p>
+        <!-- The Wall: one lap of time as a ring, with what a stop would do (pitwall-ring.js). -->
+        <div class="ring" id="ring">
+          <div class="ring-side">
+            <section class="card ring-card" id="pit-now" aria-live="polite"></section>
+            <section class="card ring-card" id="pit-loss" hidden></section>
+          </div>
+          <div class="ring-stage">
+            <canvas role="img" aria-label="The Wall: each car on a ring of one lap, at its time behind the leader. Click or drag round the ring to pick a car and see where it would rejoin after a stop."></canvas>
+          </div>
+          <div class="ring-side">
+            <section class="card ring-card" id="free-stops" hidden></section>
+            <section class="card ring-card">
+              <div class="chips">
+                <button type="button" class="chip ring-step" id="ring-ahead" aria-label="Pick the car ahead">‹</button>
+                <button type="button" class="chip ring-step" id="ring-behind" aria-label="Pick the car behind">›</button>
+                <button type="button" class="chip" id="all-ghosts" aria-pressed="false">All ghosts</button>
+                <button type="button" class="chip" id="stints-open" aria-pressed="false">Stints</button>
+              </div>
+              <p class="ring-hint" data-bind="ringLap"></p>
+            </section>
+          </div>
+          <section class="card stints" id="stints" tabindex="-1" aria-label="Tyre stints" hidden>
+            <div class="stints-head">
+              <p class="card-title">Tyre stints</p>
+              <button type="button" class="more stints-close" aria-expanded="true" aria-label="Close the stints"></button>
+            </div>
+            <ol class="stint-list"></ol>
+          </section>
         </div>
         <div class="stage-note card" data-for="feed">
           <p class="card-title">The feed comes next</p>
@@ -181,20 +206,22 @@
 
   <span class="tag tag-demo" id="demo" hidden>Demo frame — not live</span>
 
-  <script src="assets/js/pitwall-format.js?v=20261106e"></script>
-  <script src="assets/js/pitwall-parse.js?v=20261106e"></script>
-  <script src="assets/js/pitwall-season.js?v=20261106e"></script>
-  <script src="assets/js/pitwall-sse.js?v=20261106e"></script>
-  <script src="assets/js/pitwall-live.js?v=20261106e"></script>
-  <script src="assets/js/pitwall-replay.js?v=20261106e"></script>
-  <script src="assets/js/pitwall-track.js?v=20261106e"></script>
-  <script src="assets/js/pitwall-ui.js?v=20261106e"></script>
-  <script src="assets/js/pitwall-net.js?v=20261106e"></script>
-  <script src="assets/js/pitwall-header.js?v=20261106e"></script>
-  <script src="assets/js/pitwall-tower.js?v=20261106e"></script>
-  <script src="assets/js/pitwall-timeline.js?v=20261106e"></script>
+  <script src="assets/js/pitwall-format.js?v=20261106f"></script>
+  <script src="assets/js/pitwall-parse.js?v=20261106f"></script>
+  <script src="assets/js/pitwall-season.js?v=20261106f"></script>
+  <script src="assets/js/pitwall-sse.js?v=20261106f"></script>
+  <script src="assets/js/pitwall-live.js?v=20261106f"></script>
+  <script src="assets/js/pitwall-replay.js?v=20261106f"></script>
+  <script src="assets/js/pitwall-track.js?v=20261106f"></script>
+  <script src="assets/js/pitwall-doom.js?v=20261106f"></script>
+  <script src="assets/js/pitwall-ui.js?v=20261106f"></script>
+  <script src="assets/js/pitwall-net.js?v=20261106f"></script>
+  <script src="assets/js/pitwall-header.js?v=20261106f"></script>
+  <script src="assets/js/pitwall-tower.js?v=20261106f"></script>
+  <script src="assets/js/pitwall-timeline.js?v=20261106f"></script>
   <script src="assets/js/carto-basemap.js?v=20261106"></script>
-  <script src="assets/js/pitwall-map.js?v=20261106e"></script>
-  <script src="assets/js/pitwall-app.js?v=20261106e"></script>
+  <script src="assets/js/pitwall-map.js?v=20261106f"></script>
+  <script src="assets/js/pitwall-ring.js?v=20261106f"></script>
+  <script src="assets/js/pitwall-app.js?v=20261106f"></script>
 </body>
 </html>

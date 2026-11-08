@@ -949,6 +949,298 @@ button {
   max-width: 26rem;
 }
 
+/* ---------- The Wall ---------- */
+
+/* The ring takes the whole stage; being round, it leaves the corners free, and its cards sit
+   there: what a stop does and what it costs on the left, who can stop for free and the
+   ring's own switches on the right. */
+.ring {
+  position: absolute;
+  inset: 0;
+  display: none;
+}
+
+:root[data-view="wall"] .ring {
+  display: block;
+}
+
+.ring-side {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--s-3);
+  width: 15rem;
+  min-height: 0;
+  pointer-events: none;
+}
+
+.ring-side > * {
+  pointer-events: auto;
+}
+
+.ring-side:first-child {
+  left: 0;
+}
+
+.ring-side:last-of-type {
+  right: 0;
+}
+
+.ring-card {
+  padding: var(--s-4) var(--s-5);
+  border-radius: var(--r-inset);
+  background: var(--card-solid);
+}
+
+.ring-card .cap-label {
+  margin-bottom: var(--s-2);
+}
+
+.ring-hint {
+  font-size: var(--fs-context);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.ring-hint:empty {
+  display: none;
+}
+
+.pit-move {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  margin-bottom: var(--s-1);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pit-move span {
+  font-size: var(--fs-context);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.pit-move b {
+  font-size: var(--fs-state);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  color: var(--team, var(--ink));
+}
+
+/* One verdict: caution amber, good-news green, or quiet. */
+.verdict {
+  margin-bottom: var(--s-1);
+  font-size: var(--fs-read);
+  font-weight: 700;
+}
+
+.verdict[data-tone="caution"] {
+  color: var(--caution);
+}
+
+.verdict[data-tone="good"] {
+  color: var(--timing-personal);
+}
+
+.verdict[data-tone="quiet"] {
+  color: var(--ink-soft);
+}
+
+.loss-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s-1);
+  margin-bottom: var(--s-2);
+}
+
+.loss-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--s-1) 0;
+  border-radius: 12px;
+  background: var(--inset);
+  font-variant-numeric: tabular-nums;
+}
+
+.loss-tile span {
+  font-size: var(--fs-label);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.loss-tile b {
+  font-size: var(--fs-key);
+  font-weight: 700;
+}
+
+/* The flag that's out now: inverted, like any selected state. */
+.loss-tile[aria-current="true"] {
+  background: var(--selected);
+  color: var(--on-selected);
+}
+
+.loss-tile[aria-current="true"] span {
+  color: inherit;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.chips + .ring-hint {
+  margin-top: var(--s-3);
+}
+
+.chip-driver {
+  font-size: var(--fs-context);
+  font-weight: 700;
+  color: var(--team, var(--ink));
+}
+
+.chip-driver[aria-pressed="true"] {
+  color: var(--on-selected);
+}
+
+.ring-stage {
+  position: absolute;
+  inset: 0;
+}
+
+.ring-stage canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: pointer;
+}
+
+/* ‹ and › step to the car ahead or behind, for cars a tenth apart that even a dial can't
+   split. */
+.ring-step {
+  font-size: var(--fs-read);
+  font-weight: 700;
+}
+
+/* The stints: over the ring, every car's tyres by lap. */
+.stints {
+  position: absolute;
+  inset: var(--s-4) 18rem;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--card-solid);
+}
+
+.stints-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--s-3);
+}
+
+.stint-list {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.stint-list li {
+  display: grid;
+  grid-template-columns: 1.6rem 3rem minmax(0, 1fr) 2.5rem;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 0.3125rem var(--s-2);
+  border-radius: 10px;
+  font-size: var(--fs-context);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.stint-list li:hover {
+  background: var(--hover);
+}
+
+.stint-list li[aria-current="true"] {
+  box-shadow: inset 0 0 0 2px var(--selected);
+}
+
+.stint-list b {
+  text-align: right;
+}
+
+.stint-list span {
+  font-weight: 700;
+  color: var(--team, var(--ink));
+}
+
+.stint-list em {
+  font-size: var(--fs-label);
+  font-style: normal;
+  font-weight: 700;
+  color: var(--timing-personal);
+}
+
+.stint-bar {
+  position: relative;
+  height: 0.75rem;
+  border-radius: 6px;
+  background: var(--inset);
+}
+
+.stint-bar i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 6px;
+  background: var(--tyre, var(--ink-faint));
+}
+
+.stint-bar i[data-tyre="soft"] { --tyre: var(--tyre-soft); }
+.stint-bar i[data-tyre="medium"] { --tyre: var(--tyre-medium); }
+.stint-bar i[data-tyre="hard"] { --tyre: var(--tyre-hard); }
+.stint-bar i[data-tyre="inter"] { --tyre: var(--tyre-inter); }
+.stint-bar i[data-tyre="wet"] { --tyre: var(--tyre-wet); }
+
+/* Too narrow for cards in the corners: the ring above, its cards in two columns under it. */
+@media (max-width: 1240px) {
+  :root[data-view="wall"] .ring {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: var(--s-3);
+  }
+
+  .ring-stage {
+    position: relative;
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .ring-side {
+    position: static;
+    grid-row: 2;
+    justify-content: flex-start;
+    width: auto;
+  }
+
+  .stints {
+    inset: var(--s-4);
+  }
+}
+
 /* ---------- The map ---------- */
 
 /* The map fills the stage: borderless canvases in a rounded frame, with its few controls

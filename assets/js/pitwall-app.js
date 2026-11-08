@@ -225,6 +225,7 @@
     });
     P.Tower.render(frame, settings);
     map(frame, season);
+    ring(frame, season, now.state);
     ticker(frame);
     UI.text('delayValue', now.state.delaySeconds + 's');
     var range = document.getElementById('delay-range');
@@ -261,6 +262,42 @@
   P.Map.on({
     onCar: function (num) {
       settings.picked = settings.picked === num ? null : num;
+      draw();
+    }
+  });
+
+  // ---------- The Wall ----------
+
+  /*
+   * How fast race time runs between frames, so the ring keeps turning: 1 live, the replay's
+   * speed while it plays, still when paused, stale or failing.
+   */
+  function raceRate(state) {
+    if (demo) { return 0; }
+    if (settings.mode === 'replay') { return replay.state.playing ? replay.state.speed : 0; }
+    return state.status === 'LIVE' && !state.stale && !state.failing ? 1 : 0;
+  }
+
+  function ring(frame, season, state) {
+    P.Ring.render(frame, {
+      totalLaps: frame ? P.Season.totalLaps(season, frame.session) : null,
+      picked: settings.picked,
+      followed: settings.followed,
+      shown: settings.view === 'wall',
+      rate: raceRate(state)
+    });
+  }
+
+  P.Ring.on({
+    /** A click: picks the car, or lets go of the one already picked. */
+    onPick: function (num) {
+      settings.picked = settings.picked === num ? null : num;
+      draw();
+    },
+    /** A drag round the ring, a step, or opening on a followed driver: picks outright. */
+    onSelect: function (num) {
+      if (settings.picked === num) { return; }
+      settings.picked = num;
       draw();
     }
   });
