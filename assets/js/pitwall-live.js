@@ -36,6 +36,14 @@
   var STREAM_SILENCE = 20000;
   /** No car update drawn for this long: the map and telemetry fall back to the frames. */
   var CARS_STALE = 3000;
+  /*
+   * The least time one go at the stream takes. The app notices a stream has ended on its
+   * watchdog's next one-second tick; the same floor here keeps a server that says "bye" or
+   * "idle" at once from being reconnected to in a tight loop.
+   */
+  var FOLLOW_MIN = 1000;
+  /** A page that has been out of sight for a while polls this slowly, and doesn't stream. */
+  var POLL_HIDDEN = 30000;
   var RATE_WINDOW = 5000;
   var RATE_EVERY = 2000;
   var NEVER = Infinity;
@@ -101,6 +109,8 @@
     this.streamTried = -Infinity;
 
     this.running = false;
+    /** Out of sight for a while: no stream, and slow polls. See setBackground. */
+    this.background = false;
     this.listeners = { state: [], cars: [] };
   }
 
@@ -127,6 +137,23 @@
     this.update({ delaySeconds: clampDelay(seconds) });
     // Lowering it catches up now; raising it holds the frame until the queue refills.
     this.flush();
+  };
+
+  /*
+   * A browser tab can't follow a session in the background the way the app's service does,
+   * and an open stream holds one of the server's few stream slots, which the app and other
+   * tabs need. So a page out of sight for a while gives its stream up and polls slowly;
+   * back in sight, it tries the stream again at once.
+   */
+  LiveFeed.prototype.setBackground = function (on) {
+    if (this.background === on) { return; }
+    this.background = on;
+    if (on) {
+      if (this.connection) { this.connection.close(); }
+    } else {
+      this.nextStream = 0;
+      this.wake();
+    }
   };
 
   LiveFeed.prototype.run = function () {
@@ -168,17 +195,21 @@
 
   LiveFeed.prototype.loop = async function () {
     while (this.running) {
-      var source = this.stream;
+      var source = this.background ? null : this.stream;
       if (source && this.clock() >= this.nextStream) {
         this.streamTried = this.clock();
         var end = await this.follow(source);
+        var took = this.clock() - this.streamTried;
+        if (took < FOLLOW_MIN && this.running) { await this.sleep(FOLLOW_MIN - took); }
         if (!this.running) { return; }
-        if (end === 'BYE') { continue; }
-        this.nextStream = end === 'IDLE' ? NEVER : this.clock() + STREAM_RETRY;
+        if (end === 'BYE' && !this.background) { continue; }
+        // Given up for the background: try it again as soon as the page is back in sight.
+        this.nextStream = this.background ? 0 : end === 'IDLE' ? NEVER : this.clock() + STREAM_RETRY;
         this.update({ transport: 'POLL', carRate: null });
       }
       var wait = await this.poll();
       if (!this.running) { return; }
+      if (this.background && wait === POLL_LIVE) { wait = POLL_HIDDEN; }
       // A session on track is the cue to try the stream again — though never sooner than
       // STREAM_MIN_GAP after the last try, whatever the two disagree about.
       if (this.nextStream === NEVER && this.state.status === 'LIVE' && !this.state.failing) {
@@ -356,6 +387,7 @@
   LiveFeed.STREAM_MIN_GAP = STREAM_MIN_GAP;
   LiveFeed.STREAM_SILENCE = STREAM_SILENCE;
   LiveFeed.CARS_STALE = CARS_STALE;
+  LiveFeed.POLL_HIDDEN = POLL_HIDDEN;
 
   P.LiveFeed = LiveFeed;
 }());

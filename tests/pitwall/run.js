@@ -22,10 +22,12 @@ var MODULES = [
 ];
 
 var SUITES = [
+  'tests/pitwall/fake-time.js',
   'tests/pitwall/format.test.js',
   'tests/pitwall/parse.test.js',
   'tests/pitwall/season.test.js',
   'tests/pitwall/live.test.js',
+  'tests/pitwall/stream.test.js',
   'tests/pitwall/lint.test.js'
 ];
 
