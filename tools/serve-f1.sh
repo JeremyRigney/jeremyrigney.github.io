@@ -7,13 +7,17 @@
 #   :8080  the Flask API — f1_live.py, which composes the timing payload. The pages talk
 #          to the deployed Cloud Run service by default, so this is only reached because
 #          the page is opened with ?api=http://localhost:8080. That override is
-#          loopback-only by design (see f1-lab.js), which is why the port matters.
+#          loopback-only by design (see pitwall-net.js and f1-lab.js), which is why the
+#          port matters.
 #
 #   :8000  a plain static server for the site itself. Opening the page from disk does not
 #          work — file:// blocks the fetches the map and the season index need, and
 #          f1-map.js will tell you so on the canvas.
 #
-# Ctrl-C stops both.
+# Ctrl-C stops both. For a live session when there isn't one, the API can replay a past
+# one as if it were live (see docs/f1-wall.md):
+#
+#   F1_STREAM_SIMULATE=11731@2026-10-04T09:10:00Z tools/serve-f1.sh
 #
 # Usage:  tools/serve-f1.sh [--wall|--lab] [--no-open]
 
@@ -103,6 +107,16 @@ for _ in $(seq 1 40); do
 done
 echo ""
 
+if [ "$PAGE" = "f1-wall.html" ]; then
+  NOTE="  Live by default. To replay, open the badge's + and pick a session; the first frame of
+  a session takes a few seconds while the server pulls that race from OpenF1 and caches
+  it. ?demo=green|sc|yellow|chequered|quali|idle draws a captured frame instead."
+else
+  NOTE="  Pick a season and session from the toolbar. The first frame of a session takes a few
+  seconds — the server pulls that race from OpenF1 and caches it, after which scrubbing
+  costs no network at all. Play is disabled until that first frame lands."
+fi
+
 cat <<EOF
 
   ${PAGE%.html}   $URL
@@ -110,9 +124,7 @@ cat <<EOF
   api    http://localhost:$API_PORT   (log: /tmp/f1-api.log)
   static http://localhost:$WEB_PORT   (log: /tmp/f1-web.log)
 
-  Pick a season and session from the toolbar. The first frame of a session takes a few
-  seconds — the server pulls that race from OpenF1 and caches it, after which scrubbing
-  costs no network at all. Play is disabled until that first frame lands.
+$NOTE
 
   Ctrl-C to stop both.
 

@@ -1,266 +1,269 @@
-# /f1-wall
+# /f1-wall — Pitwall
 
-The whole race in one window — track map, running order, race control, team radio and the
-flag state.
-The page has **two modes**, decided entirely by the URL:
+A live Formula 1 timing wall: the flag, the running order, the track, the pit wall's view of
+the race, race control, team radio and the weather. It is a web port of **Pocket Pitwall**,
+the Android app that grew out of the first `/f1-wall`, styled in `/aurora`'s design language.
 
-| Mode | URL | Driven by |
-|---|---|---|
-| **Replay** (default) | `f1-wall.html?api=…&session=<key>` | `assets/js/f1-lab.js` — toolbar, scrubber, playback |
-| **Live** | `f1-wall.html?live=1&api=…` | `assets/js/f1-dash.js` — its own poll loop |
+It is a private page: `noindex`, off the nav, and behind a sign-in screen. Nothing else on
+the site loads its files. It replaced the first `/f1-wall` in November 2026 (see
+[History](#history) at the end).
 
-They are mutually exclusive. `?live=1` makes `f1-dash.js` delete the scrubber from the DOM,
-which is what switches `f1-lab.js` off — that file opens with `if (!el('lab-range')) return;`.
-So a URL either has `live=1` or it has a session; never both.
+The app (`~/Documents/code/f1_app`, private) is the reference implementation. Each
+`pitwall-*.js` names the Kotlin file it ports. When behaviour is in doubt, the app is right.
 
 ---
 
-## Setup
+## Signing in
 
-Once per machine:
+The page opens on a sign-in screen. Until it's passed, nothing on the page reaches the
+timing API, so someone who just lands on the page can't run up Cloud Run's bill. A browser
+stays signed in until **Sign out** in Settings.
+
+This is a deterrent, not security:
+- The page is static, so the check runs in the browser, and anyone who reads the source can get past it.
+- The API itself stays open to anyone who calls it directly.
+- `pitwall-gate.js` keeps only a SHA-256 of `username:password`, never the password itself.
+
+To change the credentials, put the new hash in `PASS`:
 
 ```bash
-cd ~/Documents/code/jeremyrigney.github.io
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
+printf '%s' 'username:password' | shasum -a 256
 ```
 
-Then create `.env.local` in the repo root with your OpenF1 credentials:
+Protecting the API itself would take a server-side check, such as a key the page and the
+app both send. That would mean changing the app too.
 
-```bash
-OPENF1_USER=your-username
-OPENF1_PASS=your-password
-```
-
-It's gitignored — never commit it. Credentials are not optional: without them `/f1/live`
-can't run, and OpenF1 locks its *whole* API (historical data included) to authenticated
-users for as long as a session is on track, so replay stops working too.
+---
 
 ## Running it
 
-```bash
-tools/serve-f1.sh --wall
-```
-
-That starts two servers and opens the page. Both are needed:
-
-- **:8080** — `app.py`, the Flask API that composes the timing payload (`/f1/live`)
-- **:8000** — a static server for the site itself
-
-Opening the file from disk does **not** work: `file://` gives the page a null origin, so the
-browser blocks the fetches the map and season index need. `f1-map.js` will say so on the canvas.
-
-`Ctrl-C` stops both. `--lab` serves `/f1-lab` instead; `--no-open` skips the browser.
-
-If it refuses to start with *"Port 8080 is already in use"*, an earlier run is still alive:
+The page needs the timing API, `app.py` in the repo root. Locally, serve both:
 
 ```bash
-lsof -nP -iTCP:8080 -sTCP:LISTEN     # find it
-kill <pid>
+tools/serve-f1.sh            # the API on :8080 and the site on :8000; opens the page
 ```
 
----
+It opens `http://localhost:8000/f1-wall.html?api=http://localhost:8080`. To try a worktree's
+copy of the page against the same API, serve the worktree on another port
+(`python3 -m http.server 8001 --bind 127.0.0.1`) and open it there with the same `?api=`.
 
-## Replay mode
+For a live session when there isn't one, the API can replay a past one as if it were live.
+This is Kuala Lumpur's 2026 race, from lap 1:
 
-```
-http://localhost:8000/f1-wall.html?api=http://localhost:8080
-```
-
-Pick a **Season** and **Session** from the toolbar. The first frame takes a few seconds —
-the server is pulling that session from OpenF1 and caching it — and **Play stays disabled
-until it lands**. After that, scrubbing costs no network at all.
-
-The scrubber runs from the scheduled start to whichever comes later: the scheduled end, or
-two minutes after the last completed lap (`_ReplaySession._actual_end`). OpenF1's
-`date_end` comes from the timetable and isn't updated for delays. The 2026 Singapore sprint
-is listed as 09:00–09:30 but finished at 10:16, and when the scrubber stopped at the
-scheduled end it covered only the cars waiting on the grid.
-
-Once a session is loaded, `f1-lab.js` writes its key onto the URL, so the address bar
-becomes something you can bookmark or reload:
-
-```
-http://localhost:8000/f1-wall.html?api=http://localhost:8080&session=11363
+```bash
+F1_STREAM_SIMULATE=11731@2026-10-04T09:10:00Z tools/serve-f1.sh --no-open
 ```
 
-`session=11363` is 2026 Madring, Practice 2. A pinned session is looked up across every
-season, so you don't need to know which year it belongs to.
+Two quirks of the simulator, neither of which a real session has:
 
-**Controls**
+- **The Wall's ring reads "No cars on track."** The simulator dates frames now but lap
+  starts in the simulated past, so every lap start looks a month old. The ring works in
+  replay.
+- **Reloading many times can use up the stream slots.** The local API runs out of its three
+  stream slots, and the page falls back to polling. Restarting the API frees them. PR #20
+  fixes the leak; Cloud Run has the fix once it's redeployed from `main`.
 
-| Control | What it does |
+### The URL
+
+| Parameter | What it does |
 |---|---|
-| Play / Pause | Paced against the wall clock, not a fixed timer |
-| Speed | 1× / 5× / 10× / 60× / 300× — changing it mid-play re-anchors, so there's no jump |
-| Scrubber | Painted with the session's flag periods, notched with race-control events |
-| Jump to: | One button per non-green period — safety cars, yellows, red flags |
-| `←` `→` | Nudge 5s (hold `Shift` for 30s) — how you pin down the instant a flag changes |
-| `Space` | Play / pause |
+| `?api=http://localhost:8080` | Use a local API. Loopback addresses only; anything else is ignored. |
+| `?session=11404&t=2026-11-01T20:45:00Z` | Open a replay at that moment. The page keeps this up to date as it plays, so the address is always a link to the moment on screen. |
+| `?view=map\|wall\|feed\|tower` | Start on that view (`tower` only on a narrow screen). |
+| `?demo=green\|sc\|yellow\|chequered\|quali\|idle` | Draw a captured frame from `tests/pitwall/fixtures/` under a "Demo frame" tag, so every flag state can be looked at any time. `idle` shows the standby poster with the real calendar. |
+| `?stream=off` | Poll only, as the old wall did, for comparing the two. |
+| `?intro` | Play the intro even if it has played in this tab already. |
 
-Radio autoplay needs 1× — see [Team radio](#team-radio).
+### Keys
 
-## Live mode
-
-```
-http://localhost:8000/f1-wall.html?live=1&api=http://localhost:8080
-```
-
-No toolbar — a session picker that can't pick anything is worse than none. The page polls
-`/f1/live` every **1.5s** and draws whatever is on track right now.
-
-Leave it open. Outside a session it polls slowly (60s) and says `NO SESSION RUNNING`, then
-fills in by itself when one starts — no reload needed. When one ends it says `SESSION OVER`
-and leaves the final order on screen. Backgrounding the tab drops it to a 30s poll.
-
-**The Delay box** — the one control in live mode. The timing feed runs ahead of every
-broadcast of it, so a wall fed straight from the feed announces the overtake before you see
-it. Type however many seconds your stream is behind (0–60) and the whole wall is held back
-to match.
-
-- The badge reads `LIVE · 14:57:31 · −20s` when a delay is set, so a wall that's behind on
-  purpose can't be mistaken for one that's stuck.
-- It starts at 0 each load — nothing is remembered between reloads.
-- **Raising** it freezes the current frame until the buffer refills to the new depth.
-- **Lowering** it catches up immediately; drop it by more than 20s and the cars snap to
-  position once instead of gliding.
+- **Views:** M, W and F switch views, and T opens the Tower view on a narrow screen.
+- **Full screen:** Shift+F.
+- **Replay:** Space plays and pauses; ← and → step 5 s (30 s with Shift); Home and End go to either end; L goes back to live.
+- **Tower rows:** Enter opens a driver's card, and F follows them. On a row, a right-click or a long press also follows.
+- **Esc** closes whatever is open.
 
 ---
 
-## Team radio
+## How it's built
 
-The small dock in the top-left of the map. It works the same in both modes, because the
-clips ride on the ordinary `/f1/live` payload as a `radio` array and are bounded by the same
-replay instant as everything else.
+There is no build step. Each script is an IIFE that adds itself to `window.Pitwall`, in
+`/aurora`'s pattern.
 
-**Following a driver.** Click their code in the timing tower. A followed driver is
-underlined with a dot beside it, and their radio then plays by itself as it arrives.
-Everyone else's clips still appear in the dock — click one to hear it. Follows are kept in
-`localStorage` under `f1-wall-radio` and survive a reload and a change of session; the
-audio on/off preference is kept beside them.
+**Pure modules** never touch the page. They run under macOS's `jsc` with the app's own unit
+tests, ported to JavaScript:
 
-**Sound has to be switched on once per page.** Browsers refuse audio until the page has
-been interacted with, so the header button reads `RADIO OFF` until you click it. If sound
-was on last time, the first click anywhere on the page turns it back on — you don't have to
-find the button. `AUDIO BLOCKED` means the browser refused anyway; clicking a clip directly
-is both a gesture and a retry.
+| File | What it is | Ports |
+|---|---|---|
+| `pitwall-format.js` | Times, gaps, names, team colours (OKLab lift), flag words | `wall/Format.kt`, `ui/theme/TeamColours.kt` |
+| `pitwall-parse.js` | Frames, car batches, timelines, sessions | `data/Parse.kt` |
+| `pitwall-season.js` | Season index, the calendar, weekend strip, backdrops, reminders, `.ics` | `data/Season.kt`, `wall/Weekend.kt`, `data/Backdrops.kt`, `wall/Reminders.kt` |
+| `pitwall-sse.js` | Server-sent events over `fetch` | `data/Sse.kt` |
+| `pitwall-live.js` | The live feed: stream first, polling as backup, the delay | `wall/LiveFeed.kt` |
+| `pitwall-replay.js` | Replay playback, jumps and flag bands | `wall/ReplayFeed.kt`, `ui/ReplayBar.kt` |
+| `pitwall-track.js` | Circuits, projection, map motion, turn callouts | `data/Track.kt`, `data/Basemap.kt`, `wall/MapMotion.kt`, `wall/TurnCallouts.kt` |
+| `pitwall-doom.js` | The ring: where a stop would put a car | `wall/Strategy.kt`, `wall/RingPick.kt` |
+| `pitwall-alerts.js` | Banners, the voice's words, weather, the radio queue | `wall/Alerts.kt`, `wall/Announcer.kt`, `wall/WeatherHistory.kt`, `wall/Radio.kt` |
 
-**In replay, autoplay only happens at 1×.** Above that a twenty-second clip cannot fit in
-the race time it spans, so the dock fills but stays quiet, and the header says `· 1× only`.
-The toolbar starts at 5×, so this is the usual answer to "why is nothing playing". Clicking
-a clip pauses playback, plays it, and resumes — `f1-lab.js` re-anchors on resume, so the
-race doesn't leap.
+**DOM modules** draw the page. The `jsc` tests parse-check them; checking how they look is
+done by eye.
 
-**What it deliberately doesn't do.** It holds five rows and doesn't scroll — it's a "what
-did they just say" dock, not an archive. Followed clips play one at a time with at most
-three waiting; a longer burst drops its oldest, which stays in the list a click away.
-Anything older than two minutes of race time is listed but not played.
+| File | Draws | Ports |
+|---|---|---|
+| `pitwall-gate.js` | The sign-in screen; holds back everything that reaches the API | (the page's own) |
+| `pitwall-intro.js` | The opening 2.38 s | `ui/Intro.kt` |
+| `pitwall-ui.js` | Saved settings, `data-bind`, switches, the round + | (`aurora-hud.js`) |
+| `pitwall-net.js` | The API, the stream with Web Locks | `data/Api.kt` |
+| `pitwall-header.js` | The capsule: flag, lap, fastest lap, badge | `ui/StatusBar.kt` |
+| `pitwall-tower.js` | The running order | `ui/Tower.kt` |
+| `pitwall-timeline.js` | The dock: replay scrubber, live progress strip | `ui/ReplayBar.kt` |
+| `pitwall-map.js` | The track map | `ui/TrackMap.kt`, `ui/Basemap.kt` |
+| `pitwall-ring.js` | The Wall | `ui/Ring.kt` |
+| `pitwall-audio.js` | The voice, the tone, the radio player | `wall/Voice.kt` |
+| `pitwall-feed.js` | Race control, conditions, team radio | `ui/Feed.kt`, `ui/Conditions.kt` |
+| `pitwall-driver.js` | One car in full, with live telemetry | `ui/DriverSheet.kt`, `ui/Telemetry.kt` |
+| `pitwall-standby.js` | The poster between sessions | `ui/WallScreen.kt`, `ui/Backdrop.kt` |
+| `pitwall-app.js` | Modes, views, settings, the URL, keys, wiring | `wall/WallViewModel.kt`, `wall/LiveEngine.kt` |
 
-Notes for anyone editing it:
+**Load order.** `f1-wall.html` loads `pitwall-gate.js` and then `pitwall-intro.js` first,
+each straight after its element at the top of the page, so the wall never shows before them. Then come the pure modules, then
+the DOM modules, with `pitwall-app.js` last. `carto-basemap.js` is the only shared file the
+page loads, and it is not changed.
 
-- The clips are served by Formula 1's own CDN **with no CORS headers**. A media element
-  can play them as an opaque resource, which is why there is exactly one `<audio>` and why
-  it must never be given a `crossorigin` attribute — that turns every clip into a load
-  error. It also means no Web Audio, no waveforms, and no duration until metadata arrives.
-- `render()` gets a whole snapshot every frame and the playhead can move backwards, so
-  "a new clip" is derived from a watermark plus a seen set, and a rewind is detected on
-  `data.generated` — see `radioSync` in `f1-dash.js`.
-- A clip whose URL 404s is one bad file, not an audio block. Only `NotAllowedError` from
-  `play()` means the browser is refusing; conflating the two turns autoplay off for the
-  rest of the session after a single dead MP3.
-- Server side it is one stream, `team_radio`, shaped exactly like `race_control`: always
-  fetched whole, `_replace`d, in `OPTIONAL`, and folded by `build_radio` which takes the
-  same `flag_until` bound. Costs about 3 calls a minute of the ~55 budget.
+### Data
 
-## Wall tab
+| From | What |
+|---|---|
+| The timing API (Cloud Run, or `?api=`) | `/f1/live`, the `/f1/stream` SSE, `/f1/replay/sessions?year=`, `/f1/replay/timeline?session_key=`, `/f1/live?replay=&t=` |
+| `assets/data/f1/` | `season-YYYY.json` (rounds, lap counts), the circuit files, `backdrops.json` |
+| CARTO / OpenStreetMap | The map's street tiles |
+| `livetiming.formula1.com` | Team radio clips (only that host is played) |
+| Wikimedia Commons | The standby poster's photographs, loaded straight from Wikimedia |
 
-The **Map | Wall** switch above the map. The Wall is the pit wall's "wall of doom": one lap
-drawn as a ring, with every car placed round it. It replaces the map and the race control
-band; the timing tower stays. `?view=wall` opens straight onto it, and the last choice is
-kept in `localStorage` under `f1-wall-view`.
+`backdrops.json` is built by `tools/build-f1-backdrops.py`. It holds the app's 27 hand-picked,
+freely licensed photographs at 1920 px wide, each with its credit, licence and Commons page. It
+also has a vertical `focusY` for the tall pictures, which a wide screen crops to a band. To add
+a venue, add it to `PICKS` (by OpenF1 circuit key) or `NAMED` (by the names its sessions
+carry), then run the script. It fetches through curl and needs no installs.
 
-**The ring is time, not distance.** One trip round is one lap at current pace
-(`strategy.ringLap`), and each car sits at its gap to the leader. A car 20s behind is 20s
-of arc behind, whatever corner it is in. A lapped car's "+1 LAP" is replaced by summing
-the intervals down from the car in front. The ring is anchored on the leader's
-`lapStart`, and between polls it turns at one lap per `ringLap`: at the replay speed while
-playing, and not at all while paused. Ticks every 5s (longer every 15s) let you read gaps
-off it by eye. S2 and S3 are placed by the session-best sector split. The track turns
-yellow under SC/VSC, and cars in the pit lane sit on the inner ring.
+### Being a good client of the API
 
-**Ghosts.** Pick a car on the ring, in the tower or in the stint strip, and its ghost
-appears. The ghost is where it would rejoin if it pitted now: the car moved back round
-the ring by the pit loss for the flag that is out. **All ghosts** shows every car's. Under
-a safety car the lap stretches and the loss shrinks, so the ghosts pull in towards their
-cars. That shrinkage is the cheap stop.
+The server allows three live streams in all (`STREAM_MAX`), and the app uses them too. So the
+page holds one, and gives it back:
 
-**The centre** shows:
-- the lap count
-- pit loss under green, VSC and SC, with the one that applies now outlined
-- for the picked car, a pit-now projection:
-  - its position after the stop (e.g. `P3 → P6`), and who it lands behind and in front of
-  - `FREE STOP` when the gap behind is bigger than the loss
-  - `TRAFFIC` when it rejoins within 1.5s of any car, lapped ones included
-  - `UNDERCUT` when a car is within 2.5s either side
-- the last four race control messages
-
-**The stint strip** has one row per car: compound bars by lap, up to the lap the car is on,
-plus `FREE` where a stop now costs no place.
-
-### How pit loss is estimated
-
-All of this is in `f1_strategy.py`. It is a set of pure functions over history `_Session`
-now keeps (`lap_history`, `stops`) and the flag periods from `_flag_periods`. It makes no
-upstream calls.
-
-- **Green:** a per-circuit seed (`SEED_PIT_LOSS`, approximate pre-race figures, 22s if the
-  circuit is missing), pulled towards each green stop in the race. A stop's loss is in-lap
-  + out-lap minus twice the driver's own clean pace in the laps either side. The seed
-  counts as two stops.
-- **VSC and SC:** green minus `(k − 1) × BYPASS × refLap`.
-  - `k` is how much slower the field runs: the median neutralised lap ÷ green pace.
-    Defaults are 1.30 (VSC) and 1.45 (SC) until three cars have completed a lap wholly
-    under one.
-  - `BYPASS` (0.30) is the share of the lap the pit route covers, tuned so SC lands near
-    55% of green and VSC near 65%.
-  - Stops made wholly under a neutralisation are measured against the field's laps and
-    blended in.
-- **Lane time is reported, not used.** `lane_duration` is measured between the pit lane's
-  lines. At Zandvoort 2025 it was 18.7s against a ~19–20s green loss, so it misses the
-  slowing down and speeding up outside them.
-- Laps are classified by the flag they ran under. A local yellow counts as green, and lap 1
-  and in- and out-laps are excluded from pace.
-
-Against the 2025 Dutch GP (9920), green calibrates from the 21.5s seed to about 19s. SC
-comes out near 10s (measured k ≈ 1.38) and VSC near 12s.
-
-**Payload.** Races only, and optional like everything else:
-
-```
-strategy: { refLap, ringLap, k: {vsc, sc},
-            pitLoss: {green, vsc, sc, now, seed, basis: "seed"|"calibrated",
-                      samples: {green, vsc, sc}},
-            lane, stationary }
-drivers[].lapStart   ISO start of the lap in progress
-```
-
-Without `strategy`, the ring still draws (from the field's last laps) but has no ghosts.
-Without `lapStart`, it says it needs the updated server. A race now reads its whole `laps`
-stream on first refresh (~1,200 rows), so a server that cold-starts mid-race still has the
-history to calibrate from.
+- **One per browser.** A Web Lock (`pitwall-stream`) means a second tab polls instead of
+  streaming.
+- **Out of sight.** After 60 s hidden, the page closes its stream and polls every 30 s. Back
+  in sight, it polls at once and tries the stream again.
+- **When the server is full.** A refused stream (503) means polling, and another try in 30 s.
+- **Silence.** No frame for 20 s counts as a dead stream, and the page falls back to polling.
 
 ---
 
-## Notes
+## What it does
 
-- `?api=` is **loopback-only by design** — it accepts `localhost` and `127.0.0.1` and
-  nothing else, so a crafted link can't feed the page content from somewhere else.
-  Without it, both modes talk to the deployed Cloud Run service.
-- The page is `noindex, nofollow`, not in the site nav and not in `sitemap.xml`.
-- `app.py` binds `0.0.0.0`, so :8080 is reachable from your local network while it's
-  running. It serves no files, but anyone who finds it spends your OpenF1 quota.
-- Bump the `?v=` cache-busters in `f1-wall.html` when editing `f1-dash.js`, `f1-doom.js` or
-  `f1-dash.css`, or the browser will keep serving you the old one.
-- `f1_strategy.py` must be in the Dockerfile's `COPY` line beside `f1_live.py`, which
-  imports it.
-- Logs: `/tmp/f1-api.log` and `/tmp/f1-web.log`.
+- **Tower:** the running order, with every car visible without scrolling on a laptop.
+  - Rows step in size with the window's height, and P1–P10 are taller.
+  - When there isn't room, the sectors go first, then the last lap.
+  - Rows glide when cars swap places.
+  - Clicking a row opens that car's card; holding it or right-clicking follows the driver.
+- **Map:**
+  - turn numbers, lit for 30 s when race control names them;
+  - flagged marshal sectors;
+  - cars moving from the stream, several times a second;
+  - wind, and zoom up to 6×;
+  - Follow keeps a picked car in view.
+- **Wall:**
+  - each car on a ring of one lap, placed by its gap;
+  - "If X pits now", showing where they'd rejoin and in what traffic;
+  - pit loss under green, VSC and SC;
+  - free stops, ghosts and the stint chart.
+- **Feed:** race control in plain case, the conditions with a trend, and team radio. Followed
+  drivers' clips play by themselves.
+- **Alerts:** news worth interrupting for lights the ticker for 8–12 s (on a phone, a banner
+  floats above the timeline). The voice says flag changes, after a tone, in a local en-GB
+  voice.
+- **The delay:** 0–60 s, set to match a broadcast. Everything waits by the same amount, and
+  the setting is remembered.
+- **Driver card:** gaps, laps, sectors, tyres and stints, plus live telemetry when the stream
+  is up (speed, gear, throttle, brake and revs). Follow and Ghost buttons sit at its foot.
+- **Standby poster:** between sessions, the next venue's photograph, with:
+  - a countdown, amber in the last hour;
+  - the weekend's sessions;
+  - Replay a past session;
+  - an `.ics` of the weekend, with an alert an hour before each session;
+  - Reminders: a notification an hour before, while the page is open. Sessions to be reminded of are chosen in Settings.
+- **The intro:** the wordmark and the five compounds rolling off. It plays once per tab, and
+  not for replay or demo links, a background tab, or reduced motion. A click or any key skips
+  it.
+
+### Layouts
+
+| Width | Layout |
+|---|---|
+| >1240 px | Designed for a 1440×900 laptop: tower on the right, capsule and ticker over the stage, dock below |
+| ≤1240 px | Tower narrows and drops columns; the capsule loses the fastest lap |
+| ≤900 px | The app's own layout: tabs Tower / Map / Wall / Feed along the foot, a floating banner, the driver card as a sheet from the foot, nothing scrolls but the views |
+| ≤560 px | `/aurora`'s phone treatment: byline under the wordmark, panels across the screen, the ring and poster a size down |
+
+On touch screens the chips and round buttons are 2.5rem. With reduced motion, nothing moves.
+
+---
+
+## Design rules
+
+- **Tokens.** Every colour is a token in `:root` in `pitwall.css`, named for its role, and no
+  rule below `:root` names a colour. Scripts read colours with `token('--x')` or
+  `colour('--x')`, and those must be six-digit hex (canvas code parses only that).
+- **A neutral accent.** No hue means "selected": a selected control is inverted (ink fill,
+  ground text). So every colour on the page is data: the flag, team colours, timing purple
+  and green, the tyres.
+- **Type tiers.** Six sizes by how much a figure matters at a glance, from 34 px down to a
+  13 px floor, all in Figtree with tabular figures. Text never shrinks to fit. Columns drop,
+  or the badge's clock goes, but the flag's word always shows in full.
+- **Contrast.** Every text colour clears 4.5:1 on the surfaces it sits on.
+
+`tests/pitwall/lint.test.js` checks all of these, plus `noindex`, the absence of the shared
+theme and nav, and the script order.
+
+## Tests
+
+```bash
+JSC=/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc
+$JSC tests/pitwall/parse-check.js    # every pitwall-*.js parses: "PARSE OK (23)"
+$JSC tests/pitwall/run.js            # the suites: "ALL PASS (140)"
+```
+
+Read the last line rather than the exit status. Most cases are the app's own unit tests,
+with its fixtures in `tests/pitwall/fixtures/` (see the README there). The live and replay
+feeds run on a fake clock (`fake-time.js`). A new suite or module must be added to the lists
+in `run.js` and `parse-check.js`, because `jsc` can't list a directory.
+
+Bump the `?v=` on every asset in `f1-wall.html` when anything changes.
+
+---
+
+## History
+
+The first `/f1-wall` came before Pocket Pitwall: a polling wall built on `/f1-lab`'s replay
+(`f1-dash.js`, `f1-doom.js`, `f1-dash.css`), never committed until PR #16 recorded it. The
+app began as a port of that wall and went well past it. This page then brought the app's
+features back to the web, in ten phases (PRs #17–#27) plus the sign-in screen (#28).
+
+It was built beside the old wall as `/f1-wall_2` and took its place in November 2026. At
+that point:
+- `f1-wall_2.html` became `f1-wall.html`, and this doc became `docs/f1-wall.md`;
+- the old wall's own files went;
+- `tools/serve-f1.sh` and `privacy.html` were updated.
+
+`f1-lab.js` and `f1-map.js` stay, because `/f1-lab` and `/f1` use them. The old wall's list
+of followed drivers (`f1-wall-radio` in local storage) is read once, the first time the
+page opens.
+
+Still worth doing:
+- **Redeploy Cloud Run from `main`.** It picks up the stream-slot fix (#20).
+- **Check during a real session:** live, with the stream, the delay, the voice, radio and the
+  ring, on a laptop, an iPad and a phone.
+- **Optionally, raise `STREAM_MAX` to 4–5,** in its own PR and with a redeploy.
+- **If the page ever goes public:** remove the sign-in screen (`pitwall-gate.js`, its element
+  and Sign out) and `noindex` (and the lint test's check for it). Then add the page to the
+  nav, `sitemap.xml` and `llms.txt`.

@@ -8,7 +8,7 @@
  */
 (function () {
   var css = readFile('assets/css/pitwall.css');
-  var html = readFile('f1-wall_2.html');
+  var html = readFile('f1-wall.html');
 
   // The first :root block holds every literal; what follows must only use tokens.
   var rootStart = css.indexOf(':root {');
