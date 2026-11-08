@@ -1,0 +1,8 @@
+flask~=3.1
+flask-cors~=5.0
+requests~=2.32
+xmltodict~=0.14
+pandas~=2.2
+gunicorn~=23.0
+paho-mqtt==2.1.0
+numpy>=1.22

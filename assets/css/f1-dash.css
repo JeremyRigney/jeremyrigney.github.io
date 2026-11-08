@@ -1,0 +1,1895 @@
+/*
+ * /f1-wall — the whole race in one window.
+ *
+ * Layered over f1.css, which supplies the palette tokens, the font trio, the [data-flag]
+ * colours and the lab toolbar. Nothing here ships on /f1 or /f1-lab.
+ *
+ * Two rules govern the whole file:
+ *
+ *   1. The page is a fixed grid, not a document. `body` is exactly the viewport, every
+ *      track is `minmax(0, …)` or carries `min-height: 0`, and only the two feeds scroll.
+ *      A single missing `min-height: 0` on a nested grid is all it takes for a child to
+ *      refuse to shrink and push the layout off the bottom of the screen.
+ *
+ *   2. Type is large. This is read at a glance, often from a few feet away, so the figures
+ *      are two or three steps up from the panel on /f1 and there is exactly one piece of
+ *      small text per panel — its label. f1.css's --fs-micro (0.58rem) is deliberately
+ *      never used here.
+ *
+ * And a design language, which every rule below answers to. It exists because the page is
+ * glanced at beside a race on the television: legibility and an uncrowded screen come
+ * before anything decorative, and anything that costs either is not worth having.
+ *
+ *   Colour has one job per hue, and every colour is a token in :root — no rule below names
+ *   one, flag-rgb and accent-rgb tints aside. Team colour says who; purple and green are
+ *   timing; --flag, --accent and --amber are state; --ink is what you selected;
+ *   --accent-soft is whom you follow; the greys and lines are structure.
+ *
+ *   Filled means a state: penalty, badge, a free stop. Outlined means an attribute: tyre,
+ *   a named car, a tag. Hollow and dashed means projected — the pit ghosts — and nothing
+ *   that is real is drawn dashed.
+ *
+ *   Structure is tone, not lines. Level 0 is the two hero canvases, level 1 the tower,
+ *   race control and tabs, level 2 whatever floats; only level 2 casts a shadow. Strong
+ *   lines are kept for the two seams that matter: under the status bar, and map | tower.
+ *
+ *   Type comes in six sizes, by priority. --fs-state is the flag alone; --fs-glance the
+ *   figures you check; --fs-key a car's identity; --fs-read row data; --fs-context the
+ *   detail beside it; --fs-label the floor, below which nothing goes. Small text is never
+ *   also faint: anything under --fs-read clears 4.5:1, and is weight 500 or more.
+ *
+ *   A thing's size never changes with the race. Urgency is colour, weight or motion, so the
+ *   layout holds still and the eye learns where to look. Where space runs short, the lower
+ *   tiers leave rather than everything shrinking.
+ */
+
+:root {
+  /* Purple for a session best, green for a personal one — the reading every timing screen
+   * uses, and the only two colours in the table that are not a team's. */
+  --purple: #b47cff;
+  --green: #3ecf78;
+
+  /* State that is neither a flag nor the accent: a stale feed, an investigation, a warning
+   * on the Wall. Its own token, so a tyre colour is never borrowed to mean "careful". */
+  --amber: #f5c518;
+
+  /*
+   * Lifted from f1.css's #6b7178, which is 3.8:1 on the coal — under the 4.5:1 small text
+   * needs, and here it is the colour of every label, which is to say of the smallest text
+   * on the page. This clears 4.5:1 on all three surfaces. Wall only: /f1 keeps its own.
+   */
+  --ink-faint: #858b92;
+
+  /* The surfaces, darkest first. See the design language above. */
+  --surface-0: var(--coal);
+  --surface-1: #16181b;
+  --surface-2: #1d2024;
+  --panel: var(--surface-1);
+  --panel-line: rgba(236, 238, 240, 0.10);
+
+  /* Tints over a surface: every other row, a hover or a pick, an empty track. */
+  --row-alt: rgba(236, 238, 240, 0.028);
+  --tint-hover: rgba(236, 238, 240, 0.06);
+  --tint-faint: rgba(236, 238, 240, 0.04);
+
+  /* Level 2: a near-opaque surface that floats, and the one shadow on the page. */
+  --dock-bg: rgba(29, 32, 36, 0.9);
+  --shadow-float: 0 0 32px rgba(0, 0, 0, 0.5);
+
+  /*
+   * The type scale. Values are the sizes this page already used and that read well on the
+   * 14-inch screen it is watched on, gathered onto six steps; the vw terms keep them in
+   * proportion to the window, the clamps keep them legible at either end.
+   */
+  /* The flag was 3.4vw (51px on the 14-inch screen) and dominated the bar. Its colour, the
+   * pulse and the glow round the whole page carry the state; the word needs only to be the
+   * largest thing in the bar, not the largest by half again. */
+  --fs-state: clamp(1.6rem, 2.75vw, 2.6rem);
+  --fs-glance: clamp(1.4rem, 2.4vw, 2.2rem);
+  --fs-key: clamp(1rem, 1.25vw, 1.3rem);
+  --fs-read: clamp(0.9rem, 1.05vw, 1.15rem);
+  --fs-context: clamp(0.78rem, 0.9vw, 0.9rem);
+  --fs-label: 0.72rem;
+
+  /* Names and codes where width is short — the ring's labels first. Condensed letters at
+   * the same height read as well and take less arc, so a bunched field fans out less. */
+  --font-cond: "Barlow Condensed", "Arial Narrow", sans-serif;
+
+  /* Motion, by meaning: a drift to a new value, a car changing place, a value that just
+   * changed. The flag's pulse keeps its own --flag-pulse from f1.css. */
+  --dur-ease: 240ms;
+  --dur-move: 520ms;
+  --dur-flash: 900ms;
+
+  /* Compound colours, as the tyre walls are actually marked. */
+  --tyre-s: #e8112d;
+  --tyre-m: #f5c518;
+  --tyre-h: #f6f7f8;
+  --tyre-i: #3ecf78;
+  --tyre-w: #3aa0ff;
+}
+
+/*
+ * The viewport is the page. `overflow: hidden` on both elements is what makes "no scroll"
+ * true rather than aspirational — without it a single overflowing child scrolls the whole
+ * document and the header leaves the screen.
+ */
+html.wall-page,
+html.wall-page body {
+  height: 100%;
+  overflow: hidden;
+}
+
+html.wall-page body {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  margin: 0;
+  background: var(--surface-0);
+  color: var(--ink);
+}
+
+/* ---------- The toolbar ---------- */
+
+/*
+ * f1.css pins .lab-bar under /f1-lab's fixed site header. There is no header here — the bar
+ * is the top of the grid — so it is returned to the flow and tightened up.
+ */
+.wall-page .lab-bar {
+  position: static;
+  padding: 0.5rem 0 0.6rem;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+/* The toolbar spans the window rather than sitting in the site's 1180px measure. */
+.wall-page .lab-bar > .wrap {
+  max-width: none;
+  padding: 0 clamp(0.9rem, 2vw, 1.8rem);
+}
+
+.wall-page .lab-controls {
+  align-items: center;
+  gap: 0.6rem 1.1rem;
+}
+
+.wall-page .lab-field {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.wall-page .lab-field > span {
+  font-size: var(--fs-label);
+  font-weight: 500;
+}
+
+.wall-page .lab-field select {
+  font-size: var(--fs-context);
+  padding: 0.36rem 0.5rem;
+}
+
+.wall-page .lab-button {
+  font-size: var(--fs-context);
+  padding: 0.5rem 1.3rem;
+}
+
+.wall-page .lab-clock {
+  font-size: var(--fs-key);
+  letter-spacing: 0.02em;
+}
+
+/* Progress and failures from f1-lab.js. Ordered after the clock, which keeps its own
+ * margin-left:auto, so this sits at the far right of the toolbar. */
+.lab-status-slot {
+  font-family: var(--font-mono);
+  font-size: var(--fs-context);
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  max-width: 26rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.wall-page .lab-scrub {
+  margin-top: 0.5rem;
+}
+
+.wall-page .lab-jumps {
+  margin-top: 0.45rem;
+  font-size: var(--fs-label);
+  font-weight: 500;
+}
+
+/* ---------- The shell, and the flag ---------- */
+
+.wall {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+/*
+ * The flag, as a region.
+ *
+ * A sustained full-screen fill across forty laps of a yellow is unbearable — the note at
+ * the top of f1.css's live section says so, and it is just as true at this size. So the
+ * signal is the perimeter: an inset glow all the way round the working area plus a solid
+ * band along the top, pulsing at the cadence the flag already defines. It reads instantly
+ * from the corner of an eye and never sits between you and a number.
+ */
+.wall::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow:
+    inset 0 0 clamp(40px, 9vh, 120px) rgba(var(--flag-rgb), 0.30),
+    inset 0 4px 0 0 var(--flag);
+}
+
+[data-flag] .wall::after {
+  opacity: 1;
+}
+
+/* Green and chequered state the fact and then get out of the way: no pulse, and the glow
+ * pulled right back. Nothing is wrong, so nothing should be competing for attention. */
+[data-flag="green"] .wall::after,
+[data-flag="chequered"] .wall::after {
+  box-shadow:
+    inset 0 0 clamp(30px, 6vh, 80px) rgba(var(--flag-rgb), 0.10),
+    inset 0 4px 0 0 var(--flag);
+}
+
+/*
+ * Red breathes rather than strobes.
+ *
+ * f1.css gives red the fastest cadence of the three — 0.6s — on the reasoning that it is
+ * the most urgent state. That is right for the hairline on /f1, which is two pixels tall
+ * and where the flag is usually news. It is wrong for a region this size: a red flag stops
+ * the session for ten or twenty minutes, and a full-perimeter glow flashing twice a second
+ * for that long is exhausting to sit in front of.
+ *
+ * So on the wall it becomes the slowest of them instead, which also reads better — a long
+ * heavy pulse says "stopped", where a fast one says "something is happening right now".
+ * Overridden here rather than in f1.css so /f1 and /f1-lab keep the cadence they have.
+ */
+[data-flag="red"] {
+  --flag-pulse: 3.4s;
+}
+
+[data-flag="yellow"] .wall::after,
+[data-flag="vsc"] .wall::after,
+[data-flag="safety-car"] .wall::after,
+[data-flag="red"] .wall::after {
+  animation: wall-flag-pulse var(--flag-pulse) ease-in-out infinite;
+}
+
+@keyframes wall-flag-pulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+/* ---------- Status bar ---------- */
+
+.wall-status {
+  display: flex;
+  align-items: stretch;
+  gap: clamp(1rem, 2.4vw, 2.6rem);
+  padding: clamp(0.5rem, 1.05vh, 0.9rem) clamp(0.9rem, 2vw, 1.8rem);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.ws-flag {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.6rem, 1vw, 0.9rem);
+  min-width: clamp(13rem, 19vw, 21rem);
+  padding-left: clamp(0.7rem, 1.2vw, 1.1rem);
+  /* The flag's own colour, carried as a rule rather than a fill. */
+  border-left: 4px solid var(--flag, var(--line-strong));
+}
+
+/*
+ * The waving flag. It was drawn taller than the word beside it and outweighed it; at half
+ * that it is a marker for the word, which is what carries the state. Its motion is SMIL
+ * and is started and stopped from f1-dash.js (renderFlag), since CSS can neither tween a
+ * path nor pause an <animate>; the colour, like everything else here, comes from --flag.
+ */
+.ws-flag-icon {
+  flex: none;
+  width: auto;
+  height: clamp(1.1rem, 1.85vw, 1.7rem);
+  aspect-ratio: 48 / 40;
+  overflow: visible;
+}
+
+.ws-flag-pole {
+  stroke: var(--ink-soft);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.ws-cloth {
+  fill: var(--flag, var(--line-strong));
+}
+
+[data-flag="chequered"] .ws-cloth {
+  fill: url(#ws-checker);
+}
+
+/* The safety car boards' lettering, black on the yellow as the real ones are. */
+.ws-cloth-mark {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-anchor: middle;
+  dominant-baseline: central;
+  fill: var(--coal);
+}
+
+/* Standby: no flag to fly yet, so no pole either. */
+:root:not([data-flag]) .ws-flag-icon {
+  display: none;
+}
+
+.ws-flag-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.ws-flag-word {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: var(--fs-state);
+  line-height: 1.02;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--flag, var(--ink));
+}
+
+[data-flag="yellow"] .ws-flag-word,
+[data-flag="vsc"] .ws-flag-word,
+[data-flag="safety-car"] .ws-flag-word,
+[data-flag="red"] .ws-flag-word {
+  animation: wall-flag-pulse var(--flag-pulse) ease-in-out infinite;
+}
+
+.ws-flag-note {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-context);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.ws-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.ws-tile[hidden] {
+  display: none;
+}
+
+/* The one piece of small text a tile is allowed. */
+.ws-label {
+  margin: 0 0 0.15rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.ws-value {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: var(--fs-glance);
+  line-height: 1.05;
+  color: var(--chalk);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The part of a figure that hardly ever changes — the minute of a lap time, the plus on a
+ * gap — set back, so the eye lands on the digits that move. Opacity rather than a grey, so
+ * a purple or green time dims in its own hue.
+ */
+.dim {
+  opacity: 0.5;
+}
+
+.ws-value.is-purple {
+  color: var(--purple);
+}
+
+.ws-value-sm {
+  margin: 0;
+  font-size: var(--fs-read);
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.ws-sub {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-context);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* Pushed to the far end, where a label rather than a figure belongs. */
+.ws-session {
+  margin-left: auto;
+  text-align: right;
+  max-width: 22rem;
+}
+
+/* ---------- Live mode ---------- */
+
+/*
+ * `?live=1`. The scrubber is removed from the DOM by f1-dash.js — that is what switches
+ * f1-lab.js off — and the rest of the toolbar goes here, since a session picker that
+ * cannot pick anything is worse than no session picker.
+ */
+[data-live="1"] .lab-bar {
+  display: none;
+}
+
+/*
+ * With the toolbar gone the dashboard is the body's only grid item, and the template's
+ * `auto` row would take it: `.wall` would collapse to the height of its own content and
+ * leave the viewport half empty. One row, then, and all of it.
+ */
+html.wall-page[data-live="1"] body {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+/*
+ * Live mode's one control, beside the session at the right-hand end of the status bar.
+ * The pair is pushed there together: the delay takes the auto margin that .ws-session
+ * would otherwise carry, so in replay mode, with the delay hidden, nothing moves.
+ */
+.ws-delay {
+  margin-left: auto;
+}
+
+.ws-delay:not([hidden]) + .ws-session {
+  margin-left: 0;
+}
+
+.ws-delay-field {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+/*
+ * The only text input in the F1 CSS — .lab-range aside, every other field is a select. Cut
+ * to match one: .lab-field select in f1.css, with this page's smaller type, and monospaced
+ * because it holds a number that gets read at a glance from across a room.
+ */
+#live-delay {
+  width: 4.5rem;
+  padding: 0.36rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-context);
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+}
+
+#live-delay:focus-visible {
+  outline: 2px solid var(--flag, var(--ink-soft));
+  outline-offset: 1px;
+}
+
+/* The unit, tied to the box rather than floating in the strip. */
+.lab-unit {
+  font-family: var(--font-mono);
+  font-size: var(--fs-context);
+  font-weight: 500;
+  color: var(--ink-faint);
+}
+
+/*
+ * Before a session there is no flag, and --flag is defined as `transparent` in f1.css
+ * rather than left unset — so `var(--flag, …)` finds a value and the fallback never runs,
+ * which painted the standby word in transparent ink. Named explicitly here instead.
+ */
+:root:not([data-flag]) .ws-flag-word {
+  color: var(--ink-soft);
+}
+
+/*
+ * The clock the toolbar would have carried. Green because the ordinary state of a live
+ * session is that it is working; it turns amber only when the server says the frame is
+ * stale, which is the one thing worth noticing from across a room.
+ */
+.ws-live {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-context);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--green);
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-live.is-stale {
+  color: var(--amber);
+}
+
+/* ---------- Body grid ---------- */
+
+/*
+ * The tower's width is set by its rows, not the other way round.
+ *
+ * A row is eight tracks that are fixed in rem (27.1rem with the marks column at its floor),
+ * seven gaps of 0.6vw and two paddings of 1.5vw — so it needs 27.1rem + 7.2vw, and the
+ * column may not be narrower than that. It used to be a bare 34vw, which on a 1512px window
+ * is 514px against the 543 the rows need: the overflow went off the right of the screen,
+ * the tyres sat flush against the edge, and on a 1280px window they were cut off entirely.
+ * The map gives up the difference. Below 1240px the sector track goes and the sum with it;
+ * that breakpoint restates this. Change the tracks, change the sum.
+ */
+.wall-body {
+  --tower-min: calc(27.1rem + 7.2vw);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(var(--tower-min), 36vw, 660px);
+  min-height: 0;
+}
+
+.wall-left {
+  display: grid;
+  /* The tabs, then the map taking the slack; race control is a band with a floor and a
+   * ceiling so it neither disappears on a short window nor eats the map on a tall one. */
+  grid-template-rows: auto minmax(0, 1fr) clamp(150px, 28%, 300px);
+  min-height: 0;
+  border-right: 1px solid var(--line-strong);
+}
+
+.panel {
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+}
+
+.panel-label {
+  margin: 0;
+  padding: clamp(0.5rem, 1.1vh, 0.8rem) clamp(0.9rem, 1.6vw, 1.4rem) 0.45rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ---------- Map ---------- */
+
+.panel-map {
+  display: grid;
+  padding: clamp(0.5rem, 1.4vh, 1.1rem);
+  min-height: 0;
+}
+
+/*
+ * A grid cell rather than an absolutely positioned box, and the 100%s are load-bearing.
+ *
+ * <canvas> is a replaced element, so `width: auto` resolves to its *intrinsic* size — the
+ * 300x150 default — rather than stretching to fill an inset box the way a div would. Laid
+ * out that way it sat in the top-left corner of a panel five times its size. Explicit
+ * percentages against a definite grid cell are what actually fill it.
+ *
+ * f1-map.js then sizes its backing store from getBoundingClientRect and, because of the
+ * data-fill attribute on the element, leaves this height alone instead of asserting one
+ * from the circuit's aspect ratio the way it does for the strip on /f1.
+ */
+.wall-map {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ---------- Race control ---------- */
+
+/* Level 1 under the map's level 0: the change of tone is the boundary, so no rule. */
+.panel-feed {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  background: var(--surface-1);
+}
+
+.feed-rows {
+  margin: 0;
+  padding: 0 clamp(0.9rem, 1.6vw, 1.4rem) 0.6rem;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+  overscroll-behavior: contain;
+}
+
+.feed-row {
+  display: grid;
+  grid-template-columns: 3.4rem minmax(0, 1fr);
+  gap: 0 0.9rem;
+  align-items: baseline;
+  /* Separated by space rather than a rule between every message. */
+  padding: 0.55rem 0 0.55rem 0.7rem;
+  /* The severity rule. Transparent by default so only what matters carries a colour. */
+  border-left: 3px solid transparent;
+}
+
+.feed-time {
+  font-family: var(--font-mono);
+  font-size: var(--fs-context);
+  font-weight: 500;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.feed-text {
+  font-size: var(--fs-read);
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+/* Only the two that change a race get lifted out of the grey. */
+.feed-row.feed-high {
+  border-left-color: var(--f1-red);
+}
+
+.feed-row.feed-high .feed-text {
+  color: var(--ink);
+}
+
+.feed-row.feed-high .feed-time {
+  color: var(--f1-red-soft);
+}
+
+.feed-row.feed-type-cleared {
+  border-left-color: var(--green);
+}
+
+/* The cars a message names, in their own team colour. */
+.feed-driver {
+  display: inline-block;
+  margin-right: 0.4rem;
+  padding: 0.05em 0.4em;
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--chalk);
+  border: 1px solid var(--ink-faint);
+  vertical-align: baseline;
+}
+
+.feed-empty {
+  padding: 0.9rem 0;
+  font-size: var(--fs-read);
+  color: var(--ink-faint);
+}
+
+/* ---------- Timing ---------- */
+
+.panel-timing {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  background: var(--surface-1);
+}
+
+/*
+ * The marks column has a floor rather than minmax(0, …): a penalty chip and an
+ * investigation badge together need about 3.9rem, and with a zero minimum the column
+ * collapsed under them and clipped the badge to a sliver.
+ */
+.timing-head,
+.trow {
+  display: grid;
+  grid-template-columns:
+    2.3rem              /* position */
+    0.4rem              /* team colour */
+    3.5rem              /* code */
+    minmax(3.9rem, 1fr) /* penalty chip and badges */
+    5.3rem              /* gap to leader */
+    5.9rem              /* last lap */
+    2.7rem              /* sector bars */
+    3.1rem;             /* tyre */
+  align-items: center;
+  gap: 0 clamp(0.3rem, 0.6vw, 0.7rem);
+  padding-left: clamp(0.8rem, 1.5vw, 1.3rem);
+  padding-right: clamp(0.8rem, 1.5vw, 1.3rem);
+}
+
+.timing-head {
+  padding-top: clamp(0.4rem, 0.8vh, 0.7rem);
+  padding-bottom: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border-bottom: 1px solid var(--line);
+}
+
+.timing-rows {
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+  overscroll-behavior: contain;
+}
+
+/*
+ * Row padding is in vh on purpose: twenty cars have to fit between the header and the
+ * bottom of the window without scrolling, and that budget is a fraction of the viewport
+ * height, not a fixed number of pixels. The floor keeps it legible on a short window,
+ * where the list scrolls rather than compressing into nothing.
+ */
+.trow {
+  padding-top: clamp(0.16rem, 0.38vh, 0.5rem);
+  padding-bottom: clamp(0.16rem, 0.38vh, 0.5rem);
+  /* The FLIP transition f1-dash.js drives when a car changes place. */
+  transition: transform var(--dur-move) var(--ease);
+  will-change: transform;
+}
+
+/*
+ * Every other row tinted, in place of a rule under each. The stripes belong to the places,
+ * not the cars — rows are moved with appendChild, so :nth-child re-evaluates and P2 is
+ * always striped whoever holds it. Kept ahead of .is-pit and .is-picked so those win.
+ */
+.trow:nth-child(even) {
+  background: var(--row-alt);
+}
+
+.t-pos {
+  font-family: var(--font-mono);
+  font-size: var(--fs-key);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/*
+ * The team's colour as a block rather than a hairline: it is how a car is found. Its
+ * height is what sets a row's — twenty rows have to fit — so it stays at 1.5em.
+ */
+.t-bar {
+  width: 100%;
+  height: 1.5em;
+  background: transparent;
+}
+
+.t-code {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: var(--fs-key);
+  letter-spacing: 0.05em;
+  color: var(--chalk);
+}
+
+.t-marks {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.t-gap,
+.t-last {
+  font-family: var(--font-mono);
+  font-size: var(--fs-read);
+  text-align: right;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.t-last {
+  color: var(--ink);
+}
+
+.t-last.is-purple {
+  color: var(--purple);
+}
+
+.t-last.is-green {
+  color: var(--green);
+}
+
+/* The three sector bars. Unset sectors stay as a faint groove so the row keeps its shape. */
+.t-sectors {
+  display: flex;
+  gap: 2px;
+}
+
+.t-sectors i {
+  flex: 1;
+  height: 4px;
+  background: var(--line);
+}
+
+.t-sectors i.is-set { background: var(--ink-faint); }
+.t-sectors i.is-green { background: var(--green); }
+.t-sectors i.is-purple { background: var(--purple); }
+
+/* The compound, on the compound's own colour. */
+.t-tyre {
+  justify-self: end;
+  padding: 0.15em 0.4em;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: var(--fs-context);
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.t-tyre.tyre-s { color: var(--tyre-s); border-color: var(--tyre-s); }
+.t-tyre.tyre-m { color: var(--tyre-m); border-color: var(--tyre-m); }
+.t-tyre.tyre-h { color: var(--tyre-h); border-color: var(--tyre-h); }
+.t-tyre.tyre-i { color: var(--tyre-i); border-color: var(--tyre-i); }
+.t-tyre.tyre-w { color: var(--tyre-w); border-color: var(--tyre-w); }
+
+.trow.is-pit {
+  background: rgba(var(--accent-rgb), 0.05);
+}
+
+.trow.is-pit .t-tyre {
+  color: var(--accent-soft);
+  border-color: var(--accent-soft);
+}
+
+.trow.is-out {
+  opacity: 0.4;
+}
+
+/* Whoever holds the session's fastest lap, marked on the row rather than in a column. */
+.trow.is-fastest .t-pos {
+  color: var(--purple);
+}
+
+/* ---------- Penalty chips and badges ---------- */
+
+/*
+ * The penalty in the words race control used, which is the thing you actually want to know
+ * — "+5s" says what "P" never could. The single-letter badges remain for the states that
+ * have no value to show, and for a penalty whose wording did not parse.
+ */
+.chip {
+  padding: 0.12em 0.45em;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: var(--fs-context);
+  font-style: normal;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.chip-penalty {
+  color: var(--chalk);
+  background: var(--f1-red);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35em;
+  height: 1.35em;
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--fs-context);
+  font-style: normal;
+  font-weight: 700;
+  color: var(--coal);
+  background: var(--ink-faint);
+}
+
+.badge-investigation { background: var(--amber); }
+.badge-penalty { background: var(--f1-red); color: var(--chalk); }
+.badge-deletion { background: var(--ink-faint); }
+
+/* ---------- Team radio ---------- */
+
+/*
+ * A small dock in the top-left of the map panel, not a panel of its own.
+ *
+ * Radio is a thing you listen to while watching something else, so it gets a corner rather
+ * than a column: the map is the one region with space that is genuinely empty rather than
+ * merely quiet. Top-left specifically — f1-map.js centres its caption along the bottom
+ * edge, and the timing tower already crowds the right.
+ *
+ * .panel is position:relative already, so this costs the map no layout at all. The stack
+ * sits under the flag glow (.wall::after, z-index 30), which is pointer-events:none and so
+ * lets clicks through to the buttons here.
+ */
+.radio-dock {
+  position: absolute;
+  top: clamp(0.6rem, 1.4vh, 1.1rem);
+  left: clamp(0.6rem, 1.4vh, 1.1rem);
+  z-index: 5;
+  /* Wide enough for the arm button, "Follow a code" and the fold toggle on one line at
+   * the label size; a folded dock that wraps is taller than an open one should be. */
+  width: clamp(13.5rem, 17.5vw, 17.5rem);
+  padding: 0.45rem 0.55rem 0.3rem;
+  /* Level 2: it floats over the map, so it takes the float surface and its shadow. */
+  background: var(--dock-bg);
+  backdrop-filter: blur(3px);
+  border: 1px solid var(--panel-line);
+  box-shadow: var(--shadow-float);
+}
+
+/*
+ * Folded by default to its head — the arm button, who is followed, and the clip playing
+ * now — because the five recent rows sat over the top-left of the track. The toggle opens
+ * the list, and the choice is remembered with the rest of the radio preferences.
+ */
+.radio-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.radio-dock.is-open .radio-head {
+  margin-bottom: 0.35rem;
+}
+
+.radio-dock:not(.is-open) .radio-rows {
+  display: none;
+}
+
+.radio-toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin: -0.2rem -0.25rem -0.2rem 0;
+  padding: 0;
+  font: inherit;
+  color: var(--ink-soft);
+  background: none;
+  border: 0;
+  appearance: none;
+  cursor: pointer;
+}
+
+.radio-toggle:hover {
+  color: var(--chalk);
+}
+
+.radio-toggle:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+/* A chevron drawn from two borders, so it needs no glyph and turns with a transform. */
+.radio-toggle i {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-20%) rotate(45deg);
+  transition: transform var(--dur-ease) var(--ease);
+}
+
+.radio-dock.is-open .radio-toggle i {
+  transform: translateY(20%) rotate(-135deg);
+}
+
+/*
+ * The arm button is the whole audio control: off, on, or blocked by the browser. Sized and
+ * lettered like .panel-label so the dock reads as part of the furniture.
+ */
+.radio-arm {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink-faint);
+  background: none;
+  border: 0;
+  appearance: none;
+  cursor: pointer;
+}
+
+.radio-arm:hover {
+  color: var(--chalk);
+}
+
+.radio-dot {
+  width: 7px;
+  height: 7px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+
+.radio-arm[aria-pressed="true"] {
+  color: var(--accent-soft);
+}
+
+.radio-arm[aria-pressed="true"] .radio-dot {
+  background: currentColor;
+}
+
+.radio-arm.is-blocked {
+  color: var(--f1-red-soft);
+}
+
+/* Which drivers are followed, and — in replay above 1x — why nothing is playing itself. */
+.radio-follow {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.radio-now {
+  margin: 0.3rem 0 0.3rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  color: var(--accent-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.radio-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* Five rows, no scroll: a scrolling list in a map corner is a mis-affordance on a page
+   * you leave open across a room. What falls off was the least recent thing said. */
+  overflow: hidden;
+}
+
+.radio-row + .radio-row {
+  border-top: 1px solid var(--panel-line);
+}
+
+.radio-clip {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.28rem 0.1rem;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  background: none;
+  border: 0;
+  border-left: 2px solid transparent;
+  appearance: none;
+  cursor: pointer;
+}
+
+.radio-clip:hover {
+  color: var(--chalk);
+  background: var(--tint-hover);
+}
+
+.radio-clip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* The same chip the race control feed uses for a named car, for the same reason. */
+.radio-code {
+  padding: 0.05em 0.4em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-context);
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--chalk);
+  border: 1px solid var(--ink-faint);
+}
+
+.radio-time {
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.radio-row.is-playing .radio-clip {
+  border-left-color: var(--accent);
+}
+
+.radio-row.is-playing .radio-time {
+  color: var(--accent-soft);
+}
+
+.radio-empty {
+  padding: 0.35rem 0.1rem;
+  font-size: var(--fs-label);
+  font-weight: 500;
+  color: var(--ink-faint);
+}
+
+/*
+ * Following a driver is a click on their code in the timing tower.
+ *
+ * A button, not a new column: .trow is a fixed eight-track grid and widening it would mean
+ * moving the header too. The reset below keeps the 3.5rem track exactly as it was.
+ *
+ * It resets the box and nothing about the type. It used to open with `font: inherit`,
+ * which — same selector, later in the file — quietly undid the .t-code rule above, and
+ * every code in the tower drew in the body's Inter at regular weight instead of the bold
+ * mono that rule asks for. The browser's own button font is already overridden there.
+ */
+.t-code {
+  padding: 0;
+  line-height: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  appearance: none;
+  cursor: pointer;
+  position: relative;
+}
+
+/*
+ * Followed state is an underline *and* a dot — shape and weight, never colour alone. The
+ * dot is placed in the gutter between the code and marks columns (the grid's own
+ * clamp(.3rem, .6vw, .7rem) gap), so it never widens the track it sits in.
+ */
+.t-code.is-followed {
+  color: var(--chalk);
+  text-decoration: underline;
+  text-decoration-color: var(--accent-soft);
+  text-underline-offset: 3px;
+}
+
+.t-code.is-followed::after {
+  content: "";
+  position: absolute;
+  right: -0.34rem;
+  top: 50%;
+  margin-top: -2.5px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+}
+
+.t-code:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Map or Wall ---------- */
+
+/* Level 1 over the map's level 0, so the tone is the boundary and the rule goes. */
+.wall-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.45rem clamp(0.9rem, 1.6vw, 1.4rem);
+  background: var(--surface-1);
+}
+
+.wall-tab,
+.doom-ghosts {
+  padding: 0.35rem 0.95rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-context);
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.wall-tab:hover,
+.doom-ghosts:hover {
+  color: var(--ink);
+}
+
+/*
+ * Selected, in one language across the page: ink, and an inset ink bar. A row carries the
+ * bar on its left edge (.trow.is-picked, .ss-row.is-selected); a control carries it along
+ * its foot, and steps up a surface so it stands off the level 1 bar it sits in.
+ */
+.wall-tab[aria-selected="true"],
+.doom-ghosts[aria-pressed="true"],
+.doom-stints[aria-expanded="true"] {
+  color: var(--ink);
+  background: var(--surface-2);
+  box-shadow: inset 0 -2px 0 var(--ink);
+}
+
+.wall-tab:focus-visible,
+.doom-ghosts:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Only the Wall has ghosts to show. */
+.doom-ghosts {
+  display: none;
+}
+
+#doom-ghosts {
+  margin-left: auto;
+}
+
+.wall[data-view="wall"] .doom-ghosts {
+  display: inline-block;
+}
+
+.wall[data-view="wall"] .panel-map,
+.wall[data-view="wall"] .panel-feed {
+  display: none;
+}
+
+/* The Wall takes both of the map's rows, the race control band's included, and the ring
+ * has all of it: the stint drawer floats over the bottom only when opened. */
+.panel-doom {
+  display: none;
+  grid-row: 2 / span 2;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.wall[data-view="wall"] .panel-doom {
+  display: grid;
+}
+
+.doom-stage {
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* Fills its cell the way .wall-map does, and for the same reason. */
+.doom-ring {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+/*
+ * The ring's centre holds one thing: the car you picked, and what stopping now would do
+ * to it.
+ *
+ * It used to carry the lap, the scale, the pit losses, the pick and the latest race control
+ * in a box sized to the ring, and shrank the lot together until it fitted — so the answer
+ * the tab exists for came out the same size as its footnotes. Everything else now lives in
+ * the corners. The type here is the page's own scale and never shrinks; if the box is still
+ * too small, f1-doom.js drops the least important lines instead (.is-tight, .is-tighter).
+ */
+.doom-centre {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  overflow: hidden;
+  text-align: center;
+  pointer-events: none;
+}
+
+.doom-centre p {
+  margin: 0;
+}
+
+.dc-pick-head {
+  font-family: var(--font-mono);
+  font-size: var(--fs-read);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* The team's block, as on the tower's rows. */
+.dc-pick-head i {
+  display: inline-block;
+  width: 0.4rem;
+  height: 1em;
+  margin-right: 0.5em;
+  vertical-align: -0.12em;
+}
+
+.dc-pick-main {
+  font-family: var(--font-mono);
+  font-size: var(--fs-glance);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--chalk);
+  font-variant-numeric: tabular-nums;
+}
+
+.dc-where {
+  font-size: var(--fs-context);
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+.dc-note,
+.dc-hint {
+  max-width: 16rem;
+  font-size: var(--fs-read);
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+.dc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+/* Tags are attributes of the projection, so outlined (see the design language). */
+.dc-tag {
+  padding: 0.12em 0.5em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-context);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border: 1px solid var(--line-strong);
+}
+
+.dc-tag.is-good {
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.dc-tag.is-warn {
+  color: var(--amber);
+  border-color: var(--amber);
+}
+
+/* Fit by dropping, lowest first: the where-line, then any tag after the second. */
+.doom-centre.is-tight .dc-where {
+  display: none;
+}
+
+.doom-centre.is-tighter .dc-tag:nth-child(n + 3) {
+  display: none;
+}
+
+/*
+ * The corners.
+ *
+ * The panel is wider than the ring needs, so each corner is empty space — and the four
+ * things the centre no longer holds go there, one to a corner: the pit loss top-left, who
+ * can stop for free top-right, the latest race control bottom-right, and what the ring's
+ * marks mean bottom-left. Level 2, like the radio dock on the map.
+ *
+ * Every card has a fixed number of lines whatever it holds — a long message is clamped, a
+ * long list of free stops is cut to "+N" — so its box never changes with the race.
+ * f1-doom.js measures the boxes and keeps the ring's labels clear of them, and a box that
+ * changed size every lap would mean a ring that changed size every lap.
+ */
+.doom-cards {
+  --card-w: clamp(12rem, 14vw, 15.5rem);
+  --card-inset: clamp(0.6rem, 1.4vh, 1.1rem);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.doom-card {
+  position: absolute;
+  width: var(--card-w);
+  padding: 0.5rem 0.65rem 0.55rem;
+  background: var(--dock-bg);
+  border: 1px solid var(--panel-line);
+  box-shadow: var(--shadow-float);
+  pointer-events: auto;
+}
+
+.doom-card[hidden] {
+  display: none;
+}
+
+.dk-tl { top: var(--card-inset); left: var(--card-inset); }
+.dk-tr { top: var(--card-inset); right: var(--card-inset); }
+.dk-bl { bottom: var(--card-inset); left: var(--card-inset); }
+.dk-br { bottom: var(--card-inset); right: var(--card-inset); }
+
+.doom-card p {
+  margin: 0;
+}
+
+.dk-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem !important;
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.dk-time {
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pit loss: the three costs side by side, the one that applies now marked by the flag. */
+.dk-loss {
+  display: flex;
+  gap: 0.3rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.dk-loss-cell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 0.2rem 0.35rem 0.25rem;
+  font-size: var(--fs-read);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink-soft);
+}
+
+.dk-loss-cell b {
+  font-size: var(--fs-label);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.dk-loss-cell.is-on {
+  color: var(--chalk);
+  background: var(--tint-hover);
+  box-shadow: inset 0 -2px 0 var(--flag, var(--ink));
+}
+
+.dk-note {
+  margin-top: 0.35rem !important;
+  overflow: hidden;
+  font-size: var(--fs-context);
+  font-weight: 500;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Under a safety car or a VSC the saving is the point, so it is said in ink. */
+.dk-note.is-save {
+  color: var(--ink);
+}
+
+/* Free stops: filled, because "free" is a state; each one picks its car when clicked. */
+.dk-free {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: calc(var(--fs-read) * 1.55);
+  overflow: hidden;
+}
+
+.dk-chip {
+  flex: none;
+  padding: 0.1em 0.4em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-read);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--coal);
+  background: var(--green);
+  border: 0;
+  border-radius: 0;
+  appearance: none;
+  cursor: pointer;
+}
+
+.dk-chip.is-selected {
+  box-shadow: inset 0 -3px 0 var(--coal);
+}
+
+.dk-chip:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.dk-more,
+.dk-none {
+  font-size: var(--fs-context);
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+/* Race control: the newest message, two lines at most, always two lines tall. */
+.dk-feed-text {
+  display: -webkit-box;
+  min-height: calc(2 * 1.35em);
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: var(--fs-context);
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.dk-feed-text.is-empty {
+  color: var(--ink-faint);
+}
+
+/* The key: what one trip round the ring is, and what a hollow ghost means. */
+.dk-legend {
+  overflow: hidden;
+  font-size: var(--fs-context);
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dk-ghost {
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  margin-right: 0.45em;
+  vertical-align: -0.08em;
+  border: 1.5px dashed var(--ink-soft);
+  border-radius: 50%;
+}
+
+/* ---------- The stint strip ---------- */
+
+/*
+ * One row per car in running order, laps across. Rows share the band's height equally so
+ * twenty cars fit without scrolling; on a short window the floor wins and it scrolls.
+ */
+.stint-drawer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  /* A height rather than a ceiling, so the rows below have a definite height to share. */
+  height: 60%;
+  /* Level 2: it floats over the ring, so it is told apart by surface and shadow. */
+  background: var(--surface-2);
+  box-shadow: var(--shadow-float);
+}
+
+.stint-drawer[hidden] {
+  display: none;
+}
+
+.stint-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0.5rem clamp(0.9rem, 1.6vw, 1.4rem) 0.3rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.stint-close {
+  padding: 0.25rem 0.7rem;
+  font: inherit;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  cursor: pointer;
+}
+
+.stint-close:hover {
+  color: var(--ink);
+}
+
+.stint-strip {
+  display: grid;
+  grid-auto-rows: minmax(1.35rem, 1fr);
+  margin: 0;
+  padding: 0.2rem clamp(0.9rem, 1.6vw, 1.4rem) 0.7rem;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+  overscroll-behavior: contain;
+}
+
+.ss-row {
+  display: grid;
+  grid-template-columns: 1.8rem 3.6rem minmax(0, 1fr) 3.2rem;
+  align-items: center;
+  gap: 0 0.5rem;
+  min-height: 0;
+  cursor: pointer;
+}
+
+.ss-pos,
+.ss-code,
+.ss-free {
+  font-family: var(--font-mono);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ss-pos {
+  font-size: var(--fs-context);
+  font-weight: 500;
+  text-align: right;
+  color: var(--ink-faint);
+}
+
+/* The team's block is the tower's .t-bar, in the same width. */
+.ss-code {
+  padding-left: 0.35rem;
+  font-size: var(--fs-read);
+  font-weight: 700;
+  color: var(--ink-soft);
+  border-left: 0.4rem solid transparent;
+}
+
+/* Selected as a tower row is: tint, and the ink bar on the left. */
+.ss-row.is-selected {
+  background: var(--tint-hover);
+  box-shadow: inset 2px 0 0 var(--ink);
+}
+
+.ss-row.is-selected .ss-code {
+  color: var(--ink);
+}
+
+.ss-row.is-pit .ss-code {
+  color: var(--accent-soft);
+}
+
+.ss-track {
+  position: relative;
+  height: 62%;
+  min-height: 5px;
+  background: var(--tint-faint);
+}
+
+.ss-stint {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* The drawer's own surface, so the gap between stints reads as a cut. */
+  border-right: 2px solid var(--surface-2);
+  opacity: 0.85;
+}
+
+.ss-stint.ss-s { background: var(--tyre-s); }
+.ss-stint.ss-m { background: var(--tyre-m); }
+.ss-stint.ss-h { background: var(--tyre-h); }
+.ss-stint.ss-i { background: var(--tyre-i); }
+.ss-stint.ss-w { background: var(--tyre-w); }
+.ss-stint.ss-u { background: var(--ink-faint); }
+
+/* The lap the race is on now. */
+.ss-now {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 1px;
+  background: var(--ink);
+}
+
+/* FREE is a state, so it is filled, the same green chip as the Wall's free-stop card. */
+.ss-free {
+  justify-self: start;
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.ss-free.is-free {
+  padding: 0.2em 0.4em;
+  color: var(--coal);
+  background: var(--green);
+}
+
+/* The car the Wall is projecting a stop for, picked out in the tower too. */
+.trow.is-picked {
+  background: var(--tint-hover);
+  box-shadow: inset 2px 0 0 var(--ink);
+}
+
+.wall[data-view="wall"] .trow {
+  cursor: pointer;
+}
+
+/* ---------- Narrower windows ---------- */
+
+/*
+ * The sector bars are the first thing to go: they are the finest-grained thing on the row
+ * and the least useful at a glance.
+ */
+@media (max-width: 1240px) {
+  /* 23.9rem of fixed tracks once the sectors go; the gaps and padding are unchanged. */
+  .wall-body {
+    --tower-min: calc(23.9rem + 7.2vw);
+  }
+
+  .timing-head,
+  .trow {
+    grid-template-columns: 2.2rem 0.4rem 3.4rem minmax(3.9rem, 1fr) 5.2rem 5.8rem 0 3rem;
+  }
+
+  .t-sectors {
+    display: none;
+  }
+}
+
+/*
+ * Below this the single window stops being achievable — a map, twenty rows and a feed do
+ * not coexist in a phone viewport at a legible size, and pretending otherwise produces
+ * three unreadable panels instead of one readable page. So the grid unwinds and the page
+ * is allowed to scroll like an ordinary document.
+ */
+@media (max-width: 1000px) {
+  html.wall-page,
+  html.wall-page body {
+    height: auto;
+    overflow: visible;
+  }
+
+  html.wall-page body {
+    display: block;
+  }
+
+  .wall::after {
+    position: fixed;
+  }
+
+  .wall-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wall-left {
+    border-right: 0;
+  }
+
+  /*
+   * The radio dock comes out of the map's corner and sits under it. Height moves from the
+   * panel to the canvas so the dock adds to the page rather than eating the track: the
+   * panel gains a second row, and auto-placement puts the canvas above the dock. On a wide
+   * window the dock is out of flow, so the single-cell grid up there is untouched.
+   */
+  .panel-map {
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .wall-map {
+    height: 44vh;
+  }
+
+  /*
+   * The ring keeps its square and the corner cards come out from over it into a two-by-two
+   * grid underneath. f1-doom.js sees them go static and stops reserving room for them.
+   */
+  .doom-ring {
+    height: 92vw;
+    max-height: 85vh;
+  }
+
+  .doom-cards {
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+    padding: 0.6rem;
+  }
+
+  .doom-card {
+    position: static;
+    width: auto;
+  }
+
+  .radio-dock {
+    position: static;
+    width: auto;
+    margin-top: 0.6rem;
+  }
+
+  .wall-status {
+    flex-wrap: wrap;
+    gap: 1rem 1.6rem;
+  }
+
+  .ws-delay,
+  .ws-session {
+    margin-left: 0;
+    text-align: left;
+  }
+
+  .feed-rows,
+  .timing-rows {
+    overflow-y: visible;
+  }
+}
+
+/*
+ * Under reduced motion the colour and the word still carry the flag; only the pulse and the
+ * row movement go. The glow is held at full strength rather than removed — it is the
+ * page's main signal, and losing it entirely would cost more than the animation is worth.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .wall::after,
+  .ws-flag-word {
+    animation: none !important;
+  }
+
+  [data-flag] .wall::after {
+    opacity: 1;
+  }
+
+  .trow {
+    transition: none;
+  }
+
+  .radio-dot {
+    animation: none !important;
+  }
+
+  .radio-toggle i {
+    transition: none;
+  }
+}

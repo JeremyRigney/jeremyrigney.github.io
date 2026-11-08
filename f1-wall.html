@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" class="wall-page">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>F1 — the wall</title>
+  <meta name="description" content="The whole race in one window: track map, running order, race control and the flag state, replayed from a past session." />
+  <!--
+    Not for visitors. A second view onto the same composed frame /f1 renders — everything
+    at once in one window instead of an editorial strip you scroll. Not linked from the site
+    nav, not in sitemap.xml, and it asks not to be indexed.
+
+    /f1-lab is deliberately untouched by this page: it renders the real /f1 panel, which is
+    what makes it useful for developing that panel. This is a different question — what the
+    race looks like when you want all of it at once — so it gets its own view rather than
+    changing that one.
+  -->
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" id="favicon" href="assets/favicon-f1.svg" type="image/svg+xml" />
+  <meta name="theme-color" content="#111214" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- f1.css for the palette tokens, the [data-flag] colours and the toolbar; f1-dash.css
+       for everything this page draws. -->
+  <link rel="stylesheet" href="assets/css/f1.css?v=20260907" />
+  <link rel="stylesheet" href="assets/css/f1-dash.css?v=20261011f" />
+</head>
+<!--
+  data-f1-lab is what tells f1-live.js not to start a poll loop. That file is not loaded
+  here, but the attribute is kept so this page and /f1-lab answer the question the same way
+  if it ever is.
+-->
+<body data-f1-lab>
+  <!--
+    The toolbar. Same controls and — importantly — the same ids as /f1-lab, because
+    assets/js/f1-lab.js drives both pages and those ids are its entire contract with the
+    markup. Nothing in that file knows or needs to know which page it is running on.
+  -->
+  <section class="lab-bar">
+    <div class="wrap">
+      <div class="lab-controls">
+        <label class="lab-field">
+          <span>Season</span>
+          <select id="lab-year"></select>
+        </label>
+        <label class="lab-field lab-field-wide">
+          <span>Session</span>
+          <select id="lab-session"><option value="">Loading…</option></select>
+        </label>
+        <button class="lab-button" id="lab-play" type="button" disabled>Play</button>
+        <label class="lab-field">
+          <span>Speed</span>
+          <select id="lab-speed">
+            <option value="1">1×</option>
+            <option value="5" selected>5×</option>
+            <option value="10">10×</option>
+            <option value="60">60×</option>
+            <option value="300">300×</option>
+          </select>
+        </label>
+        <span class="lab-clock" id="lab-clock">—</span>
+        <!-- f1-lab.js writes both progress and its failures here ("Timeline failed: …"),
+             so it stays visible: a lab that loses its error messages is worse than one
+             with an extra line of text in the toolbar. -->
+        <span class="lab-status-slot" id="lab-status">Pick a session</span>
+      </div>
+
+      <!--
+        The scrubber, painted with the session's flag periods and notched with race-control
+        events, so the moments worth looking at can be found by eye.
+      -->
+      <div class="lab-scrub">
+        <div class="lab-track" id="lab-track" aria-hidden="true"></div>
+        <input class="lab-range" id="lab-range" type="range" min="0" max="1000" value="0"
+               aria-label="Race time" />
+      </div>
+      <p class="lab-jumps" id="lab-jumps"></p>
+    </div>
+  </section>
+
+  <!-- Filled by f1-dash.js. Under ?live=1 the toolbar above is hidden, and live mode's one
+       control — the delay — sits in the status bar beside the session instead. -->
+  <main class="wall" id="live"></main>
+
+  <script src="assets/js/f1-map.js?v=20261004"></script>
+  <!-- Before f1-dash.js, which hands it every frame and owns the Map/Wall switch. -->
+  <script src="assets/js/f1-doom.js?v=20261011h"></script>
+  <script src="assets/js/f1-dash.js?v=20261011e"></script>
+  <script src="assets/js/f1-lab.js?v=20261004"></script>
+</body>
+</html>

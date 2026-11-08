@@ -1,0 +1,29 @@
+# Controls what `gcloud run deploy --source .` uploads to Cloud Build.
+# The Cloud Run service only needs the Flask API (app.py) + requirements.txt;
+# everything else here is the static website or local cruft.
+#
+# NOTE: when this file exists, gcloud ignores .gitignore, so list everything.
+
+# Version control & CI
+.git
+.gitignore
+.github
+
+# Editor / tooling
+.claude
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+
+# Static site content
+*.html
+*.pdf
+*.txt
+!requirements.txt
+sitemap.xml
+CNAME
+LICENSE.txt
+README.txt
+images/
+assets/
