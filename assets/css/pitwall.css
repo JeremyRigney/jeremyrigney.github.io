@@ -1,0 +1,1133 @@
+/*
+ * Pitwall — the live timing wall, rebuilt from Pocket Pitwall in /aurora's design language.
+ *
+ * The system is /aurora's, the colours the wall's own:
+ *   - one face, Figtree, at 400 for text and 600-700 for figures and titles, with tabular
+ *     figures wherever a number changes, and nothing under 13 px;
+ *   - one surface, the card: nearly opaque, 28-px corners, lit along its top edge and lifted
+ *     by a soft shadow; anything nested in a card is an inset tile. No backdrop blur: the
+ *     map under a card moves every frame, so a blur would be redone every frame;
+ *   - pills for every control, a round + for what a card doesn't need to say at first;
+ *   - spacing in steps of 4 px (--s-*).
+ *
+ * No accent hue. A selected control is inverted — ink fill, ground-coloured text — so every
+ * colour on the page is data, each with one meaning: the flag's colour is the flag; purple
+ * is a session best and green a personal one; amber is caution that isn't a flag; blue is
+ * rain; red is a penalty, the pit lane and the red flag; and each team has its own. The
+ * tyres are marked as the sidewalls are.
+ *
+ * Legibility first: the wall is read in glances, at arm's length, mid-race. Type is sized by
+ * priority tier (--fs-*), the most important figures largest and stillest; urgency shows in
+ * colour and motion, never in a change of size; and when space runs short a column leaves
+ * rather than everything shrinking.
+ *
+ * Every literal colour is in the :root block below; nothing under it may name one
+ * (tests/pitwall/lint.test.js holds the file to that, and to 4.5:1 for every text token).
+ */
+
+:root {
+  --ground: #111214;
+  --ink: #eceef0;
+  --ink-soft: #a3a9b0;
+  --ink-faint: #8a9097;
+
+  --card: rgba(17, 18, 20, 0.9);
+  --card-solid: #16181b;
+  --row: #1d1f23; /* a car's row: an inset tile on the tower's solid card */
+  --inset: rgba(236, 238, 240, 0.05);
+  --grid: rgba(236, 238, 240, 0.07);
+  --hover: rgba(236, 238, 240, 0.08);
+  --line: rgba(236, 238, 240, 0.1);
+  --rule: rgba(236, 238, 240, 0.12);
+  --axis: rgba(236, 238, 240, 0.2);
+  --rule-strong: rgba(236, 238, 240, 0.26);
+  --shadow: rgba(4, 5, 6, 0.6);
+  --lift: inset 0 1px 0 var(--rule), 0 24px 48px -20px var(--shadow);
+
+  /* A selected control: inverted, never a hue. */
+  --selected: var(--ink);
+  --on-selected: var(--ground);
+
+  /* The wordmark: chalk into steel, so it never reads as data. */
+  --logo-from: #f6f7f8;
+  --logo-mid: #c6cbd0;
+  --logo-to: #8f969d;
+
+  /* Flags, as race control shows them. */
+  --flag-green: #3ecf78;
+  --flag-yellow: #f5c518;
+  --flag-red: #e8112d;
+  --flag-chequered: #f6f7f8;
+
+  /* Timing: a session best, a personal best. */
+  --timing-best: #b47cff;
+  --timing-personal: #3ecf78;
+  --caution: #f5c518; /* careful, but not a flag: an investigation, a temperature rising */
+  --rain: #3aa0ff;
+  --alert: #e8112d; /* a penalty, the pit lane */
+  --alert-fill: #c40f27; /* the same red as a fill under text, dark enough for it */
+
+  /* Tyres, as the sidewalls are marked; the soft's red lifted a step to read as a mark. */
+  --tyre-soft: #ff4055;
+  --tyre-medium: #f5c518;
+  --tyre-hard: #f6f7f8;
+  --tyre-inter: #3ecf78;
+  --tyre-wet: #3aa0ff;
+
+  --font: "Figtree", "Helvetica Neue", Arial, sans-serif;
+
+  /* Six tiers, by how much a figure matters at a glance. */
+  --fs-label: 0.8125rem;   /* 13 px: labels, the floor */
+  --fs-context: 0.9375rem; /* 15 px: notes under headline figures */
+  --fs-read: 1.0625rem;    /* 17 px: race control's words, titles */
+  --fs-key: 1.1875rem;     /* 19 px: card figures */
+  --fs-glance: 1.375rem;   /* 22 px: the clock, the fastest lap */
+  --fs-state: 2.125rem;    /* 34 px: the flag and the lap */
+
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.5rem;
+  --s-6: 2rem;
+
+  --r-card: 28px;
+  --r-inset: 18px;
+  --r-row: 10px;
+  --r-pill: 999px;
+  --pad: 1.25rem;
+  --gutter: clamp(1rem, 2.4vw, 1.75rem);
+  --top-h: 5.25rem;
+  --tower-w: 31.5rem;
+
+  /* The running order's two slot sizes, stepped by the window's height (below). P1-P10 are
+     the points places and get the larger slot. */
+  --row-big: 26px;
+  --row-small: 21px;
+  --fs-row-big: 1.125rem;
+  --fs-row-small: 0.9375rem;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --move-ms: 520ms;
+}
+
+/* The flag's colour, wherever the flag shows: the block, the word, the wash. */
+:root[data-flag="GREEN"] { --flag: var(--flag-green); }
+:root[data-flag="YELLOW"],
+:root[data-flag="VSC"],
+:root[data-flag="SAFETY_CAR"] { --flag: var(--flag-yellow); }
+:root[data-flag="RED"] { --flag: var(--flag-red); }
+:root[data-flag="CHEQUERED"] { --flag: var(--flag-chequered); }
+
+:root[data-flag="YELLOW"] { --pulse: 1100ms; }
+:root[data-flag="VSC"],
+:root[data-flag="SAFETY_CAR"] { --pulse: 1600ms; }
+:root[data-flag="RED"] { --pulse: 3400ms; }
+
+@media (min-height: 745px) {
+  :root {
+    --row-big: 30px;
+    --row-small: 24px;
+    --fs-row-big: 1.25rem;
+    --fs-row-small: 1.0625rem;
+  }
+}
+
+@media (min-height: 860px) {
+  :root {
+    --row-big: 34px;
+    --row-small: 28px;
+    --fs-row-big: 1.375rem;
+    --fs-row-small: 1.125rem;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html {
+  height: 100%;
+  background: var(--ground);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ---------- Building blocks ---------- */
+
+.card {
+  padding: var(--pad);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--card);
+  box-shadow: var(--lift);
+}
+
+.card-title {
+  font-size: var(--fs-read);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.card-note {
+  font-size: var(--fs-context);
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.card-title + .card-note {
+  margin-top: var(--s-2);
+}
+
+/* Chips: every other button. Pressed is inverted. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 2rem;
+  padding: 0 0.875rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-pill);
+  background: transparent;
+  font-size: var(--fs-label);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.chip:hover {
+  border-color: var(--ink-soft);
+  background: var(--hover);
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--selected);
+  background: var(--selected);
+  color: var(--on-selected);
+}
+
+/* Tags: pills that only say something. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 1.5rem;
+  padding: 0 0.625rem;
+  border-radius: var(--r-pill);
+  background: var(--hover);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.tag::before {
+  content: "";
+  flex: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.tag-rain::before {
+  background: var(--rain);
+}
+
+/* Segmented switches. */
+.seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card-solid);
+  box-shadow: var(--lift);
+}
+
+.seg button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2rem;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  font-size: var(--fs-label);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.seg button:hover {
+  color: var(--ink);
+  background: var(--hover);
+}
+
+.seg button[aria-checked="true"] {
+  background: var(--selected);
+  color: var(--on-selected);
+}
+
+/* A value that has gone stale says so, and fades, but never moves. */
+[data-stale="true"] {
+  opacity: 0.45;
+}
+
+/* ---------- The flag's wash ---------- */
+
+/* The flag's colour washes down from the top of the window, as on the app: strongest at the
+   very top, gone a little below the capsule. Urgent flags wash stronger, and a band along
+   the top edge breathes at the flag's own cadence. It sits behind the cards, which are
+   nearly opaque, so it colours the gaps and the edges and never the figures. */
+.wash {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 0;
+  height: 16rem;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--flag) 25%, transparent) 0,
+    color-mix(in srgb, var(--flag) 15%, transparent) 2.125rem,
+    color-mix(in srgb, var(--flag) 8%, transparent) 9rem,
+    transparent 100%
+  );
+  transition: opacity 600ms var(--ease);
+}
+
+:root[data-flag] .wash {
+  opacity: 1;
+}
+
+:root:is([data-flag="YELLOW"], [data-flag="VSC"], [data-flag="SAFETY_CAR"], [data-flag="RED"]) .wash {
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--flag) 46%, transparent) 0,
+    color-mix(in srgb, var(--flag) 28%, transparent) 2.125rem,
+    color-mix(in srgb, var(--flag) 14%, transparent) 9rem,
+    transparent 100%
+  );
+}
+
+.beacon {
+  height: 3.5rem;
+  opacity: 0;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--flag) 42%, transparent) 0,
+    color-mix(in srgb, var(--flag) 16%, transparent) 55%,
+    transparent 100%
+  );
+}
+
+:root:is([data-flag="YELLOW"], [data-flag="VSC"], [data-flag="SAFETY_CAR"], [data-flag="RED"]) .beacon {
+  animation: beacon var(--pulse) cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+}
+
+@keyframes beacon {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---------- The frame ---------- */
+
+/* The running order down the right, full height; everything else in the column beside it:
+   the byline and switches, the capsule, race control's line, and the stage. */
+.wall {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--tower-w);
+  column-gap: var(--s-4);
+  height: 100vh;
+  height: 100dvh;
+  padding: calc(var(--s-3) + env(safe-area-inset-top, 0px)) var(--gutter) var(--gutter);
+}
+
+.main {
+  display: grid;
+  grid-template-rows: auto var(--top-h) auto minmax(0, 1fr);
+  row-gap: var(--s-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  min-width: 0;
+  height: 2.625rem;
+}
+
+.brand {
+  display: flex;
+  flex: none;
+  align-items: baseline;
+  gap: var(--s-3);
+}
+
+.logo {
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-decoration: none;
+  color: var(--logo-mid);
+  background: linear-gradient(100deg, var(--logo-from) 0%, var(--logo-mid) 55%, var(--logo-to) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-by {
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--ink-soft);
+  transition: color 160ms ease;
+}
+
+.brand-by b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.brand-by:hover {
+  color: var(--ink);
+}
+
+.session-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--fs-read);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.header-controls {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+/* ---------- The capsule ---------- */
+
+/* The race's state in one pill: the flag, the lap, the fastest lap, and whether the wall
+   is live. Small labels over large figures; hairlines between the parts. */
+.capsule {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: stretch;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  box-shadow: var(--lift);
+}
+
+.cap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 var(--s-5);
+}
+
+.cap + .cap::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 1.25rem;
+  bottom: 1.25rem;
+  width: 1px;
+  background: var(--line);
+}
+
+.cap-label {
+  font-size: var(--fs-label);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--ink-soft);
+}
+
+.cap-sub {
+  min-height: 1.1rem;
+  font-size: var(--fs-label);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The flag: its block, then its word over the note. */
+.cap-flag {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--s-4);
+  padding-left: 1.5rem;
+}
+
+/* Green is the normal state: a quiet dot. A local yellow is outlined; the neutralisations
+   and the red flag are filled blocks, lettered where the flag is; the chequered flag is
+   chequered. Before any flag, an empty ring. */
+.flag-block {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 3.25rem;
+  height: 2.5rem;
+  border: 2px solid var(--rule-strong);
+  border-radius: 12px;
+}
+
+:root[data-flag="GREEN"] .flag-block {
+  width: 1rem;
+  height: 1rem;
+  margin: 0 1.125rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--flag);
+}
+
+:root[data-flag="YELLOW"] .flag-block {
+  border: 3px solid var(--flag);
+}
+
+:root:is([data-flag="VSC"], [data-flag="SAFETY_CAR"], [data-flag="RED"]) .flag-block {
+  border: 0;
+  background: var(--flag);
+}
+
+:root[data-flag="CHEQUERED"] .flag-block {
+  border: 1px solid var(--flag);
+  background: repeating-conic-gradient(var(--flag) 0 25%, var(--ground) 0 50%) 0 0 / 0.8125rem 0.8125rem;
+}
+
+.flag-mark {
+  font-size: var(--fs-context);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--on-selected);
+}
+
+.flag-text {
+  min-width: 0;
+}
+
+.flag-word {
+  overflow: hidden;
+  font-size: var(--fs-state);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ink);
+}
+
+:root[data-flag] .flag-word {
+  color: var(--flag);
+}
+
+.flag-note {
+  overflow: hidden;
+  min-height: 1.3rem;
+  font-size: var(--fs-context);
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ink-soft);
+}
+
+/* The lap: the one figure the race is counted in. */
+.lap-value {
+  font-size: var(--fs-state);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.lap-of {
+  font-size: 0.53em;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink-soft);
+}
+
+.cap-sub.is-final {
+  color: var(--ink);
+}
+
+.fastest-value {
+  font-size: var(--fs-glance);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fastest-time {
+  color: var(--timing-best);
+}
+
+.fastest-who {
+  font-size: var(--fs-read);
+  color: var(--team, var(--ink));
+}
+
+/* Whether the wall is live: the state as a tag, then the frame's own clock and the delay. */
+.cap-badge {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--s-3);
+  padding-right: 2rem;
+}
+
+.tag-state {
+  height: 1.75rem;
+  padding: 0 0.75rem;
+  background: var(--selected);
+  color: var(--on-selected);
+}
+
+.tag-state::before {
+  display: none;
+}
+
+.cap-badge[data-tone="warn"] .tag-state {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--caution);
+  color: var(--caution);
+}
+
+.cap-badge[data-tone="quiet"] .tag-state,
+.cap-badge[data-tone="demo"] .tag-state {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+  color: var(--ink-soft);
+}
+
+.badge-clock {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.badge-clock b {
+  font-size: var(--fs-glance);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.badge-delay {
+  font-size: var(--fs-label);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+/* ---------- Race control's line ---------- */
+
+/* The newest message from race control, at reading size, as one inset line. */
+.ticker {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  min-width: 0;
+  padding: 0.5625rem var(--s-5);
+  border-radius: var(--r-pill);
+  background: var(--inset);
+  font-size: var(--fs-read);
+  line-height: 1.45;
+}
+
+.ticker-when {
+  flex: none;
+  font-size: var(--fs-label);
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.ticker-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ticker[data-empty] .ticker-text {
+  color: var(--ink-soft);
+}
+
+/* ---------- The stage ---------- */
+
+.stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  margin: 0;
+}
+
+.stage-note {
+  max-width: 26rem;
+}
+
+:root[data-view="map"] .stage-note:not([data-for="map"]),
+:root[data-view="wall"] .stage-note:not([data-for="wall"]),
+:root[data-view="feed"] .stage-note:not([data-for="feed"]) {
+  display: none;
+}
+
+/* ---------- The running order ---------- */
+
+/* Every car fits without scrolling: two slot sizes, stepped by the window's height, the
+   points places taller. The slots are fixed, so a car crossing P10 moves into a smaller
+   slot rather than the tower re-flowing; rows glide to their new places, so an overtake
+   reads as two cars swapping. Columns are measured off the larger size, so both tiers line
+   up, and when the tower is too narrow the sectors leave first, then the last lap. */
+.tower {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: var(--s-3) var(--s-3) var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--card-solid);
+  box-shadow: var(--lift);
+  /* The larger slot's size, so the container queries below measure in it. */
+  font-size: var(--fs-row-big);
+  container: tower / inline-size;
+}
+
+.tower-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-height: 2rem;
+  margin: 0 0 var(--s-2);
+  padding: 0 var(--s-1) 0 var(--s-3);
+}
+
+.tower-list {
+  --u: var(--fs-row-big);
+  --c-pos: calc(var(--u) * 1.3);
+  --c-code: calc(var(--u) * 2.55);
+  --c-fig: calc(var(--u) * 4.5);
+  --c-last: calc(var(--u) * 4.3);
+  --c-sec: 2.625rem;
+  --c-tyre: calc(var(--u) * 2.3);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+  font-size: var(--fs-row-big);
+}
+
+.tower-list.is-scrolling {
+  overflow-y: auto;
+}
+
+.row {
+  --team: var(--ink-soft);
+  display: grid;
+  grid-template-columns: var(--c-pos) 4px var(--c-code) minmax(0, 1fr) var(--c-fig) var(--c-last) var(--c-sec) var(--c-tyre);
+  align-items: center;
+  column-gap: 0.4rem;
+  flex: none;
+  height: var(--row-small);
+  padding: 0 0.625rem 0 0.25rem;
+  border-radius: var(--r-row);
+  background: var(--row);
+  font-size: var(--fs-row-small);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background-color 160ms ease;
+}
+
+.row.is-big {
+  height: var(--row-big);
+  font-size: var(--fs-row-big);
+}
+
+/* The break between the points places and the rest of the field. */
+.row:nth-child(10) {
+  margin-bottom: 6px;
+}
+
+.row:hover {
+  background: color-mix(in srgb, var(--ink) 8%, var(--row));
+}
+
+/* A driver you follow is painted in their team's colour, like a route's block. */
+.row.is-followed {
+  background: color-mix(in srgb, var(--team) 30%, var(--card-solid));
+}
+
+/* The picked car is ringed, not filled, so its team, purple and green all still read. */
+.row.is-picked {
+  box-shadow: inset 0 0 0 2px var(--selected);
+}
+
+/* In the pit lane: dark red, hatched like the pit lane's own markings. */
+.row.is-pit {
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--alert) 20%, var(--card-solid)) 0 7px,
+    color-mix(in srgb, var(--alert) 36%, var(--card-solid)) 7px 10px
+  );
+}
+
+.row.is-out {
+  opacity: 0.4;
+}
+
+.row-pos {
+  font-weight: 700;
+  text-align: right;
+}
+
+.row-pos.is-fastest {
+  color: var(--timing-best);
+}
+
+.row-bar {
+  width: 4px;
+  height: 62%;
+  border-radius: 2px;
+  background: var(--team);
+}
+
+.row-code {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--team);
+}
+
+.row-marks {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: max(var(--fs-label), 0.72em);
+  font-weight: 700;
+}
+
+.mark {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.45em;
+  height: 1.45em;
+  padding: 0 0.3em;
+  border-radius: 5px;
+  line-height: 1;
+}
+
+.mark-penalty,
+.mark-p {
+  background: var(--alert-fill);
+  color: var(--ink);
+}
+
+.mark-investigation {
+  background: var(--caution);
+  color: var(--on-selected);
+}
+
+.mark-deletion {
+  background: var(--rule-strong);
+  color: var(--ink);
+}
+
+.row-fig,
+.row-last {
+  text-align: right;
+}
+
+.row-fig {
+  font-weight: 700;
+}
+
+.row-last {
+  font-weight: 600;
+}
+
+/* The part of a figure that hardly changes — the minute, the plus — set back, so the eye
+   lands on the digits that move. Faded rather than greyed, so a purple time stays purple. */
+.faint {
+  opacity: 0.5;
+}
+
+.is-best {
+  color: var(--timing-best);
+}
+
+.is-personal {
+  color: var(--timing-personal);
+}
+
+.row-sectors {
+  display: flex;
+  gap: 3px;
+}
+
+.sector {
+  flex: 1;
+  height: 0.3125rem;
+  border-radius: 3px;
+  background: var(--line);
+}
+
+.sector.is-set {
+  background: var(--axis);
+}
+
+.sector.is-personal {
+  background: var(--timing-personal);
+}
+
+.sector.is-best {
+  background: var(--timing-best);
+}
+
+.row-tyre {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3em;
+}
+
+/* The tyre as the sidewall shows it: a ring in the compound's colour, and its age. */
+.tyre-ring {
+  flex: none;
+  width: 1.05em;
+  height: 1.05em;
+  border: 0.2em solid var(--tyre, var(--ink-faint));
+  border-radius: 50%;
+}
+
+.tyre-ring[data-tyre="soft"] { --tyre: var(--tyre-soft); }
+.tyre-ring[data-tyre="medium"] { --tyre: var(--tyre-medium); }
+.tyre-ring[data-tyre="hard"] { --tyre: var(--tyre-hard); }
+.tyre-ring[data-tyre="inter"] { --tyre: var(--tyre-inter); }
+.tyre-ring[data-tyre="wet"] { --tyre: var(--tyre-wet); }
+
+.tyre-age {
+  min-width: 1.3em;
+  font-size: max(var(--fs-label), 0.82em);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.tyre-pit {
+  padding: 0.15em 0.55em;
+  border-radius: var(--r-pill);
+  background: var(--alert-fill);
+  font-size: max(var(--fs-label), 0.82em);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* Narrower than the full set of columns: the sectors leave first, then the last lap. The
+   widths are the columns above at the larger slot's size (em), plus their fixed parts. */
+@container tower (max-width: calc(16.6em + 108px)) {
+  .row {
+    grid-template-columns: var(--c-pos) 4px var(--c-code) minmax(0, 1fr) var(--c-fig) var(--c-last) var(--c-tyre);
+  }
+
+  .row-sectors {
+    display: none;
+  }
+}
+
+@container tower (max-width: calc(16.6em + 60px)) {
+  .row {
+    grid-template-columns: var(--c-pos) 4px var(--c-code) minmax(0, 1fr) var(--c-fig) var(--c-tyre);
+  }
+
+  .row-sectors,
+  .row-last {
+    display: none;
+  }
+}
+
+.tower-empty {
+  margin: auto var(--s-4);
+  text-align: center;
+}
+
+.tower.has-rows .tower-empty {
+  display: none;
+}
+
+/* The tower head says what the figure column shows; with a choice, it is a chip that
+   steps through them. */
+.chip-figure::after {
+  content: "⇅";
+  font-size: var(--fs-context);
+  line-height: 1;
+}
+
+/* A captured frame, not a live one. */
+.tag-demo {
+  position: fixed;
+  left: 50%;
+  bottom: var(--s-4);
+  z-index: 30;
+  height: 2rem;
+  padding: 0 var(--s-4);
+  transform: translateX(-50%);
+  background: var(--selected);
+  color: var(--on-selected);
+}
+
+.tag-demo::before {
+  background: var(--caution);
+}
+
+/* ---------- Narrower windows ---------- */
+
+@media (max-width: 1240px) {
+  :root {
+    --tower-w: 25rem;
+  }
+
+  .capsule {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .cap-fastest {
+    display: none;
+  }
+
+  .brand-by {
+    display: none;
+  }
+}
+
+/* Portrait and phones get the app's own layout in a later phase; until then the wall
+   stacks and scrolls. */
+@media (max-width: 900px) {
+  body {
+    overflow: auto;
+  }
+
+  .wall {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    row-gap: var(--s-4);
+  }
+
+  .main {
+    grid-template-rows: auto auto auto auto;
+  }
+
+  .stage {
+    min-height: 12rem;
+  }
+
+  .capsule {
+    grid-template-columns: minmax(0, 1fr) auto;
+    border-radius: var(--r-card);
+  }
+
+  .cap-badge {
+    grid-column: 1 / -1;
+    padding: var(--s-3) var(--s-5);
+  }
+
+  .cap-badge::before {
+    display: none;
+  }
+
+  .session-title {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wash,
+  .row,
+  .chip,
+  .seg button {
+    transition: none;
+  }
+
+  .beacon {
+    animation: none !important;
+    opacity: 0.6;
+  }
+}

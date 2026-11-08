@@ -1,0 +1,7 @@
+{"year": 2026, "sessions": [
+  {"key": 11731, "name": "Race", "type": "Race", "circuit": "Kuala Lumpur", "circuitKey": 12, "country": "Bahrain", "start": "2026-10-04T07:00:00Z", "end": "2026-10-04T09:00:00Z", "meeting": "Bahrain Grand Prix", "meetingKey": 1308},
+  {"key": 11727, "name": "Practice 1", "type": "Practice", "circuit": "Kuala Lumpur", "circuitKey": 12, "country": "Bahrain", "start": "2026-10-02T04:30:00Z", "end": "2026-10-02T05:30:00Z", "meeting": "Bahrain Grand Prix", "meetingKey": 1308},
+  {"key": 11388, "name": "Race", "type": "Race", "circuit": "Singapore", "circuitKey": 61, "country": "Singapore", "start": "2026-10-11T12:00:00Z", "end": "2026-10-11T14:00:00Z", "meeting": "Singapore Grand Prix", "meetingKey": 1296},
+  {"key": 11468, "name": "Day 3", "type": "Practice", "circuit": "Sakhir", "circuitKey": 63, "country": "Bahrain", "start": "2026-02-20T07:00:00Z", "end": "2026-02-20T16:00:00Z", "meeting": "Pre-Season Testing", "meetingKey": 1305},
+  {"key": 11000, "name": "Race", "type": "Race", "circuit": "Monza", "circuitKey": 39, "country": "Italy", "start": "2026-09-06T13:00:00Z", "end": "2026-09-06T15:00:00Z"}
+]}
