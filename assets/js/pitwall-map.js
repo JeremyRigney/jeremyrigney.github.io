@@ -538,6 +538,8 @@
     var reason = s.motion && s.frame ? s.motion.emptyReason(s.frame) : null;
     var hint = reason || (s.followed.size ? '' : 'Numbers are race positions · hold a driver in the tower to name them here');
     noteEl.hidden = !hint;
+    // Marked when it's only the hint, not why the map is empty: a phone leaves the hint out.
+    noteEl.toggleAttribute('data-hint', !reason);
     if (noteEl.textContent !== hint) { noteEl.textContent = hint; }
   }
 
