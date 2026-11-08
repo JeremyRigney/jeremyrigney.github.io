@@ -66,6 +66,7 @@
   --rain: #3aa0ff;
   --alert: #e8112d; /* a penalty, the pit lane */
   --alert-fill: #c40f27; /* the same red as a fill under text, dark enough for it */
+  --alert-soft: #ff4055; /* the same red as a mark on the ground: race control's serious messages */
 
   /* Tyres, as the sidewalls are marked; the soft's red lifted a step to read as a mark. */
   --tyre-soft: #ff4055;
@@ -98,6 +99,7 @@
   --pad: 1.25rem;
   --gutter: clamp(1rem, 2.4vw, 1.75rem);
   --top-h: 5.25rem;
+  --dock-h: 4.75rem;
   --tower-w: 31.5rem;
 
   /* The running order's two slot sizes, stepped by the window's height (below). P1-P10 are
@@ -586,7 +588,7 @@ button {
 
 .main {
   display: grid;
-  grid-template-rows: auto var(--top-h) auto minmax(0, 1fr);
+  grid-template-rows: auto var(--top-h) auto minmax(0, 1fr) var(--dock-h);
   row-gap: var(--s-3);
   min-width: 0;
   min-height: 0;
@@ -953,6 +955,317 @@ button {
   display: none;
 }
 
+/* ---------- The dock ---------- */
+
+/* A capsule along the foot of the stage: the session as a track. In replay, play, the
+   track as a slider, the speed, the way back to live and a + for the jumps; live, the
+   track is the session so far and the rest stand aside. */
+.dock {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+  padding: var(--s-2) var(--s-4) var(--s-2) var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  box-shadow: var(--lift);
+}
+
+.dock[data-mode="live"] {
+  padding-left: 1.75rem;
+}
+
+.dock[data-mode="live"] :is(.tl-play, .tl-speed, .dock-more-btn) {
+  display: none;
+}
+
+.tl-play {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--selected);
+  color: var(--on-selected);
+  cursor: pointer;
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.tl-play:hover:not([disabled]) {
+  transform: scale(1.05);
+}
+
+.tl-play[disabled] {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.tl-play svg {
+  display: block;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.tl-track {
+  position: relative;
+  flex: 1;
+  align-self: stretch;
+  min-width: 0;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.dock[data-mode="live"] .tl-track {
+  cursor: default;
+}
+
+.tl-track:focus-visible {
+  outline-offset: 4px;
+  border-radius: var(--r-inset);
+}
+
+.tl-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* The thumb: an ink rule at the moment on screen, its time in a pill above. */
+.tl-thumb {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  pointer-events: none;
+}
+
+.tl-thumb::after {
+  content: "";
+  position: absolute;
+  top: 1.5rem;
+  bottom: 0.25rem;
+  left: -1px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--selected);
+}
+
+.tl-thumb-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 1.375rem;
+  padding: 0 0.55rem;
+  border-radius: var(--r-pill);
+  background: var(--selected);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  line-height: 1.375rem;
+  white-space: nowrap;
+  color: var(--on-selected);
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-note {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  font-size: var(--fs-context);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.tl-note:empty {
+  display: none;
+}
+
+.tl-speed {
+  min-width: 3.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Live: a quiet status while the wall is live, an inverted button to come back to it from
+   a replay. The width never changes, so the track doesn't jump. */
+.tl-live {
+  min-width: 4.75rem;
+  border-color: var(--selected);
+  background: var(--selected);
+  color: var(--on-selected);
+}
+
+.tl-live::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.tl-live:hover {
+  border-color: var(--selected);
+  background: var(--selected);
+  opacity: 0.9;
+}
+
+.tl-live[aria-disabled="true"] {
+  border-color: var(--rule-strong);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: default;
+  opacity: 1;
+}
+
+/* What the dock's + opens rises above it, as a card of its own. */
+.dock-more {
+  --close-ms: 600;
+  position: absolute;
+  bottom: calc(100% + var(--s-3));
+  right: 0;
+  z-index: 20;
+  width: min(25rem, calc(100vw - 2 * var(--gutter)));
+  padding: var(--s-5) 1.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-inset);
+  background: var(--card-solid);
+  box-shadow: var(--lift);
+  transition: opacity 320ms var(--ease), translate 320ms var(--ease);
+}
+
+.dock-more[data-closing] {
+  opacity: 0;
+  translate: 0 0.75rem;
+  transition: opacity 600ms cubic-bezier(0.65, 0, 0.35, 1), translate 600ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@starting-style {
+  .dock-more {
+    opacity: 0;
+    translate: 0 0.75rem;
+  }
+}
+
+.panel-gap {
+  margin-top: var(--s-5);
+}
+
+.jumps,
+.nudges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+
+/* A jump carries its flag's colour as a dot, never as the word's colour. */
+.chip-jump::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--flag-yellow);
+}
+
+.chip-jump[data-flag-state="RED"]::before {
+  background: var(--flag-red);
+}
+
+.chip-jump[data-flag-state="CHEQUERED"]::before {
+  background: var(--flag-chequered);
+}
+
+/* ---------- Live or replay ---------- */
+
+.seg-mode {
+  display: flex;
+  margin-bottom: var(--s-4);
+  box-shadow: none;
+}
+
+.seg-mode button {
+  flex: 1;
+  justify-content: center;
+}
+
+:root:not([data-mode="replay"]) .mode-replay,
+:root[data-mode="replay"] .mode-live {
+  display: none;
+}
+
+.seg-years {
+  margin: var(--s-3) 0 var(--s-3);
+  box-shadow: none;
+}
+
+/* The sessions to replay, a weekend at a time, newest first. */
+.picker {
+  max-height: min(26rem, 55vh);
+  margin: 0 -0.5rem;
+  padding: 0 0.5rem;
+  overflow-y: auto;
+}
+
+.picker-weekend + .picker-weekend {
+  margin-top: var(--s-4);
+}
+
+.picker-weekend .cap-label {
+  margin: 0 0 var(--s-2) var(--s-1);
+}
+
+.picker-list {
+  overflow: hidden;
+  border-radius: var(--r-inset);
+  background: var(--inset);
+}
+
+.picker-session {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  width: 100%;
+  padding: 0.6875rem var(--s-4);
+  border: 0;
+  background: transparent;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.picker-session + .picker-session {
+  border-top: 1px solid var(--line);
+}
+
+.picker-session:hover {
+  background: var(--hover);
+}
+
+.picker-session[aria-current="true"] {
+  background: var(--selected);
+  color: var(--on-selected);
+}
+
+.picker-session span {
+  flex: none;
+  font-size: var(--fs-label);
+  font-weight: 600;
+  color: inherit;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---------- The running order ---------- */
 
 /* Every car fits without scrolling: two slot sizes, stepped by the window's height, the
@@ -1315,7 +1628,7 @@ button {
   }
 
   .main {
-    grid-template-rows: auto auto auto auto;
+    grid-template-rows: auto auto auto auto auto;
   }
 
   .stage {

@@ -46,7 +46,7 @@
 
   test('colours read by scripts are six-digit hex', function () {
     var read = {};
-    ['pitwall-ui.js', 'pitwall-tower.js', 'pitwall-header.js', 'pitwall-app.js'].forEach(function (f) {
+    ['pitwall-ui.js', 'pitwall-tower.js', 'pitwall-header.js', 'pitwall-timeline.js', 'pitwall-replay.js', 'pitwall-app.js'].forEach(function (f) {
       var src = readFile('assets/js/' + f);
       var re = /token\('(--[\w-]+)'\)/g;
       var m;
