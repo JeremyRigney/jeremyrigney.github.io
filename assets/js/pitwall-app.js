@@ -10,7 +10,11 @@
   var F = P.Format;
   var UI = P.UI;
 
-  var VIEWS = ['map', 'wall', 'feed'];
+  var VIEWS = ['tower', 'map', 'wall', 'feed'];
+
+  /* On a narrow screen the running order is a view of its own; on a wide one it's always
+     beside the stage, so its view falls back to the map. */
+  var narrow = window.matchMedia('(max-width: 900px)');
   var GAP_MODES = ['LEADER', 'INTERVAL', 'LAST'];
   var DATA_V = '20261106';
 
@@ -92,7 +96,7 @@
     },
     mode: 'live'
   };
-  if (VIEWS.indexOf(settings.view) < 0) { settings.view = 'map'; }
+  if (VIEWS.indexOf(settings.view) < 0 || (settings.view === 'tower' && !narrow.matches)) { settings.view = 'map'; }
   if (GAP_MODES.indexOf(settings.gapMode) < 0) { settings.gapMode = 'LEADER'; }
 
   /* The drivers followed, as numbers. The old wall kept its own list (f1-wall-radio); the
@@ -324,6 +328,9 @@
     }
     UI.show('unread', unread > 0);
     UI.text('unread', unread > 9 ? '9+' : unread);
+    var feedTab = document.querySelector('#views [data-view="feed"]');
+    var label = unread > 0 ? 'Feed, ' + unread + ' new' : 'Feed';
+    if (feedTab.getAttribute('aria-label') !== label) { feedTab.setAttribute('aria-label', label); }
     P.Feed.render(frame, {
       weather: weather,
       radio: radio,
@@ -954,6 +961,12 @@
   var views = UI.seg(document.getElementById('views'), 'data-view', setView);
   views.pick(settings.view);
   setView(settings.view);
+  narrow.addEventListener('change', function () {
+    if (!narrow.matches && settings.view === 'tower') {
+      views.pick('map');
+      setView('map');
+    }
+  });
 
   /** A click on a car in the tower or on the map: pick it and open its card, or let go of it. */
   function pickAndOpen(num) {
@@ -1074,7 +1087,7 @@
         return;
       }
     }
-    var view = { m: 'map', w: 'wall', f: 'feed' }[e.key];
+    var view = { t: narrow.matches ? 'tower' : null, m: 'map', w: 'wall', f: 'feed' }[e.key];
     if (view && !e.shiftKey && !target.closest('.row')) {
       views.pick(view);
       setView(view);

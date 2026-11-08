@@ -143,9 +143,13 @@
     if (!open && refocus) { button.focus(); }
   }
 
-  /** Wire every .more under root that isn't wired yet; safe to call again after adding one. */
+  /*
+   * Wire every .more under root that opens a panel and isn't wired yet; safe to call again
+   * after adding one. A round button that only closes its own card (the driver's, the
+   * stints') names no panel, stays an x, and is left to its card.
+   */
   function more(root) {
-    Array.prototype.forEach.call((root || document).querySelectorAll('.more:not([data-wired])'), function (button) {
+    Array.prototype.forEach.call((root || document).querySelectorAll('.more[aria-controls]:not([data-wired])'), function (button) {
       button.setAttribute('data-wired', '');
       button.addEventListener('click', function () {
         setMore(button, button.getAttribute('aria-expanded') !== 'true');
@@ -154,7 +158,7 @@
   }
 
   function openMores() {
-    return Array.prototype.slice.call(document.querySelectorAll('.more[aria-expanded="true"]'));
+    return Array.prototype.slice.call(document.querySelectorAll('.more[aria-controls][aria-expanded="true"]'));
   }
 
   document.addEventListener('keydown', function (e) {

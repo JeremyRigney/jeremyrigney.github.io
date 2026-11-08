@@ -2891,29 +2891,104 @@ button {
   }
 }
 
-/* Portrait and phones get the app's own layout in a later phase; until then the wall
-   stacks and scrolls. */
+/* The running order's own view exists only where it can't sit beside the stage. */
+.view-tower {
+  display: none !important;
+}
+
+/*
+ * Portrait and phones: the app's own layout. The header and the capsule over the stage,
+ * the replay timeline under it, and the views as tabs along the foot, the running order
+ * now one of them: Tower, Map, Wall, Feed. A message worth interrupting for floats above
+ * the timeline, and a car's card rises from the foot as a sheet. The page never scrolls;
+ * the tower and the feed scroll inside the stage.
+ */
 @media (max-width: 900px) {
-  body {
-    overflow: auto;
+  :root {
+    --tabs-h: 3.5rem;
+    --dock-h: 3.75rem;
+    --gutter: 1rem;
+  }
+
+  .view-tower {
+    display: inline-flex !important;
   }
 
   .wall {
     grid-template-columns: minmax(0, 1fr);
-    height: auto;
-    row-gap: var(--s-4);
+    grid-template-rows: auto auto minmax(0, 1fr) var(--dock-h);
+    grid-template-areas: "top" "capsule" "stage" "dock";
+    row-gap: var(--s-3);
+    padding-bottom: calc(var(--tabs-h) + var(--s-3) * 2 + env(safe-area-inset-bottom, 0px));
   }
 
+  /* Its children join the wall's grid, so the tower can take the stage's place. */
   .main {
-    grid-template-rows: auto auto auto auto auto;
+    display: contents;
   }
 
-  .stage {
-    min-height: 24rem;
+  .topbar { grid-area: top; }
+  .capsule { grid-area: capsule; }
+  .stage { grid-area: stage; }
+  .dock { grid-area: dock; }
+
+  /* Over the stage it shares a place with (positioned, so it would otherwise be under it). */
+  .tower {
+    position: relative;
+    z-index: 1;
+    grid-area: stage;
+    display: none;
+    min-width: 0;
   }
 
+  :root[data-view="tower"] .tower {
+    display: flex;
+  }
+
+  :root[data-view="tower"] .stage > :not(.driver) {
+    display: none;
+  }
+
+  .session-title {
+    display: none;
+  }
+
+  /* The views have gone to the foot, so the byline has its room back. */
+  .brand-by {
+    display: inline;
+  }
+
+  .topbar {
+    gap: var(--s-3);
+  }
+
+  .header-controls {
+    margin-left: auto;
+  }
+
+  /* The views as tabs along the foot. */
+  #views {
+    position: fixed;
+    right: var(--gutter);
+    bottom: calc(var(--s-3) + env(safe-area-inset-bottom, 0px));
+    left: var(--gutter);
+    z-index: 25;
+    display: flex;
+    height: var(--tabs-h);
+    padding: 4px;
+  }
+
+  #views button {
+    flex: 1;
+    justify-content: center;
+    height: 100%;
+    padding: 0 var(--s-2);
+    font-size: var(--fs-context);
+  }
+
+  /* The flag's word never gives way (its note is contained, so it doesn't count). */
   .capsule {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(max-content, 1fr) auto;
     border-radius: var(--r-card);
   }
 
@@ -2926,18 +3001,219 @@ button {
     display: none;
   }
 
-  .session-title {
+  /* The badge has a row of its own again, with room for its clock. */
+  .badge-clock b {
+    display: inline;
+  }
+
+  /* Race control's line floats above the timeline only while it has news; the rest of the
+     time its messages are in the Feed. */
+  .ticker {
+    position: fixed;
+    right: var(--gutter);
+    bottom: calc(var(--tabs-h) + var(--dock-h) + var(--s-3) * 3 + env(safe-area-inset-bottom, 0px));
+    left: var(--gutter);
+    z-index: 15;
     display: none;
+    flex-wrap: wrap;
+    width: auto;
+    padding: var(--s-3) var(--s-4);
+    border-radius: var(--r-inset);
+    box-shadow: var(--lift);
+  }
+
+  .ticker[data-tone] {
+    display: flex;
+  }
+
+  .ticker-text {
+    flex-basis: 100%;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    white-space: normal;
+  }
+
+  /* The feed in one column that scrolls: race control first, its own list scrolling in
+     most of the height, then the conditions and the radio. */
+  :root[data-view="feed"] .feed {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+    overflow-y: auto;
+  }
+
+  .feed-rc {
+    flex: none;
+    height: max(18rem, 62%);
+  }
+
+  .feed-side {
+    flex: none;
+  }
+
+  /* A car's card rises from the foot as a sheet, over the tabs. */
+  .driver {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 30;
+    width: auto;
+    max-height: min(82dvh, 46rem);
+    padding-bottom: calc(var(--s-3) + env(safe-area-inset-bottom, 0px));
+    border-radius: var(--r-card) var(--r-card) 0 0;
+    box-shadow: 0 -24px 48px -12px var(--shadow);
+    transition: translate 320ms var(--ease);
+  }
+
+  @starting-style {
+    .driver {
+      translate: 0 100%;
+    }
+  }
+
+  .driver-actions {
+    bottom: calc(-1 * var(--s-3) - env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(var(--s-3) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Between sessions the poster takes the stage, its credit under it. */
+  :root[data-standby] .wall {
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas: "top" "capsule" "stage";
+  }
+
+  .standby {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-end;
+    gap: var(--s-3);
+    overflow-y: auto;
+  }
+
+  .poster-credit {
+    max-width: none;
+    text-align: left;
   }
 }
 
+/* Phones: aurora's small-screen settings — the byline under the wordmark, the panels
+   across the screen — and the poster's clock a size down. */
+@media (max-width: 560px) {
+  :root {
+    --gutter: 0.75rem;
+    --r-card: 20px;
+    --fs-state: 1.75rem;
+  }
+
+  .brand {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.125rem;
+  }
+
+  .brand-by {
+    display: block;
+    font-size: var(--fs-label);
+    line-height: 1.2;
+  }
+
+  .top-more {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 3.5rem);
+    right: var(--gutter);
+    left: var(--gutter);
+    width: auto;
+    max-height: calc(100dvh - 8rem);
+    overflow-y: auto;
+    padding: var(--s-4) var(--s-5);
+  }
+
+  #views button {
+    font-size: var(--fs-label);
+  }
+
+  .cap {
+    padding: 0 var(--s-4);
+  }
+
+  .cap-flag {
+    gap: var(--s-3);
+    padding-left: var(--s-4);
+  }
+
+  .cap-badge {
+    padding: var(--s-2) var(--s-4);
+  }
+
+  /* The ring keeps a readable size; its cards follow under it, and the Wall scrolls. */
+  :root[data-view="wall"] .ring {
+    grid-template-rows: minmax(16rem, 1fr) auto;
+    overflow-y: auto;
+  }
+
+  .tl-speed {
+    padding: 0 0.7rem;
+  }
+
+  .poster-event {
+    font-size: 2rem;
+  }
+
+  .poster-place {
+    font-size: var(--fs-read);
+  }
+
+  .countdown-unit b,
+  .countdown-sep {
+    font-size: 3.25rem;
+  }
+
+  .countdown-days {
+    font-size: var(--fs-glance);
+  }
+
+  .weekend-chip {
+    min-width: 0;
+    flex: 1;
+    padding: var(--s-2) var(--s-1);
+  }
+
+  .chip-poster {
+    flex: 1 1 100%;
+  }
+}
+
+/* A finger needs a bigger target than a pointer: the + and the chips grow to 2.5rem. */
+@media (pointer: coarse) {
+  .more {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .chip {
+    height: 2.5rem;
+  }
+}
+
+/*
+ * Reduced motion, in one place: nothing slides, fades, pulses or glides. Panels and the
+ * driver's sheet appear and go at once, the flag holds a steady wash instead of pulsing,
+ * the telemetry's bars jump to each reading, and the photograph is simply there. The
+ * scripts read the same preference (UI.calm): the tower's rows, the map's cars and the
+ * ring's dots step straight to their places, and the ring repaints once a second.
+ */
 @media (prefers-reduced-motion: reduce) {
-  .wash,
-  .backdrop,
-  .row,
-  .chip,
-  .seg button {
-    transition: none;
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
   }
 
   .beacon {
