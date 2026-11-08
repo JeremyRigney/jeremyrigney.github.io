@@ -1590,6 +1590,104 @@ button {
   }
 }
 
+/* ---------- Signing in ---------- */
+
+/* A card in the middle of the page, nothing of the wall behind it until it opens. */
+:root[data-locked] .wall,
+:root[data-locked] .wash,
+:root[data-locked] .backdrop,
+:root[data-locked] .tag-demo {
+  visibility: hidden;
+}
+
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: grid;
+  place-items: center;
+  padding: var(--gutter);
+  overflow-y: auto;
+  background: var(--ground);
+}
+
+.gate-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  width: min(22rem, 100%);
+  padding: var(--s-6) 1.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--card-solid);
+  box-shadow: var(--lift);
+}
+
+.gate-word {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--logo-mid);
+  background: linear-gradient(100deg, var(--logo-from) 0%, var(--logo-mid) 55%, var(--logo-to) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gate-lede {
+  margin-top: calc(-1 * var(--s-3));
+  font-size: var(--fs-context);
+  color: var(--ink-soft);
+}
+
+.gate-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.gate-field input {
+  height: 2.75rem;
+  padding: 0 var(--s-4);
+  border: 1px solid var(--rule-strong);
+  border-radius: 14px;
+  background: var(--inset);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.gate-field input:focus-visible {
+  border-color: var(--ink-soft);
+}
+
+/* The page's one selected state: ink fill, ground text. */
+.gate-go {
+  height: 2.75rem;
+  margin-top: var(--s-2);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--selected);
+  font: inherit;
+  font-size: var(--fs-context);
+  font-weight: 700;
+  color: var(--on-selected);
+  cursor: pointer;
+}
+
+.gate-note {
+  min-height: 1.3em;
+  margin-top: calc(-1 * var(--s-2));
+  font-size: var(--fs-label);
+  font-weight: 600;
+  color: var(--alert-soft);
+}
+
 /* ---------- The intro ---------- */
 
 /* The first seconds of a visit: the wordmark, and the five compounds popping in, spinning

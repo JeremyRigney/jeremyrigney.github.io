@@ -1155,16 +1155,21 @@
     });
   }
 
-  P.Net.data('backdrops.json', DATA_V).then(function (json) {
-    backdrops = json ? P.Backdrops.parse(json) : null;
-    if (feed || demo) { draw(); }
-  });
-  loadCalendar();
+  document.getElementById('sign-out').addEventListener('click', function () { P.Gate.signOut(); });
 
-  loadSeasons().then(function () {
-    var name = params.get('demo');
-    if (name && DEMOS[name]) { return startDemo(name); }
-    startLive();
+  /* Nothing reaches the timing API until the sign-in screen has opened. */
+  P.Gate.ready.then(function () {
+    P.Net.data('backdrops.json', DATA_V).then(function (json) {
+      backdrops = json ? P.Backdrops.parse(json) : null;
+      if (feed || demo) { draw(); }
+    });
+    loadCalendar();
+
+    loadSeasons().then(function () {
+      var name = params.get('demo');
+      if (name && DEMOS[name]) { return startDemo(name); }
+      startLive();
+    });
   });
 
   P.App = { draw: draw, settings: settings, replay: replay };

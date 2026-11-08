@@ -13,6 +13,28 @@ The app (`~/Documents/code/f1_app`, private) is the reference implementation. Ea
 
 ---
 
+## Signing in
+
+The page opens on a sign-in screen. Until it's passed, nothing on the page reaches the
+timing API, so someone who just lands on the page can't run up Cloud Run's bill. A browser
+stays signed in until **Sign out** in Settings.
+
+This is a deterrent, not security:
+- The page is static, so the check runs in the browser, and anyone who reads the source can get past it.
+- The API itself stays open to anyone who calls it directly.
+- `pitwall-gate.js` keeps only a SHA-256 of `username:password`, never the password itself.
+
+To change the credentials, put the new hash in `PASS`:
+
+```bash
+printf '%s' 'username:password' | shasum -a 256
+```
+
+Protecting the API itself would take a server-side check, such as a key the page and the
+app both send. That would mean changing the app too.
+
+---
+
 ## Running it
 
 The page needs the timing API, `app.py` in the repo root. Locally, serve both:
@@ -86,6 +108,7 @@ done by eye.
 
 | File | Draws | Ports |
 |---|---|---|
+| `pitwall-gate.js` | The sign-in screen; holds back everything that reaches the API | (the page's own) |
 | `pitwall-intro.js` | The opening 2.38 s | `ui/Intro.kt` |
 | `pitwall-ui.js` | Saved settings, `data-bind`, switches, the round + | (`aurora-hud.js`) |
 | `pitwall-net.js` | The API, the stream with Web Locks | `data/Api.kt` |
@@ -100,8 +123,8 @@ done by eye.
 | `pitwall-standby.js` | The poster between sessions | `ui/WallScreen.kt`, `ui/Backdrop.kt` |
 | `pitwall-app.js` | Modes, views, settings, the URL, keys, wiring | `wall/WallViewModel.kt`, `wall/LiveEngine.kt` |
 
-**Load order.** `f1-wall_2.html` loads `pitwall-intro.js` first, straight after its element
-at the top of the page, so the wall never shows before it. Then come the pure modules, then
+**Load order.** `f1-wall_2.html` loads `pitwall-gate.js` and then `pitwall-intro.js` first,
+each straight after its element at the top of the page, so the wall never shows before them. Then come the pure modules, then
 the DOM modules, with `pitwall-app.js` last. `carto-basemap.js` is the only shared file the
 page loads, and it is not changed.
 
@@ -205,7 +228,7 @@ theme and nav, and the script order.
 
 ```bash
 JSC=/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc
-$JSC tests/pitwall/parse-check.js    # every pitwall-*.js parses: "PARSE OK (22)"
+$JSC tests/pitwall/parse-check.js    # every pitwall-*.js parses: "PARSE OK (23)"
 $JSC tests/pitwall/run.js            # the suites: "ALL PASS (140)"
 ```
 
@@ -246,6 +269,8 @@ To replace the old `/f1-wall` with this page:
 
    Also say that settings stay in the browser (`pitwall.*` in local storage), and that
    reminders are notifications the browser shows itself, with nothing sent anywhere.
-7. **Decide whether it goes public.** If so, remove `noindex` (and the lint test's check for
+7. **Decide on the sign-in screen.** It keeps the page private, but only as a deterrent. If
+   the page goes public, remove `pitwall-gate.js`, its element and Sign out.
+8. **Decide whether it goes public.** If so, remove `noindex` (and the lint test's check for
    it), add the page to the nav, `sitemap.xml` and `llms.txt`, and link it from `/f1`.
-8. **Bump the cache-busters, and check the deployed page against the deployed API.**
+9. **Bump the cache-busters, and check the deployed page against the deployed API.**

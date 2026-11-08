@@ -8,6 +8,7 @@
  * It plays once per visit (per tab, as the app plays on a cold start only), and not at all
  * for a link straight to a replay or a demo frame, for a tab opened in the background, or
  * with reduced motion. A click, a tap or any key skips it. ?intro plays it regardless.
+ * Behind the sign-in screen, it waits and plays once the gate opens.
  *
  * Loaded straight after its element at the top of the page, before anything else, so the
  * wall never shows first.
@@ -51,11 +52,9 @@
 
   var wanted = params.has('intro') || (!calm && !params.has('session') && !params.has('demo') &&
     document.visibilityState === 'visible' && !seen());
-  if (!wanted) { return; }
-  try {
-    window.sessionStorage.setItem(KEY, '1');
-  } catch (e) {
-    // Not remembered: it plays again on the next load, which is all.
+  if (!wanted) {
+    el.remove();
+    return;
   }
 
   function token(name) {
@@ -233,8 +232,18 @@
     window.removeEventListener('keydown', done, true);
   }
 
-  el.hidden = false;
-  el.addEventListener('pointerdown', done);
-  window.addEventListener('keydown', done, true);
-  window.requestAnimationFrame(frame);
+  function play() {
+    try {
+      window.sessionStorage.setItem(KEY, '1');
+    } catch (e) {
+      // Not remembered: it plays again on the next load, which is all.
+    }
+    el.hidden = false;
+    el.addEventListener('pointerdown', done);
+    window.addEventListener('keydown', done, true);
+    window.requestAnimationFrame(frame);
+  }
+
+  var gate = window.Pitwall && window.Pitwall.Gate;
+  if (gate && !gate.unlocked) { gate.ready.then(play); } else { play(); }
 }());

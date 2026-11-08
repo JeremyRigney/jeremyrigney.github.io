@@ -111,8 +111,11 @@
     var re = /<script src="assets\/js\/(pitwall-[\w-]+)\.js/g;
     var m;
     while ((m = re.exec(html))) { order.push(m[1]); }
-    // The intro needs nothing and runs at the top of the page, before the wall can show.
+    // The sign-in screen, then the intro: both need nothing and run at the top of the page,
+    // before the wall can show.
+    eq(order.shift(), 'pitwall-gate');
     eq(order.shift(), 'pitwall-intro');
+    ok(html.indexOf('pitwall-gate.js') < html.indexOf('pitwall-intro.js'), 'the gate loads before the intro');
     ok(html.indexOf('pitwall-intro.js') < html.indexOf('<div class="wall"'), 'the intro loads before the wall');
     var pure = ['pitwall-format', 'pitwall-parse', 'pitwall-season', 'pitwall-sse', 'pitwall-live'];
     eq(order.slice(0, pure.length), pure);
