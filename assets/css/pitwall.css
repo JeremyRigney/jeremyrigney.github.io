@@ -3200,6 +3200,20 @@ button {
     flex: none;
   }
 
+  /* The map's hint can't fit between Follow and the credit on a narrow map: it goes on
+     its own line above them, on a card like the map's other overlays, as it may sit over
+     the track and the cars. */
+  .map-note {
+    bottom: calc(var(--s-3) + 2.75rem);
+    width: max-content;
+    max-width: calc(100% - 2 * var(--s-4));
+    padding: var(--s-2) var(--s-4);
+    border: 1px solid var(--line);
+    border-radius: var(--r-inset);
+    background: var(--card);
+    box-shadow: var(--lift);
+  }
+
   /* A car's card rises from the foot as a sheet, over the tabs. */
   .driver {
     position: fixed;
@@ -3305,6 +3319,31 @@ button {
   .tl-speed {
     padding: 0 0.7rem;
   }
+
+  /* A replay's timeline gets a row of its own over its buttons; between them on one row it
+     was a sliver. Live, the dock is only its strip and the Live chip, and keeps one row. */
+  :root[data-mode="replay"] {
+    --dock-h: 6.75rem;
+  }
+
+  .dock[data-mode="replay"] {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: var(--s-2);
+    padding: var(--s-2) var(--s-3);
+    border-radius: var(--r-card);
+  }
+
+  .dock[data-mode="replay"] .tl-track {
+    grid-row: 1;
+    grid-column: 1 / -1;
+  }
+
+  .dock[data-mode="replay"] .tl-play { grid-row: 2; grid-column: 1; }
+  .dock[data-mode="replay"] .tl-speed { grid-row: 2; grid-column: 2; justify-self: start; }
+  .dock[data-mode="replay"] .tl-live { grid-row: 2; grid-column: 3; }
+  .dock[data-mode="replay"] .dock-more-btn { grid-row: 2; grid-column: 4; }
 
   .poster-event {
     font-size: 2rem;
