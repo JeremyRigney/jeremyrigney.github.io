@@ -30,6 +30,7 @@ import bisect
 import json
 import os
 import re
+import socket
 import threading
 import time
 from collections import OrderedDict, deque
@@ -1541,7 +1542,43 @@ STREAM_FRAME_EVERY = 2.0
 STREAM_PING = 15.0
 STREAM_LIFETIME = 55 * 60   # inside Cloud Run's request limit; the app reconnects on `bye`
 _streams = {"open": 0}
-_streams_lock = threading.Lock()
+# Reentrant because a stream the dev server abandons is closed by the garbage collector, which
+# can run on a thread that is already holding it.
+_streams_lock = threading.RLock()
+
+
+class _Slot:
+    """One stream's place under STREAM_MAX, given back once however the stream ends."""
+
+    def __init__(self):
+        self.held = True
+
+    def release(self):
+        with _streams_lock:
+            if self.held:
+                self.held = False
+                _streams["open"] -= 1
+
+
+def _client_gone(sock):
+    """
+    Whether the client has hung up, without waiting for a write to fail.
+
+    A write fails only once the client's reset has come back, and in a stoppage the next
+    write can be a ping 15 s away; all that time the stream holds a slot nobody is using.
+    Clients send nothing after the request, so an end-of-file or a reset on the socket means
+    the client has gone.
+    """
+    if sock is None:
+        return False
+    try:
+        return sock.recv(1, socket.MSG_PEEK | socket.MSG_DONTWAIT) == b""
+    except BlockingIOError:
+        return False    # nothing to read: still connected
+    except ValueError:
+        return False    # a socket that can't peek, such as TLS: a failed write still tells
+    except OSError:
+        return True     # reset, or already closed
 
 
 def _live_payload_nowait():
@@ -1613,50 +1650,60 @@ def _cars_since(sent):
     return {"t": newest or None, "c": c, "tel": tel}
 
 
-def _stream_events():
-    yield "retry: 3000\n\n"
-    payload, _ = _live_payload()
-    if not payload.get("live"):
-        # Nothing on track: say so and close. The app polls slowly until a session starts.
-        yield _sse("idle", payload)
-        return
-
-    key = (payload.get("session") or {}).get("key")
-    sent = {}
-    last_payload, signature, urgent = None, None, None
-    last_signature, last_urgent, last_frame, last_ping = None, None, 0.0, 0.0
-    deadline = time.time() + STREAM_LIFETIME
-    while time.time() < deadline:
-        # Every tick says the stream is still wanted, and reconnects one that was let go.
-        f1_stream.ensure(key)
-        _pump()
-        payload, _ = _live_payload_nowait()
+def _stream_events(slot, sock):
+    # The slot is given back here, not only when the server closes the response. Flask's dev
+    # server skips that close when the client resets the connection: its cleanup reads the
+    # dead socket, the read raises, and the close after it never runs. The generator is then
+    # dropped, and dropping it still runs this finally.
+    try:
+        yield "retry: 3000\n\n"
+        payload, _ = _live_payload()
         if not payload.get("live"):
+            # Nothing on track: say so and close. The app polls slowly until a session starts.
             yield _sse("idle", payload)
             return
-        session_key = (payload.get("session") or {}).get("key")
-        if session_key != key:
-            key = session_key
-            sent.clear()
 
-        if payload is not last_payload:
-            signature, urgent = _frame_signature(payload)
-            last_payload = payload
-        now = time.time()
-        if signature != last_signature and (urgent != last_urgent or now - last_frame >= STREAM_FRAME_EVERY):
-            yield _sse("frame", payload)
-            last_signature, last_urgent, last_frame = signature, urgent, now
+        key = (payload.get("session") or {}).get("key")
+        sent = {}
+        last_payload, signature, urgent = None, None, None
+        last_signature, last_urgent, last_frame, last_ping = None, None, 0.0, 0.0
+        deadline = time.time() + STREAM_LIFETIME
+        while time.time() < deadline:
+            # Checked before ensure(), so a client that has gone stops keeping the feed alive.
+            if _client_gone(sock):
+                return
+            # Every tick says the stream is still wanted, and reconnects one that was let go.
+            f1_stream.ensure(key)
+            _pump()
+            payload, _ = _live_payload_nowait()
+            if not payload.get("live"):
+                yield _sse("idle", payload)
+                return
+            session_key = (payload.get("session") or {}).get("key")
+            if session_key != key:
+                key = session_key
+                sent.clear()
 
-        cars = _cars_since(sent)
-        if cars:
-            yield _sse("cars", cars)
-        if now - last_ping >= STREAM_PING:
-            # An event, not an SSE comment, so the app can count it as a sign of life: in a
-            # stoppage nothing else may change for minutes.
-            yield _sse("ping", {})
-            last_ping = now
-        time.sleep(STREAM_TICK)
-    yield _sse("bye", {})
+            if payload is not last_payload:
+                signature, urgent = _frame_signature(payload)
+                last_payload = payload
+            now = time.time()
+            if signature != last_signature and (urgent != last_urgent or now - last_frame >= STREAM_FRAME_EVERY):
+                yield _sse("frame", payload)
+                last_signature, last_urgent, last_frame = signature, urgent, now
+
+            cars = _cars_since(sent)
+            if cars:
+                yield _sse("cars", cars)
+            if now - last_ping >= STREAM_PING:
+                # An event, not an SSE comment, so the app can count it as a sign of life: in a
+                # stoppage nothing else may change for minutes.
+                yield _sse("ping", {})
+                last_ping = now
+            time.sleep(STREAM_TICK)
+        yield _sse("bye", {})
+    finally:
+        slot.release()
 
 
 @bp.route("/f1/stream")
@@ -1666,14 +1713,14 @@ def f1_stream_route():
             return jsonify({"error": "too many open streams; poll /f1/live instead"}), 503
         _streams["open"] += 1
 
-    def closed():
-        with _streams_lock:
-            _streams["open"] -= 1
-
-    response = Response(stream_with_context(_stream_events()), mimetype="text/event-stream")
+    slot = _Slot()
+    sock = request.environ.get("gunicorn.socket") or request.environ.get("werkzeug.socket")
+    response = Response(stream_with_context(_stream_events(slot, sock)), mimetype="text/event-stream")
     response.headers["Cache-Control"] = "no-cache"
     response.headers["X-Accel-Buffering"] = "no"
-    response.call_on_close(closed)
+    # For a body that is never read, such as a HEAD's: the generator never starts, so its
+    # finally can't run. Releasing twice is harmless.
+    response.call_on_close(slot.release)
     return response
 
 

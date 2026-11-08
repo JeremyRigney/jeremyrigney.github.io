@@ -16,6 +16,10 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Local dev: python venv and OpenF1 credentials. Never upload either.
+.venv/
+.env.local
+
 # Static site content
 *.html
 *.pdf
