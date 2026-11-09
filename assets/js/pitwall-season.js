@@ -106,6 +106,23 @@
     return Math.min(CALENDAR_EVERY, Math.max(CALENDAR_SOONEST, until));
   }
 
+  /*
+   * The live wall is behind the sign-in only around a session: from a day before it starts
+   * until an hour after it ends (three hours after the start, with no end listed). The
+   * weekend's sessions are under a day apart, so the window runs through the weekend.
+   */
+  var LIVE_LEAD = 24 * 3600000;
+  var LIVE_AFTER = 3600000;
+  var LIVE_FOR = 3 * 3600000;
+
+  function liveSoon(all, now) {
+    return (all || []).some(function (s) {
+      if (!s || s.start == null) { return false; }
+      var end = s.end != null ? s.end : s.start + LIVE_FOR;
+      return now >= s.start - LIVE_LEAD && now <= end + LIVE_AFTER;
+    });
+  }
+
   // ---------- The weekend strip ----------
 
   /** "FP1", "Quali", "SQ"…: OpenF1's session names, short enough for a chip. */
@@ -321,7 +338,8 @@
 
   P.Calendar = {
     upcoming: upcoming,
-    recheckIn: recheckIn
+    recheckIn: recheckIn,
+    liveSoon: liveSoon
   };
 
   P.Weekend = {

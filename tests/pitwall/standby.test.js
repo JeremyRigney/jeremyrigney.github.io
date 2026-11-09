@@ -73,6 +73,21 @@
     eq(Calendar.recheckIn(null, now), 6 * 3600000);
   });
 
+  test('the live wall needs signing in from a day before a session to an hour after it', function () {
+    eq(Calendar.liveSoon(weekend, at('2026-10-29T18:00:00Z')), false);
+    eq(Calendar.liveSoon(weekend, at('2026-10-29T18:30:00Z')), true);
+    // Between Friday and Saturday, the next session is under a day off.
+    eq(Calendar.liveSoon(weekend, at('2026-10-31T03:00:00Z')), true);
+    // No end listed: three hours after the start, and an hour more.
+    eq(Calendar.liveSoon(weekend, at('2026-11-01T23:59:00Z')), true);
+    eq(Calendar.liveSoon(weekend, at('2026-11-02T00:01:00Z')), false);
+    var ended = [session(1, 'Race', 'Race', '2026-11-01T20:00:00Z', { end: at('2026-11-01T21:40:00Z') })];
+    eq(Calendar.liveSoon(ended, at('2026-11-01T22:39:00Z')), true);
+    eq(Calendar.liveSoon(ended, at('2026-11-01T22:41:00Z')), false);
+    eq(Calendar.liveSoon([], at('2026-11-01T20:00:00Z')), false);
+    eq(Calendar.liveSoon(null, at('2026-11-01T20:00:00Z')), false);
+  });
+
   // ---------- Reminders ----------
 
   // The 2026 US GP weekend, in UTC as OpenF1 lists it.

@@ -12,15 +12,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261109a" />
+  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261109c" />
 </head>
 <body>
-  <!-- The sign-in screen: keeps a passer-by from starting the wall, and with it the timing
-       API (pitwall-gate.js). First of all, so nothing shows or loads before it. -->
+  <!-- The sign-in screen: in front of the live wall from a day before a session until it's
+       over, so a passer-by doesn't start the timing API's live stream; replays are open
+       (pitwall-gate.js). First of all, so nothing of the live wall shows before it. -->
   <div class="gate" hidden>
     <form class="gate-card" autocomplete="on">
       <p class="gate-word">Pitwall</p>
-      <p class="gate-lede">Live F1 timing. Sign in to open the wall.</p>
+      <p class="gate-lede">Feel free to browse the replays. Over race weekends I have to keep the live stream behind a sign-in, to keep the API costs down.</p>
       <label class="gate-field">
         <span>Username</span>
         <input name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required />
@@ -29,18 +30,19 @@
         <span>Password</span>
         <input name="password" type="password" autocomplete="current-password" required />
       </label>
-      <button type="submit" class="gate-go">Sign in</button>
+      <button type="submit" class="gate-go">Sign in to watch live</button>
       <p class="gate-note" role="alert"></p>
+      <button type="button" class="gate-replay">Browse the replays</button>
     </form>
   </div>
-  <script src="assets/js/pitwall-gate.js?v=20261108b"></script>
+  <script src="assets/js/pitwall-gate.js?v=20261109b"></script>
   <!-- The opening seconds: the wordmark and the five compounds rolling off, over the wall as
        it loads (pitwall-intro.js). First in the page, so the wall never shows before it. -->
   <div class="intro" aria-hidden="true" hidden>
     <p class="intro-word">Pitwall</p>
     <canvas></canvas>
   </div>
-  <script src="assets/js/pitwall-intro.js?v=20261108b"></script>
+  <script src="assets/js/pitwall-intro.js?v=20261109b"></script>
   <!--
     Pitwall: the website's live timing wall, rebuilt from Pocket Pitwall, the Android app
     that grew out of the first /f1-wall. The app is the reference: each pitwall-*.js names
@@ -110,7 +112,7 @@
               <button type="button" class="chip" id="remind-test">Send a test</button>
             </div>
             <p class="panel-note" data-bind="remindNote"></p>
-            <div class="setting">
+            <div class="setting" data-bind="signedIn" hidden>
               <div>
                 <p class="setting-name">Signed in</p>
                 <p class="panel-note">This browser stays signed in until you sign out.</p>
@@ -203,6 +205,7 @@
               <button type="button" class="chip chip-poster" id="poster-remind" aria-pressed="false">Remind me an hour before</button>
             </div>
             <p class="poster-note" data-bind="posterNote"></p>
+            <p class="poster-note" data-bind="accessNote" hidden>Feel free to browse the replays. Over race weekends I have to keep the live stream behind a sign-in, to keep the API costs down.</p>
           </div>
           <a class="poster-credit" data-bind="photoCredit" target="_blank" rel="noopener" hidden></a>
         </section>
@@ -347,7 +350,7 @@
 
   <script src="assets/js/pitwall-format.js?v=20261109a"></script>
   <script src="assets/js/pitwall-parse.js?v=20261108b"></script>
-  <script src="assets/js/pitwall-season.js?v=20261108b"></script>
+  <script src="assets/js/pitwall-season.js?v=20261109b"></script>
   <script src="assets/js/pitwall-sse.js?v=20261108b"></script>
   <script src="assets/js/pitwall-live.js?v=20261108b"></script>
   <script src="assets/js/pitwall-replay.js?v=20261108b"></script>
@@ -366,6 +369,6 @@
   <script src="assets/js/pitwall-feed.js?v=20261109a"></script>
   <script src="assets/js/pitwall-driver.js?v=20261109a"></script>
   <script src="assets/js/pitwall-standby.js?v=20261108b"></script>
-  <script src="assets/js/pitwall-app.js?v=20261109a"></script>
+  <script src="assets/js/pitwall-app.js?v=20261109c"></script>
 </body>
 </html>

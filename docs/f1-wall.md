@@ -4,7 +4,8 @@ A live Formula 1 timing wall: the flag, the running order, the track, the pit wa
 the race, race control, team radio and the weather. It is a web port of **Pocket Pitwall**,
 the Android app that grew out of the first `/f1-wall`, styled in `/aurora`'s design language.
 
-It is a private page: `noindex`, off the nav, and behind a sign-in screen. Nothing else on
+It is a quiet page: `noindex`, off the nav, and with its live wall behind a sign-in screen
+over race weekends. Nothing else on
 the site loads its files. It replaced the first `/f1-wall` in November 2026 (see
 [History](#history) at the end).
 
@@ -15,9 +16,14 @@ The app (`~/Documents/code/f1_app`, private) is the reference implementation. Ea
 
 ## Signing in
 
-The page opens on a sign-in screen. Until it's passed, nothing on the page reaches the
-timing API, so someone who just lands on the page can't run up Cloud Run's bill. A browser
-stays signed in until **Sign out** in Settings.
+Replays, the standby poster and the calendar are open to anyone. The live wall is what
+costs: its stream and polling keep Cloud Run's instance busy for a whole session. So from
+a day before any session until an hour after it ends (`Pitwall.Calendar.liveSoon`), live
+mode puts up a sign-in screen, which also offers **Browse the replays**. If the calendar
+can't be read, it asks anyway. Until a browser is signed in, the live feed never starts:
+a visitor's page asks the API only for the session lists (and the replays they open). A
+browser stays signed in until **Sign out** in Settings. The poster and the sign-in screen
+both carry a line saying why.
 
 This is a deterrent, not security:
 - The page is static, so the check runs in the browser, and anyone who reads the source can get past it.
@@ -109,7 +115,7 @@ done by eye.
 
 | File | Draws | Ports |
 |---|---|---|
-| `pitwall-gate.js` | The sign-in screen; holds back everything that reaches the API | (the page's own) |
+| `pitwall-gate.js` | The sign-in screen; holds back the live feed | (the page's own) |
 | `pitwall-intro.js` | The opening 2.38 s | `ui/Intro.kt` |
 | `pitwall-ui.js` | Saved settings, `data-bind`, switches, the round + | (`aurora-hud.js`) |
 | `pitwall-net.js` | The API, the stream with Web Locks | `data/Api.kt` |
