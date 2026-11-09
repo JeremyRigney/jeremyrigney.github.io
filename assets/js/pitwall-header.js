@@ -15,14 +15,14 @@
     return [F.eventAndPlace(session), F.sessionShort(session.name)].filter(Boolean).join(' · ');
   }
 
-  /** The lap, and how many are left of the grand prix when its length is known. */
+  /** The lap, out of the grand prix's length when that is known, and its last one marked. */
   function lap(frame, totalLaps) {
     var current = frame ? frame.lap : null;
     var finished = !!(frame && frame.flag && frame.flag.state === 'CHEQUERED');
     UI.text('lap', current == null ? F.DASH : current);
     UI.text('lapOf', current != null && totalLaps != null ? '/' + totalLaps : '');
     var left = current != null && totalLaps != null ? totalLaps - current : -1;
-    var sub = UI.text('lapSub', finished ? 'Finished' : left > 0 ? left + ' to go' : left === 0 ? 'Final lap' : '');
+    var sub = UI.text('lapSub', finished ? 'Finished' : left === 0 ? 'Final lap' : '');
     if (sub) { sub.classList.toggle('is-final', left === 0 && !finished); }
   }
 

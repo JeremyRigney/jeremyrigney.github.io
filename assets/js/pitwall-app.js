@@ -152,7 +152,7 @@
         tag: 'Replay',
         tone: 'quiet',
         clock: F.clockSeconds(r.at),
-        delay: r.timeline ? r.speed + '× · ' + (r.playing ? 'playing' : 'paused') : r.session ? 'Loading' : 'Pick a session'
+        delay: r.timeline ? r.speed + '×' : r.session ? 'Loading' : 'Pick a session'
       };
     }
     var delay = delayText(state.delaySeconds);
