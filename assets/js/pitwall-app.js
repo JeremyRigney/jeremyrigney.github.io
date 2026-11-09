@@ -866,6 +866,8 @@
     var want = new URLSearchParams(window.location.search);
     if (settings.mode === 'replay' && r.session && r.session.key != null) {
       want.set('session', String(r.session.key));
+      // A link from /f1 named the race; from here the session says it.
+      ['race', 'year', 'day'].forEach(function (k) { want.delete(k); });
       if (r.at != null) { want.set('t', iso(Math.floor(r.at / 1000) * 1000).replace('.000Z', 'Z')); }
     } else {
       want.delete('session');
@@ -1137,6 +1139,24 @@
       });
   }
 
+  /*
+   * ?race=Las Vegas Grand Prix&year=2025 (and &day=2025-11-22 where /f1 knows it), from /f1:
+   * that grand prix, from its start. The URL then turns into the usual ?session=…; with no
+   * such race, the picker opens on its year.
+   */
+  function openRace(name, year, day) {
+    setMode('replay');
+    yearSeg.pick(String(year));
+    replay.loadYear(year).then(function () {
+      var race = P.Calendar.findRace(replay.state.sessions, name, day);
+      if (race) {
+        replay.pick(race);
+      } else {
+        UI.setMore(document.querySelector('[aria-controls="badge-panel"]'), true);
+      }
+    });
+  }
+
   function startLive() {
     feed = new P.LiveFeed({
       fetch: P.Net.live,
@@ -1161,6 +1181,8 @@
       linked = true;
       setMode('replay');
       replay.pick({ key: key }, P.Parse.instant(params.get('t')));
+    } else if (params.get('race')) {
+      openRace(params.get('race'), parseInt(params.get('year'), 10) || new Date().getUTCFullYear(), params.get('day'));
     } else if (P.Gate.unlocked) {
       feed.run();
     }

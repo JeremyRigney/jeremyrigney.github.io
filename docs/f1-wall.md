@@ -4,8 +4,8 @@ A live Formula 1 timing wall: the flag, the running order, the track, the pit wa
 the race, race control, team radio and the weather. It is a web port of **Pocket Pitwall**,
 the Android app that grew out of the first `/f1-wall`, styled in `/aurora`'s design language.
 
-It is a quiet page: `noindex`, off the nav, and with its live wall behind a sign-in screen
-over race weekends. Nothing else on
+It heads the homepage's projects, and /f1 links to it for replays. It stays `noindex` and
+off the nav, with its live wall behind a sign-in screen over race weekends. Nothing else on
 the site loads its files. It replaced the first `/f1-wall` in November 2026 (see
 [History](#history) at the end).
 
@@ -75,6 +75,7 @@ Two quirks of the simulator, neither of which a real session has:
 |---|---|
 | `?api=http://localhost:8080` | Use a local API. Loopback addresses only; anything else is ignored. |
 | `?session=11404&t=2026-11-01T20:45:00Z` | Open a replay at that moment. The page keeps this up to date as it plays, so the address is always a link to the moment on screen. |
+| `?race=Las Vegas Grand Prix&year=2025` (`&day=2025-11-22`) | Open that year's grand prix from its start, by its day where given and otherwise its name (`Pitwall.Calendar.findRace`); the address then becomes `?session=`. /f1's "Watch it again in Pitwall" links use it, since /f1 knows the races but not OpenF1's keys. With no match, the picker opens on that year. |
 | `?view=map\|wall\|feed\|tower` | Start on that view (`tower` only on a narrow screen). |
 | `?demo=green\|sc\|yellow\|chequered\|quali\|idle` | Draw a captured frame from `tests/pitwall/fixtures/` under a "Demo frame" tag, so every flag state can be looked at any time. `idle` shows the standby poster with the real calendar. |
 | `?stream=off` | Poll only, as the old wall did, for comparing the two. |

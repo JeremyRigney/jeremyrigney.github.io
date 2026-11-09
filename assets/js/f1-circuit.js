@@ -1572,6 +1572,7 @@
     }
 
     setText('races-held', stats.racesHeld ? String(stats.racesHeld) : '0');
+    renderReplays(season, round);
 
     renderTally('tally-drivers', stats.mostWinsDrivers || []);
     renderTally('tally-constructors', stats.mostWinsConstructors || []);
@@ -1857,6 +1858,48 @@
    * only re-run by hand. One request per visitor is well inside Jolpica's per-IP
    * budget, and any failure leaves the shipped data on screen.
    */
+  /*
+   * Links into Pitwall (/f1-wall), which replays any race since 2023 and finds one by its
+   * name and year: the last race at this circuit, and the latest race run this season.
+   */
+  var REPLAY_FROM = 2023;
+
+  function replayLink(id, label, raceName, year, day) {
+    var link = document.getElementById(id);
+    var shown = !!raceName && year >= REPLAY_FROM;
+    link.hidden = !shown;
+    if (shown) {
+      link.textContent = label;
+      // The day where it's known: Pitwall's timing names some weekends differently.
+      link.href = 'f1-wall?race=' + encodeURIComponent(raceName) + '&year=' + year
+        + (day ? '&day=' + day : '');
+    }
+    return shown;
+  }
+
+  function renderReplays(season, round) {
+    var year = parseInt(season.season, 10);
+    var last = (round.stats || {}).lastWinner;
+    var lastYear = last ? parseInt(last.season, 10) : NaN;
+    var here = replayLink('replay-here',
+      lastYear === year ? 'Replay this year’s race here'
+        : lastYear === year - 1 ? 'Replay last year’s race here'
+          : 'Replay the ' + lastYear + ' race here',
+      last && last.raceName, lastYear);
+
+    // The latest round already run: started, and three hours on.
+    var now = Date.now();
+    var latest = null;
+    season.rounds.forEach(function (r) {
+      if (new Date(r.start).getTime() + 3 * 3600000 < now) { latest = r; }
+    });
+    var previous = replayLink('replay-latest',
+      'Replay the previous race this season: ' + (latest ? latest.name.replace('Grand Prix', 'GP') : ''),
+      latest && latest.name, year, latest && latest.date);
+
+    document.getElementById('replays').hidden = !here && !previous;
+  }
+
   function refreshLastWinner(round) {
     if (!round.stats || !round.circuitId) {
       return;
