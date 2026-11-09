@@ -6,9 +6,9 @@
  * wall, which has been loading underneath all along, shows through. 2.38 seconds.
  *
  * It plays once per visit (per tab, as the app plays on a cold start only), and not at all
- * for a link straight to a replay or a demo frame, for a tab opened in the background, or
+ * for a link straight to a replay (by session or by race) or a demo frame, for a tab opened in the background, or
  * with reduced motion. A click, a tap or any key skips it. ?intro plays it regardless.
- * Behind the sign-in screen, it waits and plays once the gate opens.
+ * Under the sign-in screen, when that is up, it plays unseen.
  *
  * Loaded straight after its element at the top of the page, before anything else, so the
  * wall never shows first.
@@ -50,7 +50,7 @@
     }
   }
 
-  var wanted = params.has('intro') || (!calm && !params.has('session') && !params.has('demo') &&
+  var wanted = params.has('intro') || (!calm && !params.has('session') && !params.has('race') && !params.has('demo') &&
     document.visibilityState === 'visible' && !seen());
   if (!wanted) {
     el.remove();
@@ -244,6 +244,5 @@
     window.requestAnimationFrame(frame);
   }
 
-  var gate = window.Pitwall && window.Pitwall.Gate;
-  if (gate && !gate.unlocked) { gate.ready.then(play); } else { play(); }
+  play();
 }());

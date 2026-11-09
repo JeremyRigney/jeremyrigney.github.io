@@ -22,7 +22,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Chivo+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/f1.css?v=20260907" />
+  <link rel="stylesheet" href="assets/css/f1.css?v=20261109" />
 
   <!-- Cookie consent: sets the Consent Mode defaults, so it must come before the Google tag -->
   <link rel="stylesheet" href="assets/css/consent.css?v=20261008" />
@@ -253,6 +253,16 @@
           </div>
         </div>
 
+        <!-- Lap by lap in Pitwall, the live timing wall, which replays any race since 2023
+             (f1-circuit.js fills these in, or leaves them hidden). -->
+        <div class="replays reveal" id="replays" hidden>
+          <p class="spread-dt">Watch it again in Pitwall</p>
+          <p class="replay-links">
+            <a class="replay-link" id="replay-here" hidden></a>
+            <a class="replay-link" id="replay-latest" hidden></a>
+          </p>
+        </div>
+
         <div class="tallies">
           <div class="reveal">
             <p class="spread-dt">Most wins — drivers</p>
@@ -420,7 +430,7 @@
           integrity="sha384-jqpi9VmOdhyLoLURgjCn7EpnG9BbnHW57ibIZoeaIU+erWDH3k8fQQg0xH2ySjnw"
           crossorigin="anonymous"></script>
   <script src="assets/js/carto-basemap.js?v=20260829"></script>
-  <script src="assets/js/f1-circuit.js?v=20260907b"></script>
+  <script src="assets/js/f1-circuit.js?v=20261109"></script>
 
   <!--
     Live timing. Loaded after f1-circuit.js because it reuses two things that file exposes:

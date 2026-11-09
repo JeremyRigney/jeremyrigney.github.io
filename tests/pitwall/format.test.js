@@ -128,8 +128,8 @@
     eq(F.flagWord(null), 'Standby');
     eq(F.flagNote({ state: 'SAFETY_CAR', ending: true, sectors: [] }), 'In this lap');
     eq(F.flagNote({ state: 'YELLOW', sectors: [7] }), 'Sector 7');
-    // Race control's message is dropped when it only repeats the flag.
+    // Race control's message is the ticker's, never the note's.
     eq(F.flagNote({ state: 'RED', sectors: [], message: 'RED FLAG' }), '');
-    eq(F.flagNote({ state: 'GREEN', sectors: [], message: 'TRACK CLEAR' }), 'Track clear');
+    eq(F.flagNote({ state: 'GREEN', sectors: [], message: 'CLEAR IN TRACK SECTOR 12' }), '');
   });
 }());

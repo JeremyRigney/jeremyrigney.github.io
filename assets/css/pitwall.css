@@ -801,7 +801,7 @@ button {
 }
 
 /* The note takes whatever width the word leaves it, and no more: it never widens the
-   flag's column, and a long message from race control ends in an ellipsis. */
+   flag's column, and a long one ends in an ellipsis. */
 .flag-note {
   contain: inline-size;
   overflow: hidden;
@@ -1592,7 +1592,8 @@ button {
 
 /* ---------- Signing in ---------- */
 
-/* A card in the middle of the page, nothing of the wall behind it until it opens. */
+/* A card in the middle of the page, nothing of the wall behind it until it opens or the
+   replays are picked instead. */
 :root[data-locked] .wall,
 :root[data-locked] .wash,
 :root[data-locked] .backdrop,
@@ -1686,6 +1687,23 @@ button {
   font-size: var(--fs-label);
   font-weight: 600;
   color: var(--alert-soft);
+}
+
+.gate-replay {
+  height: 2.75rem;
+  margin-top: calc(-1 * var(--s-2));
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-pill);
+  background: none;
+  font: inherit;
+  font-size: var(--fs-context);
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.gate-replay:hover {
+  background: var(--inset);
 }
 
 /* ---------- The intro ---------- */
@@ -1785,8 +1803,42 @@ button {
 :root[data-standby] .dock,
 :root[data-standby] .cap-lap,
 :root[data-standby] .cap-fastest,
+:root[data-standby] .flag-block,
+:root[data-standby] .flag-note:empty,
 :root[data-standby] .stage > :not(.standby) {
   display: none;
+}
+
+/* On a laptop, the capsule comes apart: "Standby" on the left and the badge on the right,
+   each its own pill, with the photograph between them. */
+@media (min-width: 901px) {
+  :root[data-standby] .capsule {
+    grid-template-columns: max-content minmax(0, 1fr) max-content;
+    border: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  :root[data-standby] .cap-flag,
+  :root[data-standby] .cap-badge {
+    border: 1px solid var(--line);
+    border-radius: var(--r-pill);
+    background: var(--card);
+    box-shadow: var(--lift);
+  }
+
+  :root[data-standby] .cap-flag {
+    padding: 0 var(--s-6);
+  }
+
+  :root[data-standby] .cap-badge {
+    grid-column: 3;
+    padding-left: var(--s-4);
+  }
+
+  :root[data-standby] .cap-badge::before {
+    display: none;
+  }
 }
 
 .standby {
@@ -2114,8 +2166,7 @@ button {
 }
 
 .driver-tyre .tyre-ring {
-  width: 1.4rem;
-  height: 1.4rem;
+  font-size: 1.05rem;
 }
 
 .driver .stint-bar {
@@ -2729,7 +2780,7 @@ button {
   --c-fig: calc(var(--u) * 4.5);
   --c-last: calc(var(--u) * 4.3);
   --c-sec: 2.625rem;
-  --c-tyre: calc(var(--u) * 2.3);
+  --c-tyre: calc(var(--u) * 2.7);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -2919,13 +2970,20 @@ button {
   gap: 0.3em;
 }
 
-/* The tyre as the sidewall shows it: a ring in the compound's colour, and its age. */
+/* The tyre as the broadcast shows it: the compound's letter in a ring of its colour, and its
+   age. */
 .tyre-ring {
   flex: none;
-  width: 1.05em;
-  height: 1.05em;
-  border: 0.2em solid var(--tyre, var(--ink-faint));
+  display: inline-grid;
+  place-items: center;
+  width: 1.6em;
+  height: 1.6em;
+  border: 0.14em solid var(--tyre, var(--ink-faint));
   border-radius: 50%;
+  font-size: max(var(--fs-label), 0.72em);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--tyre, var(--ink-faint));
 }
 
 .tyre-ring[data-tyre="soft"] { --tyre: var(--tyre-soft); }

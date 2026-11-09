@@ -152,7 +152,7 @@
         tag: 'Replay',
         tone: 'quiet',
         clock: F.clockSeconds(r.at),
-        delay: r.timeline ? r.speed + '× · ' + (r.playing ? 'playing' : 'paused') : r.session ? 'Loading' : 'Pick a session'
+        delay: r.timeline ? r.speed + '×' : r.session ? 'Loading' : 'Pick a session'
       };
     }
     var delay = delayText(state.delaySeconds);
@@ -190,7 +190,7 @@
       return replay.state.status || (replay.state.session ? 'Loading' : 'Pick a session from the badge’s +');
     }
     if (state.status === 'CONNECTING') { return state.failing ? 'Can’t reach the timing feed — retrying' : 'Connecting to the timing feed'; }
-    return 'Fills in by itself when a session starts';
+    return '';
   }
 
   // ---------- Race control's line ----------
@@ -364,6 +364,8 @@
       var r = replay.state;
       return { frame: r.frame, state: { status: r.frame ? 'LIVE' : 'CONNECTING', delaySeconds: feed ? feed.state.delaySeconds : 0 } };
     }
+    // Not signed in, the live feed never runs: between sessions there's only the poster.
+    if (!P.Gate.unlocked) { return { frame: null, state: { status: 'NO_SESSION', delaySeconds: feed ? feed.state.delaySeconds : 0 } }; }
     var state = feed.state;
     // The final order stays up after a session ends; before one, there's nothing to draw.
     var frame = state.status === 'LIVE' || state.status === 'SESSION_OVER' ? state.frame : null;
@@ -371,6 +373,7 @@
   }
 
   function draw() {
+    gate();
     var now = current();
     var frame = now.frame;
     var season = seasonFor(frame && frame.session);
@@ -462,6 +465,9 @@
 
   /** What's coming, from this year's sessions and next year's once they're listed. */
   var calendar = { sessions: [], next: null, weekend: [] };
+  /** Every session listed, run or to come, for the sign-in's window; null until read. */
+  var calendarAll = null;
+  var calendarFailed = false;
   var calendarTimer = null;
   var backdrops = null;
 
@@ -476,8 +482,12 @@
       var now = Date.now();
       var got = lists.filter(Boolean);
       if (got.length) {
-        calendar = P.Calendar.upcoming([].concat.apply([], got), now);
+        calendarAll = [].concat.apply([], got);
+        calendar = P.Calendar.upcoming(calendarAll, now);
         scheduleReminder();
+        if (feed || demo) { draw(); }
+      } else if (!calendarAll) {
+        calendarFailed = true;
         if (feed || demo) { draw(); }
       }
       calendarTimer = setTimeout(loadCalendar, calendar.next ? P.Calendar.recheckIn(calendar.next, now) : 60000);
@@ -511,13 +521,16 @@
     setTimeout(function () { URL.revokeObjectURL(link.href); }, 10000);
   }
 
+  /** Over to replay, with the picker open. */
+  function openReplays() {
+    modes.pick('replay');
+    setMode('replay');
+    // After this click has finished, or the + would take it for a click elsewhere and close.
+    setTimeout(function () { UI.setMore(document.querySelector('[aria-controls="badge-panel"]'), true); }, 0);
+  }
+
   P.Standby.on({
-    onReplay: function () {
-      modes.pick('replay');
-      setMode('replay');
-      // After this click has finished, or the + would take it for a click elsewhere and close.
-      setTimeout(function () { UI.setMore(document.querySelector('[aria-controls="badge-panel"]'), true); }, 0);
-    },
+    onReplay: openReplays,
     onIcs: downloadWeekend,
     onRemind: function () { setReminders(!remindersOn()); }
   });
@@ -726,6 +739,22 @@
     });
   }
 
+  // ---------- Signing in ----------
+
+  /*
+   * Replays are open to anyone; live asks for signing in from a day before a session until
+   * it's over. With no calendar to go by (the API unreachable), it asks anyway.
+   */
+  function gate() {
+    var soon = calendarAll ? P.Calendar.liveSoon(calendarAll, Date.now()) : calendarFailed;
+    P.Gate.ask(!demo && settings.mode === 'live' && soon, openReplays);
+    UI.show('accessNote', !P.Gate.unlocked);
+    UI.show('signedIn', P.Gate.unlocked);
+  }
+
+  // The window opens and closes by the clock, not only when something changes.
+  setInterval(function () { if (feed || demo) { gate(); } }, 60000);
+
   // ---------- Live or replay ----------
 
   /*
@@ -744,7 +773,7 @@
       if (!replay.state.sessions) { replay.loadYear(replay.state.year); }
     } else {
       replay.close();
-      if (feed) { feed.run(); }
+      if (feed && P.Gate.unlocked) { feed.run(); }
     }
     draw();
   }
@@ -837,6 +866,8 @@
     var want = new URLSearchParams(window.location.search);
     if (settings.mode === 'replay' && r.session && r.session.key != null) {
       want.set('session', String(r.session.key));
+      // A link from /f1 named the race; from here the session says it.
+      ['race', 'year', 'day'].forEach(function (k) { want.delete(k); });
       if (r.at != null) { want.set('t', iso(Math.floor(r.at / 1000) * 1000).replace('.000Z', 'Z')); }
     } else {
       want.delete('session');
@@ -1108,6 +1139,24 @@
       });
   }
 
+  /*
+   * ?race=Las Vegas Grand Prix&year=2025 (and &day=2025-11-22 where /f1 knows it), from /f1:
+   * that grand prix, from its start. The URL then turns into the usual ?session=…; with no
+   * such race, the picker opens on its year.
+   */
+  function openRace(name, year, day) {
+    setMode('replay');
+    yearSeg.pick(String(year));
+    replay.loadYear(year).then(function () {
+      var race = P.Calendar.findRace(replay.state.sessions, name, day);
+      if (race) {
+        replay.pick(race);
+      } else {
+        UI.setMore(document.querySelector('[aria-controls="badge-panel"]'), true);
+      }
+    });
+  }
+
   function startLive() {
     feed = new P.LiveFeed({
       fetch: P.Net.live,
@@ -1132,7 +1181,9 @@
       linked = true;
       setMode('replay');
       replay.pick({ key: key }, P.Parse.instant(params.get('t')));
-    } else {
+    } else if (params.get('race')) {
+      openRace(params.get('race'), parseInt(params.get('year'), 10) || new Date().getUTCFullYear(), params.get('day'));
+    } else if (P.Gate.unlocked) {
       feed.run();
     }
     draw();
@@ -1157,19 +1208,23 @@
 
   document.getElementById('sign-out').addEventListener('click', function () { P.Gate.signOut(); });
 
-  /* Nothing reaches the timing API until the sign-in screen has opened. */
-  P.Gate.ready.then(function () {
-    P.Net.data('backdrops.json', DATA_V).then(function (json) {
-      backdrops = json ? P.Backdrops.parse(json) : null;
-      if (feed || demo) { draw(); }
-    });
-    loadCalendar();
+  P.Net.data('backdrops.json', DATA_V).then(function (json) {
+    backdrops = json ? P.Backdrops.parse(json) : null;
+    if (feed || demo) { draw(); }
+  });
+  loadCalendar();
 
-    loadSeasons().then(function () {
-      var name = params.get('demo');
-      if (name && DEMOS[name]) { return startDemo(name); }
-      startLive();
-    });
+  loadSeasons().then(function () {
+    var name = params.get('demo');
+    if (name && DEMOS[name]) { return startDemo(name); }
+    startLive();
+  });
+
+  /* The live feed starts once signed in, and not before. */
+  P.Gate.ready.then(function () {
+    if (!feed) { return; }
+    if (settings.mode === 'live') { feed.run(); }
+    draw();
   });
 
   P.App = { draw: draw, settings: settings, replay: replay };

@@ -44,20 +44,15 @@
   }
 
   /**
-   * The line under the flag word: "In this lap" while the safety car is coming in, the
-   * flagged sectors, or race control's own message — unless it just repeats the label.
+   * The line under the flag word: "In this lap" while the safety car is coming in, or the
+   * flagged sectors. Race control's own words are the ticker's; here they would only be cut
+   * short.
    */
   function flagNote(flag) {
     if (!flag) { return ''; }
     if (flag.ending) { return 'In this lap'; }
     if (flag.sectors && flag.sectors.length) {
       return (flag.sectors.length > 1 ? 'Sectors ' : 'Sector ') + flag.sectors.join(', ');
-    }
-    var message = flag.message;
-    if (message && message.trim()) {
-      var text = message.slice(0, 1) + message.slice(1).toLowerCase();
-      var label = FLAGS[flag.state] ? FLAGS[flag.state].label : '';
-      return text.toLowerCase() === label.toLowerCase() ? '' : text;
     }
     return '';
   }

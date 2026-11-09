@@ -106,6 +106,42 @@
     return Math.min(CALENDAR_EVERY, Math.max(CALENDAR_SOONEST, until));
   }
 
+  /*
+   * The live wall is behind the sign-in only around a session: from a day before it starts
+   * until an hour after it ends (three hours after the start, with no end listed). The
+   * weekend's sessions are under a day apart, so the window runs through the weekend.
+   */
+  var LIVE_LEAD = 24 * 3600000;
+  var LIVE_AFTER = 3600000;
+  var LIVE_FOR = 3 * 3600000;
+
+  function liveSoon(all, now) {
+    return (all || []).some(function (s) {
+      if (!s || s.start == null) { return false; }
+      var end = s.end != null ? s.end : s.start + LIVE_FOR;
+      return now >= s.start - LIVE_LEAD && now <= end + LIVE_AFTER;
+    });
+  }
+
+  /**
+   * A grand prix's race from a season's sessions, for links from /f1, which knows the races
+   * but not OpenF1's keys: by its day ("2026-11-08", within a day either side) when given,
+   * since the two don't always name a weekend alike ("Brazilian" against "São Paulo"),
+   * and otherwise by the weekend's name ("Las Vegas Grand Prix").
+   */
+  function findRace(sessions, name, day) {
+    var races = (sessions || []).filter(function (s) { return P.Format.isGrandPrix(s); });
+    var on = day ? Date.parse(day + 'T12:00:00Z') : NaN;
+    var found = isFinite(on) ? races.filter(function (s) {
+      return s.start != null && Math.abs(s.start - on) <= 36 * 3600000;
+    }) : [];
+    if (!found.length && name) {
+      var want = fold(name);
+      found = races.filter(function (s) { return s.meeting && fold(s.meeting) === want; });
+    }
+    return found.length ? found[found.length - 1] : null;
+  }
+
   // ---------- The weekend strip ----------
 
   /** "FP1", "Quali", "SQ"…: OpenF1's session names, short enough for a chip. */
@@ -321,7 +357,9 @@
 
   P.Calendar = {
     upcoming: upcoming,
-    recheckIn: recheckIn
+    recheckIn: recheckIn,
+    liveSoon: liveSoon,
+    findRace: findRace
   };
 
   P.Weekend = {

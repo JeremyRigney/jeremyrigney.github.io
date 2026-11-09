@@ -2,7 +2,7 @@
  * Pitwall: the running order. A port of Pocket Pitwall's ui/Tower.kt.
  *
  * A stack of rows rather than a table: each car its own row, its position and code large,
- * the code in its team's colour, the figure bold on the right and the tyre as the sidewall
+ * the code in its team's colour, the figure bold on the right and the tyre as the broadcast
  * shows it. P1-P10, the points places, get the larger slots, with a small break under P10;
  * the slots are fixed, so a car crossing P10 moves into a smaller slot rather than the
  * whole tower re-flowing. Rows are keyed on the car and glide to their new place, so an
@@ -142,7 +142,7 @@
   function tyre(driver) {
     if (driver.inPit) { return '<span class="tyre-pit">Pit</span>'; }
     if (!driver.compound) { return '<span class="tyre-age">' + F.DASH + '</span>'; }
-    return '<span class="tyre-ring" data-tyre="' + F.tyreRole(driver.compound) + '" title="' + esc(driver.compound.toLowerCase()) + '"></span>' +
+    return '<span class="tyre-ring" data-tyre="' + F.tyreRole(driver.compound) + '" title="' + esc(driver.compound.toLowerCase()) + '">' + esc(F.tyre(driver.compound)) + '</span>' +
       '<span class="tyre-age">' + (driver.tyreAge == null ? '' : driver.tyreAge) + '</span>';
   }
 

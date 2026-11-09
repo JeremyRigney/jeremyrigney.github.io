@@ -100,7 +100,7 @@
       driver.badges.indexOf('investigation') >= 0 ? 'Under investigation' : null
     ].filter(Boolean).join(' · ');
     var tyre = driver.inPit ? '<span class="tyre-pit">Pit</span>' : driver.compound ?
-      '<span class="tyre-ring" data-tyre="' + F.tyreRole(driver.compound) + '"></span><b>' + esc(driver.compound.charAt(0) + driver.compound.slice(1).toLowerCase()) +
+      '<span class="tyre-ring" data-tyre="' + F.tyreRole(driver.compound) + '" aria-hidden="true">' + esc(F.tyre(driver.compound)) + '</span><b>' + esc(driver.compound.charAt(0) + driver.compound.slice(1).toLowerCase()) +
       (driver.tyreAge != null ? '</b><span class="tyre-age">' + driver.tyreAge + ' laps</span>' : '</b>') : '<span class="tyre-age">' + F.DASH + '</span>';
     var lap = driver.lap || frame.lap;
     set(top,

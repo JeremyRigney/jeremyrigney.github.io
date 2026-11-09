@@ -1,15 +1,16 @@
 /*
  * Pitwall: the sign-in screen. A deterrent, not security.
  *
- * The page is static, so the check runs in the browser, and anyone who reads the source can
- * get past it. What it does is stop someone who just lands here from starting the wall, and
- * with it the timing API's live stream and polling, which cost Cloud Run time. Until the
- * gate opens, nothing on the page asks the API for anything: the wall's start and the intro
- * both wait on Pitwall.Gate.ready.
+ * Replays are open to anyone. The live wall is what costs: its stream and polling keep the
+ * timing API's Cloud Run instance busy for a whole session. So from a day before a session
+ * until it's over (Pitwall.Calendar.liveSoon), live needs signing in first, and until then
+ * the live feed never starts. The app decides when to ask (Pitwall.Gate.ask); the screen
+ * offers the replays instead.
  *
- * The page keeps no password, only a SHA-256 of "username:password", and the browser
+ * The page is static, so the check runs in the browser, and anyone who reads the source can
+ * get past it. It keeps no password, only a SHA-256 of "username:password", and the browser
  * remembers a successful sign-in until Sign out in Settings. Loaded first in the page,
- * straight after its element, so nothing of the wall shows before it.
+ * straight after its element.
  */
 (function () {
   'use strict';
@@ -45,17 +46,36 @@
     return Array.prototype.map.call(new Uint8Array(buffer), function (b) { return (b < 16 ? '0' : '') + b.toString(16); }).join('');
   }
 
+  var form = el ? el.querySelector('form') : null;
+  var asked = false;
+
   function unlock() {
     P.Gate.unlocked = true;
-    root.removeAttribute('data-locked');
-    if (el) { el.remove(); }
+    show(false);
     open();
   }
 
+  function show(on) {
+    asked = on;
+    if (!el) { return; }
+    var was = !el.hidden;
+    el.hidden = !on;
+    if (on) { root.setAttribute('data-locked', ''); } else { root.removeAttribute('data-locked'); }
+    if (on && !was) { form.querySelector('[name="username"]').focus(); }
+  }
+
+  var onReplay = null;
+
   P.Gate = {
     unlocked: false,
-    /** Settles once signed in; everything that reaches the API starts from here. */
+    /** Settles once signed in: the live feed starts from here. */
     ready: ready,
+    /** Show the screen (live, near a session) or put it away; replay() runs on "Replays instead". */
+    ask: function (on, replay) {
+      if (P.Gate.unlocked) { return; }
+      onReplay = replay || onReplay;
+      if (on !== asked) { show(on); }
+    },
     /** Forget this browser, and ask again. */
     signOut: function () {
       remember(false);
@@ -63,18 +83,20 @@
     }
   };
 
-  if (remembered() || !el) {
+  if (remembered()) {
     unlock();
     return;
   }
+  if (!el) { return; }
 
-  root.setAttribute('data-locked', '');
-  el.hidden = false;
-  var form = el.querySelector('form');
   var user = form.querySelector('[name="username"]');
   var pass = form.querySelector('[name="password"]');
   var note = el.querySelector('.gate-note');
-  user.focus();
+
+  el.querySelector('.gate-replay').addEventListener('click', function () {
+    show(false);
+    if (onReplay) { onReplay(); }
+  });
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();

@@ -159,7 +159,7 @@
     var follow = frame ? frame.drivers.filter(function (d) { return c.followed.has(d.num); }).map(F.driverLabel) : [];
     UI.text('radioNote', !c.unlocked && c.soundOn ? 'Click anywhere on the page to let it play sound.' :
       !follow.length ? 'Hold a driver in the tower to follow them: their radio plays by itself.' :
-      'Following ' + follow.join(', ') + ' — plays by itself' + (c.mode === 'replay' ? ' at 1× only' : ''));
+      'Following ' + follow.join(', '));
     if (!frame || !radio.clips) { return; }
     if (!radio.clips.length) {
       set(clips, '<li class="rc-empty">No team radio yet.</li>');

@@ -73,6 +73,37 @@
     eq(Calendar.recheckIn(null, now), 6 * 3600000);
   });
 
+  test('the live wall needs signing in from a day before a session to an hour after it', function () {
+    eq(Calendar.liveSoon(weekend, at('2026-10-29T18:00:00Z')), false);
+    eq(Calendar.liveSoon(weekend, at('2026-10-29T18:30:00Z')), true);
+    // Between Friday and Saturday, the next session is under a day off.
+    eq(Calendar.liveSoon(weekend, at('2026-10-31T03:00:00Z')), true);
+    // No end listed: three hours after the start, and an hour more.
+    eq(Calendar.liveSoon(weekend, at('2026-11-01T23:59:00Z')), true);
+    eq(Calendar.liveSoon(weekend, at('2026-11-02T00:01:00Z')), false);
+    var ended = [session(1, 'Race', 'Race', '2026-11-01T20:00:00Z', { end: at('2026-11-01T21:40:00Z') })];
+    eq(Calendar.liveSoon(ended, at('2026-11-01T22:39:00Z')), true);
+    eq(Calendar.liveSoon(ended, at('2026-11-01T22:41:00Z')), false);
+    eq(Calendar.liveSoon([], at('2026-11-01T20:00:00Z')), false);
+    eq(Calendar.liveSoon(null, at('2026-11-01T20:00:00Z')), false);
+  });
+
+  test('a link from /f1 finds the race by its weekend’s name', function () {
+    var sao = session(21, 'Race', 'Race', '2025-11-09T17:00:00Z', { meeting: 'São Paulo Grand Prix' });
+    var sprint = session(20, 'Sprint', 'Race', '2025-11-08T14:00:00Z', { meeting: 'São Paulo Grand Prix' });
+    var listed = weekend.concat([sprint, sao]);
+    eq(Calendar.findRace(listed, 'Sao Paulo Grand Prix').key, 21);
+    // Case and accents aside; a sprint is never the race.
+    eq(Calendar.findRace(listed, 'mexico city grand prix').key, 5);
+    isNull(Calendar.findRace(listed, 'Monaco Grand Prix'));
+    isNull(Calendar.findRace(null, 'Monaco Grand Prix'));
+    // By the day first: /f1 calls it the Brazilian Grand Prix.
+    eq(Calendar.findRace(listed, 'Brazilian Grand Prix', '2025-11-09').key, 21);
+    eq(Calendar.findRace(listed, 'Brazilian Grand Prix', '2025-11-10').key, 21);
+    eq(Calendar.findRace(listed, 'Mexico City Grand Prix', '2025-12-25').key, 5);
+    isNull(Calendar.findRace(listed, 'Brazilian Grand Prix'));
+  });
+
   // ---------- Reminders ----------
 
   // The 2026 US GP weekend, in UTC as OpenF1 lists it.
