@@ -683,8 +683,9 @@ button {
   position: relative;
   z-index: 2;
   display: grid;
-  /* Flag, lap, fastest lap, badge. The flag never gives way; the badge does first. */
-  grid-template-columns: minmax(max-content, 1fr) max-content max-content minmax(0, max-content);
+  /* Flag, lap, fastest lap, badge, each centred in its share. The flag never gives way;
+     the badge does first. */
+  grid-template-columns: minmax(max-content, 1.4fr) minmax(max-content, 1fr) minmax(max-content, 1fr) minmax(0, max-content);
   align-items: stretch;
   min-width: 0;
   border: 1px solid var(--line);
@@ -732,9 +733,15 @@ button {
 .cap-flag {
   flex-direction: row;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   gap: var(--s-4);
   padding-left: 1.5rem;
+}
+
+.cap-lap,
+.cap-fastest {
+  align-items: center;
+  text-align: center;
 }
 
 /* Green is the normal state: a quiet dot. A local yellow is outlined; the neutralisations
@@ -967,8 +974,7 @@ button {
 /* A message worth interrupting for lights the line for a few seconds, in the shade of its
    kind, with one pulse: colour and motion, never a change of size. */
 .ticker[data-tone] {
-  background: color-mix(in srgb, var(--tone) 22%, var(--card-solid));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 55%, transparent);
+  background: color-mix(in srgb, var(--tone) 18%, var(--card-solid));
   animation: ticker-in 900ms var(--ease) 1;
 }
 
@@ -979,7 +985,7 @@ button {
 .ticker[data-tone="plain"] { --tone: var(--ink-soft); }
 
 @keyframes ticker-in {
-  from { box-shadow: inset 0 0 0 3px var(--tone); }
+  from { background: color-mix(in srgb, var(--tone) 40%, var(--card-solid)); }
 }
 
 .ticker-kind {
@@ -1041,17 +1047,16 @@ button {
   overflow-y: auto;
 }
 
+/* Plain rows on hairlines: the kind's word carries its colour, nothing else does. */
 .rc-row {
-  --tone: var(--ink-faint);
-  padding: var(--s-3) var(--s-4);
-  border-radius: 14px;
-  border-left: 3px solid var(--tone);
-  background: var(--inset);
+  --tone: var(--ink-soft);
+  padding: var(--s-3) var(--s-2);
+  border-radius: 10px;
   transition: background-color 900ms var(--ease);
 }
 
 .rc-row + .rc-row {
-  margin-top: var(--s-2);
+  border-top: 1px solid var(--line);
 }
 
 .rc-row[data-tone="alert"] { --tone: var(--alert-soft); }
@@ -1059,12 +1064,9 @@ button {
 .rc-row[data-tone="good"] { --tone: var(--timing-personal); }
 .rc-row[data-tone="rain"] { --tone: var(--rain); }
 
-.rc-row[data-tone] {
-  background: color-mix(in srgb, var(--tone) 12%, var(--card-solid));
-}
-
+/* The message the ticker was opened at, for a moment. */
 .rc-row[data-lit] {
-  background: color-mix(in srgb, var(--tone) 34%, var(--card-solid));
+  background: var(--hover);
   transition-duration: 250ms;
 }
 
@@ -3073,7 +3075,7 @@ button {
   }
 
   .capsule {
-    grid-template-columns: minmax(max-content, 1fr) max-content minmax(0, max-content);
+    grid-template-columns: minmax(max-content, 1.4fr) minmax(max-content, 1fr) minmax(0, max-content);
   }
 
   .cap-fastest {
