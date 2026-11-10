@@ -744,6 +744,15 @@ button {
   text-align: center;
 }
 
+/* A line under a figure with nothing to say takes no room, so the figure sits in the
+   middle of the bar rather than above an empty line. */
+.flag-note:empty,
+.cap-lap .cap-sub:empty,
+.cap-fastest .cap-sub:not(:has(> :not([hidden]))),
+.badge-delay:empty {
+  display: none;
+}
+
 /* Green is the normal state: a quiet dot. A local yellow is outlined; the neutralisations
    and the red flag are filled blocks, lettered where the flag is; the chequered flag is
    chequered. Before any flag, an empty ring. */
