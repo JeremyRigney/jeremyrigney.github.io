@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261110b" />
+  <link rel="stylesheet" href="assets/css/pitwall.css?v=20261110c" />
 </head>
 <body>
   <!-- The sign-in screen: in front of the live wall from a day before a session until it's
@@ -133,13 +133,11 @@
           </div>
         </div>
         <div class="cap cap-lap">
-          <p class="cap-label">Lap</p>
-          <p class="lap-value"><b data-bind="lap">—</b><span class="lap-of" data-bind="lapOf"></span></p>
+          <p class="lap-value"><span class="sr">Lap </span><b data-bind="lap">—</b><span class="lap-of" data-bind="lapOf"></span></p>
           <p class="cap-sub" data-bind="lapSub"></p>
         </div>
         <div class="cap cap-fastest">
-          <p class="cap-label">Fastest lap</p>
-          <p class="fastest-value"><b class="fastest-time" data-bind="fastestTime">—</b> <span class="fastest-who" data-bind="fastestWho"></span></p>
+          <p class="fastest-value"><span class="sr">Fastest lap </span><b class="fastest-time" data-bind="fastestTime">—</b> <span class="fastest-who" data-bind="fastestWho"></span></p>
           <p class="cap-sub"><span class="tag tag-rain" data-bind="rain" hidden>Rain</span></p>
         </div>
         <div class="cap cap-badge" data-tone="quiet">

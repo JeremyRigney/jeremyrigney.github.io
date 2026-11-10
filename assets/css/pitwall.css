@@ -744,6 +744,17 @@ button {
   text-align: center;
 }
 
+/* The lap and the fastest lap speak for themselves on screen; a screen reader still hears
+   which is which. */
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* A line under a figure with nothing to say takes no room, so the figure sits in the
    middle of the bar rather than above an empty line. */
 .flag-note:empty,
