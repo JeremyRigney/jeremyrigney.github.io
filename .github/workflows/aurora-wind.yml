@@ -1,0 +1,83 @@
+name: Aurora solar wind
+
+# Keeps jeremy.ie/aurora's solar wind current. NOAA writes a new WSA-Enlil run once a day,
+# about 01:25 UTC, and another whenever a forecaster models a CME; each is a 130 MB file.
+# tools/build-aurora-wind.py cuts the newest down to the two small files the page draws
+# (see its header), and this publishes them to the aurora-data branch: one commit, replaced
+# each time, so nothing here adds to main's history. The page reads them from
+# raw.githubusercontent.com.
+#
+# Most runs find nothing new and stop after a directory listing. No actions are used, only
+# what the runner already has (git, curl, python), so there is no action version to go stale.
+
+on:
+  schedule:
+    # Every two hours, off the hour. 01:47 UTC is the first after the daily run lands.
+    - cron: '47 1-23/2 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Publish again even if this run is already out
+        type: boolean
+        default: false
+  push:
+    paths:
+      - tools/build-aurora-wind.py
+      - .github/workflows/aurora-wind.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: aurora-wind
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      REMOTE: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+      BRANCH: aurora-data
+    steps:
+      - name: Fetch the reducer and what is published now
+        run: |
+          git init -q src
+          cd src
+          git fetch -q --depth 1 "$REMOTE" "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD -- tools/build-aurora-wind.py
+          if git fetch -q --depth 1 "$REMOTE" "$BRANCH" 2>/dev/null; then
+            git show FETCH_HEAD:wind.json > ../published.json || rm -f ../published.json
+          fi
+
+      - name: Install numpy, netCDF4 and pillow
+        run: |
+          python3 -m venv venv
+          venv/bin/pip install --quiet numpy netCDF4 pillow
+
+      - name: Reduce the newest run
+        env:
+          FORCE: ${{ inputs.force }}
+        run: |
+          if [ "$FORCE" = "true" ]; then rm -f published.json; fi
+          venv/bin/python -I src/tools/build-aurora-wind.py --out out --published published.json
+
+      - name: Publish
+        run: |
+          if [ ! -s out/wind.json ] || [ ! -s out/wind.png ]; then
+            echo "Nothing to publish."
+            exit 0
+          fi
+          cd out
+          cat > README.md <<'TEXT'
+          The solar wind for https://jeremy.ie/aurora: NOAA SWPC's WSA-Enlil run, reduced by
+          tools/build-aurora-wind.py on the main branch. Written by the "Aurora solar wind"
+          workflow, which replaces this branch's single commit each time. Do not edit it by hand.
+          TEXT
+          git init -q -b "$BRANCH"
+          git add wind.json wind.png README.md
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -q -m "WSA-Enlil: $(python3 -c "import json; s = json.load(open('wind.json'))['source']; print(s['file'], 'written', s['modified'])")"
+          git push -q --force "$REMOTE" "HEAD:$BRANCH"
+          echo "Published $(du -h wind.png | cut -f1) to $BRANCH."
