@@ -24,19 +24,21 @@ kept for two days. mrid00000000 is the daily ambient run, written about 01:25 UT
 run a forecaster makes for a CME carries its run number instead. Each holds 169 hourly
 frames, from two days before the run's reference date to five days after, on a grid of
 512 radii (0.1 to 1.7 AU) x 60 latitudes x 180 longitudes, in coordinates that keep the
-Earth at longitude 0. The page uses two of the cuts, both radial speed:
+Earth at longitude 0. The page uses one of the cuts,
 
-    vv13_3d  (t, lon, r)  at the Earth's latitude: the pinwheel seen from the north
-    vv12_3d  (t, lat, r)  at the Earth's longitude: the same wind cut north to south
+    vv13_3d  (t, lon, r)  radial speed at the Earth's latitude: the pinwheel seen
+                          from the north
 
 and the time series at the Earth (Earth_V1, Earth_Density, Earth_Temperature,
-Earth_B1..3). The cuts are int16, scaled by each variable's own *_min and *_max.
+Earth_B1..3). The cuts are int16, scaled by each variable's own *_min and *_max. (The
+file also has the cut through the Earth's longitude, vv12_3d, north to south. The page
+drew it for a while and it did not earn its place, so it is no longer sent.)
 
 Written to --out:
 
     wind.png   One greyscale tile per frame, 8 across. A tile is R_BINS rows, the Sun
-               end at the top, and 240 columns: 180 of longitude (-179 to 179), then 60
-               of latitude (59 to -59). One byte is a speed, from speed.min to
+               end at the top, and 180 columns of longitude (-179 to 179). One byte is
+               a speed, from speed.min to
                speed.max in wind.json. Every FRAME_STEP-th hour is kept and radius is
                averaged in fours: on the run this was built against, the speed changes
                by 0.75 km/s from one radial cell to the next and by 0.3 km/s between
@@ -67,7 +69,7 @@ import subprocess
 import sys
 import tempfile
 
-VERSION = 1
+VERSION = 2  # 1 carried the north-south cut beside each tile
 
 NOMADS = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/wsa_enlil/prod/"
 RUN_FILE = re.compile(r"wsa_enlil\.mrid(\d{8})\.suball\.nc$")
@@ -168,14 +170,13 @@ def reduce(path, source, out_dir):
 
     ref = datetime.datetime.strptime(ds.getncattr("REFDATE_CAL"), "%Y-%m-%dT%H:%M:%S").replace(tzinfo=UTC)
     r = v["x_coord"][:].astype(np.float64) / AU_M
-    lat = np.degrees(math.pi / 2 - v["y_coord"][:].astype(np.float64))
     lon = np.degrees(v["z_coord"][:].astype(np.float64) - math.pi)
     t = v["time"][:].astype(np.float64)  # seconds from ref
 
-    nr, nlat, nlon = len(r), len(lat), len(lon)
+    nr, nlon = len(r), len(lon)
     if nr % R_BINS:
         raise SystemExit("the radial grid (%d) does not divide into %d bins" % (nr, R_BINS))
-    for name, axis in (("longitude", lon), ("latitude", lat), ("radius", r)):
+    for name, axis in (("longitude", lon), ("radius", r)):
         steps = np.diff(axis)
         if not np.allclose(steps, steps[0], rtol=0, atol=abs(steps[0]) * 0.01):
             raise SystemExit("the %s axis is not evenly spaced; the page assumes it is" % name)
@@ -186,17 +187,13 @@ def reduce(path, source, out_dir):
     keep = sorted(set(int(np.argmin(np.abs(t - m))) for m in marks))
 
     ecl = cut("vv13_3d")[keep]  # t, lon, r
-    mer = cut("vv12_3d")[keep]  # t, lat, r
-    top = float(max(ecl.max(), mer.max()))
+    top = float(ecl.max())
     speed_max = float(min(3000.0, max(SPEED_MAX_FLOOR, math.ceil(top / 100.0) * 100.0)))
 
-    def tiles(a):
-        """(t, angle, r) in km/s to bytes as (t, R_BINS, angle)."""
-        binned = a.reshape(a.shape[0], a.shape[1], R_BINS, nr // R_BINS).mean(axis=3)
-        q = np.clip(np.rint((binned - SPEED_MIN) / (speed_max - SPEED_MIN) * 255.0), 0, 255)
-        return q.astype(np.uint8).transpose(0, 2, 1)
-
-    frames = np.concatenate([tiles(ecl), tiles(mer)], axis=2)  # t, R_BINS, nlon + nlat
+    # (t, lon, r) in km/s to bytes as (t, R_BINS, lon).
+    binned = ecl.reshape(ecl.shape[0], nlon, R_BINS, nr // R_BINS).mean(axis=3)
+    frames = np.clip(np.rint((binned - SPEED_MIN) / (speed_max - SPEED_MIN) * 255.0), 0, 255)
+    frames = frames.astype(np.uint8).transpose(0, 2, 1)
     n, th, tw = frames.shape
     rows = -(-n // ATLAS_COLS)
     atlas = np.zeros((rows * th, ATLAS_COLS * tw), np.uint8)
@@ -263,7 +260,6 @@ def reduce(path, source, out_dir):
         "r": {"first": round(float(r[:nr // R_BINS].mean()), 5),
               "step": round(float(r[nr // R_BINS] - r[0]), 6), "count": R_BINS},  # AU, bin centres
         "lon": {"first": round(float(lon[0]), 3), "step": round(float(lon[1] - lon[0]), 3), "count": nlon},
-        "lat": {"first": round(float(lat[0]), 3), "step": round(float(lat[1] - lat[0]), 3), "count": nlat},
         "speed": {"min": SPEED_MIN, "max": speed_max},  # km/s at bytes 0 and 255
         "earth": earth,
         "stereo_a": {
@@ -281,8 +277,8 @@ def reduce(path, source, out_dir):
 
     print("run %s of %s, %d frames from %s to %s" % (
         source["run_id"] or "ambient", meta["source"]["ref"], n, meta["times"][0], meta["times"][-1]))
-    print("speed %.0f to %.0f km/s in the cuts, bytes span %.0f to %.0f" % (
-        float(min(ecl.min(), mer.min())), top, SPEED_MIN, speed_max))
+    print("speed %.0f to %.0f km/s in the cut, bytes span %.0f to %.0f" % (
+        float(ecl.min()), top, SPEED_MIN, speed_max))
     print("cut at the Earth within %.1f km/s of the Earth series" % worst)
     print("wind.png %dx%d, %.0f KB; wind.json %.0f KB" % (
         atlas.shape[1], atlas.shape[0], os.path.getsize(png) / 1e3,

@@ -10,7 +10,7 @@
  *
  *   wind.json   the run, its frame times and axes, and the series at the Earth;
  *   wind.png    radial speed, a byte a value, a tile a frame: the cut through the
- *               Earth's latitude (the pinwheel) beside the cut through its longitude.
+ *               Earth's latitude, which seen from the north is the pinwheel.
  *
  * The json is small and fetched at once, then every half hour. The png is fetched when
  * the page is idle, or sooner if the reader scrolls toward the views that draw it, and
@@ -45,9 +45,16 @@
  * left open. Each deformation is one-to-one, so no two lines cross, and none leaves
  * the magnetopause, whatever the wind is doing.
  *
- * The flow through the sheath is a sketch too: outside the shock the wind runs
- * straight, between shock and magnetopause it follows the curves between them, slow at
- * the nose and quickening round the flanks, and inside the magnetopause there is none.
+ * The flow through the sheath is a sketch too, but one that conserves what it carries.
+ * It comes from a stream function: the wind's own (its height above the Sun-Earth
+ * line) outside the shock, zero on the magnetopause, and between them falling in
+ * proportion to depth, so a streamline that meets the shock at some height carries on
+ * from there and drapes round the magnetopause without ever crossing it. Behind the
+ * shock the wind is taken as SHEATH_DENSITY times denser, about what a strong shock
+ * gives, and slower by as much: streaks drawn along this flow bunch and slow at the
+ * shock, stall at the nose and quicken round the sides to nearly the wind's own speed,
+ * as the real sheath does. Far down the flanks the real sheath thins out again and
+ * this one doesn't, so there it runs slow.
  *
  * THE PLANETS are placed from JPL's approximate elements (Standish, valid 1800-2050),
  * good to a few arcminutes, as longitudes from the Earth's.
@@ -137,7 +144,7 @@
   var FIELD_TAIL = 70; // and no further down the tail than this
   var FIELD_CLOSED = [1.6, 2.4, 3.4, 4.6, 6, 7.5, 9, 10.5, 12, 13.2, 14];
   var FIELD_OPEN = [77, 80, 83.5, 87]; // footpoint latitudes of the lobe lines, degrees
-  var FIELD_STEPS = 72;
+  var FIELD_STEPS = 96;
 
   var FIELD_SWEEP = 0.55; // how far toward the tail the outermost points are turned
 
@@ -186,9 +193,10 @@
       [1, -1].forEach(function (side) {
         var pts = [];
         for (var i = 0; i <= FIELD_STEPS; i++) {
-          // Even steps in latitude crowd the feet and starve the far loop, so ease them.
+          // Even steps in latitude would spend most of the points near the feet, where
+          // the line hardly moves, and leave corners on the far loop. Crowd them there.
           var s = i / FIELD_STEPS * 2 - 1;
-          point(L, foot * Math.sin(s * Math.PI / 2), side, pts);
+          point(L, foot * s * (0.3 + 0.7 * Math.abs(s)), side, pts);
         }
         lines.push({ pts: pts, open: false, L: L, side: side });
       });
@@ -224,29 +232,31 @@
    * null inside the magnetopause, where there is none. x toward the Sun, so the
    * undisturbed wind is [-1, 0].
    */
-  var FLOW_NOSE = 0.22; // how slow it gets at the nose, just outside the magnetopause
+  var SHEATH_DENSITY = 3.5; // behind the shock, against the free wind's
+  var FLOW_H = 0.02; // Earth radii: the step the stream function is differenced over
 
-  function flow(b, x, z) {
+  // The stream function, in units of the upstream speed times an Earth radius: z in the
+  // free wind, 0 on and inside the magnetopause, odd in z.
+  function stream(b, x, z) {
     var r = Math.sqrt(x * x + z * z);
     var t = Math.atan2(Math.abs(z), x); // 0 at the nose, pi down the tail
     var mp = mpR(b, t), bs = bsR(b, t);
-    if (r < mp) { return null; }
-    if (r >= bs || !isFinite(mp)) { return [-1, 0]; }
+    if (!(r < bs)) { return z; }
+    if (r <= mp) { return 0; }
     var k = (r - mp) / (bs - mp); // 0 on the magnetopause, 1 on the shock
-    // Along the curve at this depth between the two, away from the nose.
-    var dr = (1 - k) * mpDr(b, t) + k * bsDr(b, t);
-    var tx = dr * Math.cos(t) - r * Math.sin(t);
-    var tz = dr * Math.sin(t) + r * Math.cos(t);
-    var len = Math.sqrt(tx * tx + tz * tz) || 1;
-    tx /= len; tz /= len;
-    // Slow at the nose, back to nearly full speed round the flanks; slower by the
-    // magnetopause than by the shock. Blended into the free wind at the shock itself.
-    var round = smooth(0, 1.9, t);
-    var speed = (FLOW_NOSE + (0.95 - FLOW_NOSE) * round) * (0.7 + 0.3 * k);
-    var join = smooth(0.8, 1, k);
-    var vx = tx * speed * (1 - join) + (-1) * join;
-    var vz = tz * speed * (1 - join);
-    return [vx, z < 0 ? -vz : vz];
+    var zShock = bs * Math.sin(t);
+    return (z < 0 ? -1 : 1) * k * zShock;
+  }
+
+  function flow(b, x, z) {
+    var r = Math.sqrt(x * x + z * z);
+    var t = Math.atan2(Math.abs(z), x);
+    if (r < mpR(b, t)) { return null; }
+    if (!(r < bsR(b, t))) { return [-1, 0]; }
+    // The wind runs along lines of constant stream function, toward -x where it is free.
+    var dz = (stream(b, x, z + FLOW_H) - stream(b, x, z - FLOW_H)) / (2 * FLOW_H);
+    var dx = (stream(b, x + FLOW_H, z) - stream(b, x - FLOW_H, z)) / (2 * FLOW_H);
+    return [-dz / SHEATH_DENSITY, dx / SHEATH_DENSITY];
   }
 
   /* ---------- The planets ---------- */
@@ -296,7 +306,6 @@
     meta: null, // wind.json
     times: null, // frame times, ms
     ecl: null, // Uint8Array, [frame][r][lon]: speed at the Earth's latitude
-    mer: null, // Uint8Array, [frame][r][lat]: speed at the Earth's longitude
     run: null, // the run the arrays came from (source.file + source.modified)
     atlasMeta: null, // and that run's wind.json, which the arrays are laid out by
     fetchedAt: 0,
@@ -311,7 +320,7 @@
   }
 
   function accept(meta) {
-    if (!meta || meta.version !== 1 || !meta.atlas || !meta.times) { throw new Error('wind.json: not a format this page knows'); }
+    if (!meta || meta.version !== 2 || !meta.atlas || !meta.times) { throw new Error('wind.json: not a format this page knows'); }
     state.meta = meta;
     state.times = meta.times.map(iso);
     var e = meta.earth;
@@ -571,7 +580,7 @@
     });
   }
 
-  // The png's tiles, unpacked into the two arrays the shaders and the streaks read.
+  // The png's tiles, unpacked into the array the shader and the streaks read.
   function unpack(img, meta) {
     var c = document.createElement('canvas');
     c.width = img.width;
@@ -580,21 +589,20 @@
     ctx.drawImage(img, 0, 0);
     var px = ctx.getImageData(0, 0, c.width, c.height).data;
     var tw = meta.atlas.tile[0], th = meta.atlas.tile[1], cols = meta.atlas.cols, n = meta.atlas.frames;
-    var nl = meta.lon.count, na = meta.lat.count;
-    if (th !== meta.r.count || tw !== nl + na || c.width < cols * tw || c.height < Math.ceil(n / cols) * th) {
+    var nl = meta.lon.count;
+    if (th !== meta.r.count || tw !== nl || c.width < cols * tw || c.height < Math.ceil(n / cols) * th) {
       throw new Error('wind.png does not match wind.json');
     }
-    var ecl = new Uint8Array(n * th * nl), mer = new Uint8Array(n * th * na);
+    var ecl = new Uint8Array(n * th * nl);
     for (var k = 0; k < n; k++) {
       var ox = (k % cols) * tw, oy = Math.floor(k / cols) * th;
       for (var y = 0; y < th; y++) {
         var row = ((oy + y) * c.width + ox) * 4;
-        var e0 = (k * th + y) * nl, m0 = (k * th + y) * na;
+        var e0 = (k * th + y) * nl;
         for (var x = 0; x < nl; x++) { ecl[e0 + x] = px[row + x * 4]; }
-        for (x = 0; x < na; x++) { mer[m0 + x] = px[row + (nl + x) * 4]; }
       }
     }
-    return { ecl: ecl, mer: mer };
+    return ecl;
   }
 
   function loadAtlas() {
@@ -610,10 +618,8 @@
       })
       .then(decode)
       .then(function (img) {
-        var arrays = unpack(img, meta);
+        state.ecl = unpack(img, meta);
         if (img.close) { img.close(); }
-        state.ecl = arrays.ecl;
-        state.mer = arrays.mer;
         state.run = key;
         state.atlasMeta = meta;
         emit();

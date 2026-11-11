@@ -185,31 +185,28 @@ test('Venus and Mercury pass between us and the Sun on their conjunction dates',
 
 /* ---------- the model run ---------- */
 
-// Three frames two hours apart, 4 radii x 4 longitudes x 2 latitudes; a byte is 4 km/s
-// from 200. Speed in the ecliptic is 400 + 40 per radial cell, +8 at longitude index 1,
-// and 20 faster each frame.
+// Three frames two hours apart, 4 radii x 4 longitudes; a byte is 4 km/s from 200. Speed
+// is 400 + 40 per radial cell, +8 at longitude index 1, and 20 faster each frame.
 function tinyRun() {
-  var nr = 4, nl = 4, na = 2, n = 3;
-  var ecl = new Uint8Array(n * nr * nl), mer = new Uint8Array(n * nr * na);
+  var nr = 4, nl = 4, n = 3;
+  var ecl = new Uint8Array(n * nr * nl);
   for (var k = 0; k < n; k++) {
     for (var r = 0; r < nr; r++) {
       for (var l = 0; l < nl; l++) { ecl[(k * nr + r) * nl + l] = (400 + 40 * r + (l === 1 ? 8 : 0) + 20 * k - 200) / 4; }
     }
   }
   W.accept({
-    version: 1,
+    version: 2,
     source: { file: 'tiny.nc', modified: '2026-11-11T01:24:00Z', ref: '2026-11-11T00:00:00Z', run_id: 0, cme: false },
-    atlas: { file: 'wind.png', cols: 8, tile: [nl + na, nr], frames: n },
+    atlas: { file: 'wind.png', cols: 8, tile: [nl, nr], frames: n },
     times: ['2026-11-11T00:00:00Z', '2026-11-11T02:00:00Z', '2026-11-11T04:00:00Z'],
     r: { first: 0.5, step: 0.25, count: nr },
     lon: { first: -135, step: 90, count: nl },
-    lat: { first: 30, step: -60, count: na },
     speed: { min: 200, max: 1220 },
     earth: { r: 1, start: '2026-11-11T00:00:00Z', step_min: 60,
       speed: [400, 420, 440, null, 600], density: [5, 5, 4, null, 2], temperature: [1e5, 1e5, 1e5, null, 2e5], b: [5, 5, 5, null, 6] }
   });
   W.state.ecl = ecl;
-  W.state.mer = mer;
 }
 
 test('a time is placed among the frames, and held at the ends', function () {

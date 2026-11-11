@@ -1429,6 +1429,7 @@
     clock: 0, // seconds of animation so far; barely moves under reduced motion
     basis: basis, // east, north, out in globe coordinates
     sun: sunDir, // toward the Sun, globe coordinates
+    pole: eclPole, // north of the ecliptic, globe coordinates
     clearTop: 0, clearBottom: 0, // the room the panels leave
     portrait: false,
     reducedMotion: reducedMotion,
@@ -1468,6 +1469,7 @@
     scene.view = ids[Math.round(progress)];
     scene.dim = cam.dim;
     scene.sun = sunDir;
+    scene.pole = eclPole;
     scene.clearTop = clearTop; scene.clearBottom = clearBottom;
     scene.portrait = portrait();
     scene.fontsReady = fontsReady;
