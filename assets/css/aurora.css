@@ -674,7 +674,7 @@ button {
   font-weight: 500;
 }
 
-body[data-view="1"] .top-time .cloud {
+body:is([data-view="south"], [data-view="wind"], [data-view="sun"]) .top-time .cloud {
   display: none;
 }
 
@@ -855,11 +855,11 @@ body[data-view="1"] .top-time .cloud {
   display: none;
 }
 
-body[data-view="1"] .top-place {
+body:is([data-view="south"], [data-view="wind"], [data-view="sun"]) .top-place {
   display: none;
 }
 
-body[data-view="1"] .top-oval {
+body[data-view="south"] .top-oval {
   display: flex;
 }
 
@@ -869,7 +869,7 @@ body[data-view="1"] .top-oval {
   transition: opacity 400ms var(--ease), visibility 400ms;
 }
 
-body[data-view="2"] :is(.topdock, .top-time, .top-seg) {
+body[data-view="drivers"] :is(.topdock, .top-time, .top-seg) {
   visibility: hidden;
   opacity: 0;
 }
@@ -1535,11 +1535,11 @@ body[data-view="2"] :is(.topdock, .top-time, .top-seg) {
   pointer-events: auto;
 }
 
-body[data-view="2"] .dock {
+body[data-view="drivers"] .dock {
   opacity: 0;
 }
 
-body[data-view="2"] .dock > * {
+body[data-view="drivers"] .dock > * {
   pointer-events: none;
 }
 

@@ -120,9 +120,11 @@
 
     <div class="header-controls">
       <nav class="seg view-index" aria-label="Views">
-        <a href="#north" data-view="0">North</a>
-        <a href="#south" data-view="1">South</a>
-        <a href="#drivers" data-view="2">Drivers</a>
+        <a href="#sun" data-view="sun">Sun</a>
+        <a href="#wind" data-view="wind">Wind</a>
+        <a href="#north" data-view="north">North</a>
+        <a href="#south" data-view="south">South</a>
+        <a href="#drivers" data-view="drivers">Drivers</a>
       </nav>
       <div class="seg layer-toggle" id="layer-toggle" role="radiogroup" aria-label="What the globe shows">
         <button type="button" role="radio" aria-checked="true" data-layer="seen">Seen <span class="layer-gain" id="layer-gain">&times;20,000</span></button>
@@ -132,6 +134,20 @@
   </header>
 
   <main class="views" id="views">
+    <!--
+      Two views from space, above the one the page opens on: scrolling up from the
+      north pulls the camera back to the Earth in the solar wind, then to the Sun.
+      Both are drawn on the stage (aurora-wind-view.js); their readouts are in the
+      top capsule.
+    -->
+    <section class="view view-sun" id="sun" aria-labelledby="sun-title">
+      <h2 class="visually-hidden" id="sun-title">The solar wind, from the Sun out past the Earth</h2>
+    </section>
+
+    <section class="view view-wind" id="wind" aria-labelledby="wind-title">
+      <h2 class="visually-hidden" id="wind-title">The solar wind arriving at the Earth</h2>
+    </section>
+
     <section class="view view-north" id="north" aria-labelledby="north-title">
       <h1 class="visually-hidden" id="north-title">Aurora Borealis</h1>
     </section>

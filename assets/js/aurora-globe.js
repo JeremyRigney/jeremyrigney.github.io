@@ -18,14 +18,29 @@
  *   3. The aurora (drawAurora), into a half-float target of its own, then bloomed and
  *      added over the top. Only the aurora blooms; the mesh stays sharp.
  *
- * The camera is not a free trackball. North stays up, and the view is a latitude, a
- * longitude, a place on screen and a size, eased between three framings as the page
- * scrolls: the northern half rising from the bottom with Ireland in frame, the
- * southern half hanging from the top, then smaller and dimmed behind the charts. A
- * sideways drag adds a spin in longitude on top.
+ * The camera is not a free trackball. The view is a latitude, a longitude, a roll, a
+ * place on screen and a size, eased between five framings as the page scrolls. From
+ * the top:
+ *
+ *   sun      the whole inner solar system, seen from north of the ecliptic, the Earth
+ *            a dot 1 AU right of the Sun;
+ *   wind     the Earth about 40 px across, seen from its dusk side with the ecliptic's
+ *            north up, so the Sun is off-screen to the left and its wind blows right;
+ *   north    the northern half rising from the bottom with Ireland in frame (where
+ *            the page opens);
+ *   south    the southern half hanging from the top;
+ *   drivers  smaller and dimmed behind the charts.
+ *
+ * From north down, north stays up and a sideways drag adds a spin in longitude. Above
+ * it the size runs through four decades, so size is eased as its logarithm, and what
+ * is drawn around the Earth belongs to layers (aurora-wind-view.js) that register
+ * with addLayer() and are handed this frame's scene: where the Earth is on screen,
+ * how many pixels an Earth radius is, and how far the camera has risen over the
+ * ecliptic. The globe's own fine lines fade out as it shrinks, and below a pixel and a
+ * half so does the globe.
  *
  * Coordinates are AuroraGeo's: Earth-centred, Earth radii, +z north. The view basis
- * is east, north and out-of-screen at the point the camera faces.
+ * is east, north and out-of-screen at the point the camera faces, turned by the roll.
  */
 (function () {
   'use strict';
@@ -98,19 +113,42 @@
   var SKY_KM = 110;
 
   /*
-   * The three framings. lat/lon is the point the camera faces; cx, cy place the
-   * globe's centre as fractions of the viewport; size is the globe's radius as a
-   * fraction of frame() below; dim fades it toward the ground.
+   * The framings, by the id of the section that scrolls each into place. lat/lon is
+   * the point the camera faces; cx, cy place the globe's centre as fractions of the
+   * viewport; size is the globe's radius as a fraction of frame() below; dim fades it
+   * toward the ground.
    *
    * North faces 34°N, so the pole sits two thirds of the way up the visible half and
    * the far side of the oval stands on the limb, and Ireland lands in the lower
    * middle of the screen. South mirrors it from 34°S over Tasmania and New Zealand.
+   * The two views from space are framed by the Sun and the screen (spaceAim, viewAt).
    */
-  var VIEWS = [
-    { lat: 34, lon: -8, cx: 0.5, cy: 1.04, size: 0.855, dim: 1 },
-    { lat: -34, lon: 150, cx: 0.5, cy: -0.04, size: 0.855, dim: 1 },
-    { lat: 20, lon: -8, cx: 0.5, cy: 0.55, size: 0.62, dim: 0.26 }
-  ];
+  var VIEWS = {
+    sun: { dim: 1 },
+    wind: { dim: 1 },
+    north: { lat: 34, lon: -8, cx: 0.5, cy: 1.04, size: 0.855, dim: 1 },
+    south: { lat: -34, lon: 150, cx: 0.5, cy: -0.04, size: 0.855, dim: 1 },
+    drivers: { lat: 20, lon: -8, cx: 0.5, cy: 0.55, size: 0.62, dim: 0.26 }
+  };
+
+  var AU_RE = 23481; // Earth radii in an astronomical unit
+
+  // The wind view shows this many Earth radii across a landscape screen (or down it,
+  // whichever binds), and fewer on a portrait one, where the tail runs off the side.
+  var WIND_SPAN = 62, WIND_SPAN_TALL = 44, WIND_SPAN_PORTRAIT = 34;
+  // The sun view fits the model's disc, 1.7 AU in radius, with a margin.
+  var SUN_SPAN_AU = 3.56;
+
+  // Leaving the wind view for the sun, the zoom runs fast at first and settles: most of
+  // the scroll is spent on the last decade, where the Sun comes into frame and the
+  // camera rises over the ecliptic. This is the exponent of that ease.
+  var ZOOM_EASE = 2.2;
+
+  // The globe's fine lines (graticule, contours, coasts, labels) fade out between these
+  // radii, in CSS px, and the globe itself between the last two.
+  var DETAIL_FROM = 60, DETAIL_FULL = 220;
+  var GLOBE_FROM = 0.6, GLOBE_FULL = 2.0;
+  var AURORA_MIN_PX = 4; // below this radius the aurora pass is skipped
 
   /* ---------- DOM ---------- */
 
@@ -121,7 +159,10 @@
   var fallbackEl = document.getElementById('aurora-fallback');
   if (!stage || !canvas || !overlay) { return; }
 
-  var sections = Array.prototype.slice.call(document.querySelectorAll('.view'));
+  // The views in page order; a section this file has no framing for is left out.
+  var sections = Array.prototype.slice.call(document.querySelectorAll('.view')).filter(function (s) { return VIEWS[s.id]; });
+  var ids = sections.map(function (s) { return s.id; });
+  var NORTH = Math.max(0, ids.indexOf('north'));
   var indexLinks = Array.prototype.slice.call(document.querySelectorAll('.view-index a'));
   var octx = overlay.getContext('2d');
 
@@ -344,6 +385,8 @@
     'uniform float uSkyRad;',
     'uniform float uLayer;', // 0 = Seen, 1 = Probability
     'uniform float uDim;',
+    'uniform float uDetail;', // the fine lines: 1 at the aurora views' size, 0 once the globe is small
+    'uniform float uShow;', // the globe itself: 0 once it is under a pixel or so
     'uniform vec3 uInk;',
     'uniform vec3 uProb[6];',
     'uniform vec3 uSkyTop;', // the space behind, top to bottom of the screen
@@ -373,12 +416,12 @@
     '  float b = dot(ro, rd);',
     '  float dmin = sqrt(max(dot(ro, ro) - b * b, 0.0));', // closest approach, radii
     '  float aa = fwidth(dmin);',
-    '  float cover = clamp((1.0 - dmin) / aa + 0.5, 0.0, 1.0);',
+    '  float cover = clamp((1.0 - dmin) / aa + 0.5, 0.0, 1.0) * uShow;',
 
     // Space: the ground, top to bottom, and a thin haze above the limb.
     '  vec3 ground = mix(uSkyTop, uSkyBottom, frag.y / uRes.y);',
     '  float above = max(dmin - 1.0, 0.0);',
-    '  vec3 sky = ground + uHaze * exp(-above * 26.0) * step(1.0, dmin);',
+    '  vec3 sky = ground + uHaze * exp(-above * 26.0) * step(1.0, dmin) * uShow;',
 
     // The hemisphere's name, large and faint, bent along the limb: rising from behind
     // the earth over the top of the disc in the north, hanging under its foot in the
@@ -428,13 +471,16 @@
     '    float night = 1.0 - smoothstep(-0.25, 0.05, sunDot);',
     '    surf += uLights * (E.r * E.r * 1.8) * night;',
     '    surf += uInk * 0.05 * pow(1.0 - mu, 3.0);',
+    // Small, from space, the day side has to read at a glance: it is lifted well clear
+    // of the night, the land a little more than the sea.
+    '    surf += uInk * (0.13 + 0.09 * land) * lit * (1.0 - uDetail);',
 
     // Contours on land, every 500 m and each 2000 m a little stronger; none at sea.
     // Fewer where they crowd: steep ground, and toward the limb.
     '    float c = hair(abs(fract(hM / 500.0 + 0.5) - 0.5) * 500.0, wH);',
     '    float major = hair(abs(fract(hM / 2000.0 + 0.5) - 0.5) * 2000.0, wH);',
     '    float crowd = clamp(1.6 - wH / 500.0 * 5.0, 0.0, 1.0);',
-    '    surf += uInk * max(c, major) * (mix(0.16, 0.3, lit) + major * 0.14) * crowd * land * step(150.0, hM) * face;',
+    '    surf += uInk * max(c, major) * (mix(0.16, 0.3, lit) + major * 0.14) * crowd * land * step(150.0, hM) * face * uDetail;',
 
     // Graticule: latitude every 10°, longitude every 15°, fading near the poles.
     '    float wLat = fwidth(lat);',
@@ -445,7 +491,7 @@
     '    float gLon = abs(fract(lon / 15.0 + 0.5) - 0.5) * 15.0;',
     '    float grid = max(hair(gLat, wLat), hair(gLon, wLon) * (1.0 - smoothstep(76.0, 84.0, abs(lat))));',
     '    float equator = hair(lat, wLat);',
-    '    surf += uInk * (grid * 0.045 + equator * 0.05) * face;',
+    '    surf += uInk * (grid * 0.045 + equator * 0.05) * face * uDetail;',
 
     // Geomagnetic latitudes 50, 60 and 70, dashed: where the oval lives.
     '    vec3 m = n * uMag;',
@@ -455,13 +501,13 @@
     '    float am = abs(mlat);',
     '    float ring = max(max(hair(am - 50.0, wM), hair(am - 60.0, wM)), hair(am - 70.0, wM));',
     '    float dash = step(0.5, fract(mlon / 2.5));',
-    '    surf += uInk * ring * dash * 0.09 * face;',
+    '    surf += uInk * ring * dash * 0.09 * face * uDetail;',
 
     // The terminator, and where the Sun is 12° down: dark enough for faint aurora.
     '    float wS = fwidth(sunDot);',
-    '    surf += uInk * hair(sunDot, wS) * 0.2 * face;',
+    '    surf += uInk * hair(sunDot, wS) * 0.2 * face * uDetail;',
     '    float dusk = sunDot + 0.2079;',
-    '    surf += uInk * hair(dusk, wS) * step(0.5, fract(lon / 1.5)) * 0.09 * face;',
+    '    surf += uInk * hair(dusk, wS) * step(0.5, fract(lon / 1.5)) * 0.09 * face * uDetail;',
 
     // The circle of sky the chosen place can see aurora in, dashed, and its centre.
     '    float pd = dot(n, uPlace);',
@@ -469,7 +515,7 @@
     '    float wA = fwidth(ang);',
     '    float az = atan(dot(n, uPlaceNorth), dot(n, uPlaceEast));',
     '    float skyDash = step(0.45, fract(az * 36.0 / 6.2831853));',
-    '    surf += uInk * hair(ang - uSkyRad, wA) * skyDash * 0.42 * face * step(0.0, pd);',
+    '    surf += uInk * hair(ang - uSkyRad, wA) * skyDash * 0.42 * face * step(0.0, pd) * uDetail;',
 
     // Probability: the ramp as a gradient from 5 %, with a hairline at each
     // threshold above it so the levels can still be read off.
@@ -481,14 +527,14 @@
     '      for (int i = 1; i < 6; i++) { contour = max(contour, hair(p - PROB_TH[i], wp)); }',
     '      float fill = clamp((p - PROB_TH[0]) / max(wp, 1e-4) + 0.5, 0.0, 1.0);',
     '      surf = mix(surf, rampAt(uProb, p), 0.66 * uLayer * fill);',
-    '      surf = mix(surf, uInk, contour * 0.4 * uLayer * step(0.04, p));',
+    '      surf = mix(surf, uInk, contour * 0.4 * uLayer * step(0.04, p) * uDetail);',
     '    }',
 
     '    col = mix(sky, surf, cover);',
     '  }',
 
     // The limb itself: one crisp hairline.
-    '  col += uInk * hair(dmin - 1.0, aa) * 0.22;',
+    '  col += uInk * hair(dmin - 1.0, aa) * mix(0.34, 0.22, uDetail) * uShow;',
 
     '  col = mix(ground, col, uDim);',
     '  outColor = vec4(col, 1.0);',
@@ -949,12 +995,12 @@
   }
 
   // This frame's name: which, where and how strong. It leaves as the camera crosses the
-  // equator between views and as the globe dims for the drivers.
+  // equator between views, as the globe dims for the drivers and as it shrinks into space.
   function nameArc() {
     var south = cam.lat < 0 ? 1 : 0;
     var fs = NAME_SCALE * radiusPx;
     var rb = south ? radiusPx + NAME_HANG * fs : radiusPx - NAME_SINK * fs;
-    var show = smooth(8, 25, Math.abs(cam.lat)) * smooth(0.6, 0.95, cam.dim) * nameReady;
+    var show = smooth(8, 25, Math.abs(cam.lat)) * smooth(0.6, 0.95, cam.dim) * nameReady * detail;
     return [rb * dpr, fs / NAME_PX * dpr, south, NAME_STRENGTH * show];
   }
 
@@ -1156,15 +1202,23 @@
   /* ---------- Camera ---------- */
 
   var w = 1, h = 1, dpr = 1;
-  var cam = { lat: VIEWS[0].lat, lon: VIEWS[0].lon, cx: VIEWS[0].cx, cy: VIEWS[0].cy, size: VIEWS[0].size, dim: VIEWS[0].dim };
-  var target = { lat: cam.lat, lon: cam.lon, cx: cam.cx, cy: cam.cy, size: cam.size, dim: cam.dim };
+  // ls is the logarithm of size: the views span four decades of it, so it is what eases.
+  // tilt is how far the camera has risen over the ecliptic, 0 side-on to 1 from its north.
+  var cam = { lat: VIEWS.north.lat, lon: VIEWS.north.lon, roll: 0, cx: 0.5, cy: 1, ls: Math.log(VIEWS.north.size), size: VIEWS.north.size, dim: 1, tilt: 0 };
+  var target = { lat: cam.lat, lon: cam.lon, roll: 0, cx: cam.cx, cy: cam.cy, ls: cam.ls, dim: cam.dim, tilt: 0 };
+  var KEYS = ['lat', 'lon', 'roll', 'cx', 'cy', 'ls', 'dim', 'tilt'];
   var spin = 0, spinVel = 0; // degrees, degrees per second
   var resetFrom = null, resetT = 0;
-  var progress = 0;
+  var progress = NORTH;
 
   var basis = new Float32Array(9);
   var eye = [0, 0, CAMERA_DIST];
   var radiusPx = 1, focalPx = 1, centerX = 0, centerY = 0; // CSS px
+  var detail = 1, shown = 1; // how much of the globe's fine lines, and of the globe, is drawn
+
+  var sunDir = [1, 0, 0];
+  var eclPole = [0, 0, 1];
+  var earthAu = 1;
 
   // The globe's radius is a fraction of this: the height on a landscape screen, a
   // little more than the width on a portrait one, and on a portrait screen up to tablet
@@ -1196,23 +1250,65 @@
     return true;
   }
 
+  /*
+   * The camera for both views from space: off the Earth's dusk side, in the ecliptic,
+   * with the ecliptic's north up. East on screen is then straight away from the Sun, so
+   * the wind blows left to right, and the Earth's own axis leans as it really does. The
+   * globe turns under this camera once a day. Returned as the point it faces and the
+   * roll that stands the ecliptic's north upright there.
+   */
+  function spaceAim() {
+    var east = [-sunDir[0], -sunDir[1], -sunDir[2]];
+    var out = Geo.normalize(Geo.cross(eclPole, sunDir));
+    var ll = Geo.latLon(out);
+    var la = ll[0] * DEG, lo = ll[1] * DEG;
+    var east0 = [-Math.sin(lo), Math.cos(lo), 0];
+    var north0 = [-Math.sin(la) * Math.cos(lo), -Math.sin(la) * Math.sin(lo), Math.cos(la)];
+    return { lat: ll[0], lon: ll[1], roll: Math.atan2(Geo.dot(east, north0), Geo.dot(east, east0)) / DEG };
+  }
+
   // A view's framing. North and south are placed against the panels: in the north the
   // limb sits below the top capsule by the name's height, in the south the disc's foot
-  // sits above the dock by the depth of the name hanging under it. lat/lon, and the
-  // drivers' framing, are VIEWS' own.
+  // sits above the dock by the depth of the name hanging under it. The views from space
+  // are sized to the screen: the wind view to a span of Earth radii with the Earth left
+  // of centre and its tail running right, the sun view to the model's whole disc with
+  // the Sun in the middle of the room the panels leave. lat/lon, and the drivers'
+  // framing, are VIEWS' own.
   var PORTRAIT_SIZE = 0.95;
   var NAME_ROOM = 12; // px between the panels and the name
 
   function viewAt(i) {
-    var v = VIEWS[i];
-    if (i > 1) { return v; }
+    var id = ids[i];
+    var v = VIEWS[id];
+    var aim, mid;
+    if (id === 'wind') {
+      aim = spaceAim();
+      var pxRe = portrait() ? w / WIND_SPAN_PORTRAIT : Math.min(w / WIND_SPAN, h / WIND_SPAN_TALL);
+      mid = (clearTop + (clearBottom > clearTop ? clearBottom : h)) / 2;
+      return { lat: aim.lat, lon: aim.lon, roll: aim.roll, cx: portrait() ? 0.56 : 0.36, cy: mid / h,
+        size: pxRe / frame(), dim: v.dim, tilt: 0 };
+    }
+    if (id === 'sun') {
+      aim = spaceAim();
+      // On a wide screen the capsule parts into pills at the sides and the disc may
+      // rise between them; otherwise it keeps below the capsule.
+      var top = w > 1240 ? 18 : clearTop + 10;
+      var bottom = (clearBottom > clearTop ? clearBottom : h) - 18;
+      var pxAu = Math.max(40, Math.min(w * 0.94, bottom - top)) / SUN_SPAN_AU;
+      mid = (top + bottom) / 2;
+      return { lat: aim.lat, lon: aim.lon, roll: aim.roll, cx: (w / 2 + earthAu * pxAu) / w, cy: mid / h,
+        size: pxAu / AU_RE / frame(), dim: v.dim, tilt: 1 };
+    }
+    if (id === 'drivers') {
+      return { lat: v.lat, lon: v.lon, roll: 0, cx: v.cx, cy: v.cy, size: v.size, dim: v.dim, tilt: 0 };
+    }
     var size = portrait() ? PORTRAIT_SIZE : v.size;
     var r = size * frame();
     var fs = NAME_SCALE * r;
-    var cy = i === 0
+    var cy = id === 'north'
       ? (clearTop + NAME_ROOM + (0.72 - NAME_SINK) * fs + r) / h
       : (clearBottom - NAME_ROOM - NAME_HANG * fs - r) / h;
-    return { lat: v.lat, lon: v.lon, cx: 0.5, cy: cy, size: size, dim: v.dim };
+    return { lat: v.lat, lon: v.lon, roll: 0, cx: 0.5, cy: cy, size: size, dim: v.dim, tilt: 0 };
   }
 
   function wrap180(d) {
@@ -1229,6 +1325,7 @@
 
   var tops = [];
 
+  // Where the page is scrolled to, as a position among the views.
   function readScroll() {
     var y = window.scrollY || window.pageYOffset || 0;
     if (!tops.length) { tops = sectionTops(); }
@@ -1238,45 +1335,71 @@
       if (y > tops[i]) { p = i + (y - tops[i]) / Math.max(1, tops[i + 1] - tops[i]); }
       break;
     }
-    progress = Math.max(0, Math.min(VIEWS.length - 1, p));
+    progress = Math.max(0, Math.min(ids.length - 1, p));
 
-    var nearest = Math.round(progress);
-    if (document.body.getAttribute('data-view') !== String(nearest)) {
-      document.body.setAttribute('data-view', String(nearest));
-      indexLinks.forEach(function (a, k) {
-        if (k === nearest) { a.setAttribute('aria-current', 'true'); } else { a.removeAttribute('aria-current'); }
+    var nearest = ids[Math.round(progress)];
+    if (document.body.getAttribute('data-view') !== nearest) {
+      document.body.setAttribute('data-view', nearest);
+      indexLinks.forEach(function (a) {
+        if (a.getAttribute('data-view') === nearest) { a.setAttribute('aria-current', 'true'); } else { a.removeAttribute('aria-current'); }
       });
+      document.dispatchEvent(new CustomEvent('aurora:view', { detail: { view: nearest } }));
     }
+  }
 
-    var at = reducedMotion ? nearest : progress;
-    var i0 = Math.min(VIEWS.length - 1, Math.floor(at));
-    var i1 = Math.min(VIEWS.length - 1, i0 + 1);
+  // The framing that position asks for. Worked out every frame, not only on a scroll:
+  // the views from space follow the Sun, which the time slider can move.
+  function aim() {
+    var at = reducedMotion ? Math.round(progress) : progress;
+    var i0 = Math.min(ids.length - 1, Math.floor(at));
+    var i1 = Math.min(ids.length - 1, i0 + 1);
     var t = easeInOut(at - i0);
     var a = viewAt(i0), b = viewAt(i1);
+    // Between the sun and the wind the zoom and the tilt keep their own pace (ZOOM_EASE).
+    var zt = t, tt = t;
+    if (ids[i0] === 'sun' && ids[i1] === 'wind') {
+      zt = Math.pow(t, ZOOM_EASE);
+      tt = smooth(0.03, 0.5, t);
+    }
     target.lat = a.lat + (b.lat - a.lat) * t;
     target.lon = a.lon + wrap180(b.lon - a.lon) * t;
+    target.roll = a.roll + wrap180(b.roll - a.roll) * t;
     target.cx = a.cx + (b.cx - a.cx) * t;
     target.cy = a.cy + (b.cy - a.cy) * t;
-    target.size = a.size + (b.size - a.size) * t;
+    target.ls = Math.log(a.size) + (Math.log(b.size) - Math.log(a.size)) * zt;
     target.dim = a.dim + (b.dim - a.dim) * t;
+    target.tilt = a.tilt + (b.tilt - a.tilt) * tt;
+  }
+
+  // How much of a sideways spin still shows: all of it from north down, none from space.
+  function spinShare() {
+    return Math.max(0, Math.min(1, progress - (NORTH - 1)));
+  }
+
+  function landed() {
+    return Math.abs(target.lat - cam.lat) < 1e-3 && Math.abs(wrap180(target.lon - cam.lon)) < 1e-3
+      && Math.abs(wrap180(target.roll - cam.roll)) < 1e-3
+      && Math.abs(target.cx - cam.cx) < 1e-4 && Math.abs(target.cy - cam.cy) < 1e-4
+      && Math.abs(target.ls - cam.ls) < 1e-4 && Math.abs(target.dim - cam.dim) < 1e-3
+      && Math.abs(target.tilt - cam.tilt) < 1e-3;
   }
 
   function stepCamera(dt) {
     var k = reducedMotion ? 1 : 1 - Math.exp(-FOLLOW * dt);
     cam.lat += (target.lat - cam.lat) * k;
     cam.lon = wrap180(cam.lon + wrap180(target.lon - cam.lon) * k);
+    cam.roll = wrap180(cam.roll + wrap180(target.roll - cam.roll) * k);
     cam.cx += (target.cx - cam.cx) * k;
     cam.cy += (target.cy - cam.cy) * k;
-    cam.size += (target.size - cam.size) * k;
+    cam.ls += (target.ls - cam.ls) * k;
     cam.dim += (target.dim - cam.dim) * k;
+    cam.tilt += (target.tilt - cam.tilt) * k;
     // The easing never quite arrives, so it lands once it is within a hair: a still
     // camera is what lets the loop slow down and the overlay stop redrawing.
-    if (Math.abs(target.lat - cam.lat) < 1e-3 && Math.abs(wrap180(target.lon - cam.lon)) < 1e-3
-      && Math.abs(target.cx - cam.cx) < 1e-4 && Math.abs(target.cy - cam.cy) < 1e-4
-      && Math.abs(target.size - cam.size) < 1e-4 && Math.abs(target.dim - cam.dim) < 1e-3) {
-      cam.lat = target.lat; cam.lon = target.lon; cam.cx = target.cx;
-      cam.cy = target.cy; cam.size = target.size; cam.dim = target.dim;
+    if (landed()) {
+      KEYS.forEach(function (key) { cam[key] = target[key]; });
     }
+    cam.size = Math.exp(cam.ls);
 
     if (resetFrom !== null) {
       resetT = Math.min(1, resetT + dt * 1000 / RESET_MS);
@@ -1289,13 +1412,40 @@
     }
   }
 
+  // What the layers are handed each frame (see addLayer). Lengths are CSS px.
+  var scene = {
+    w: 1, h: 1, dpr: 1,
+    earthX: 0, earthY: 0, // the Earth's centre on screen
+    pxPerRe: 1, // an Earth radius
+    pxPerAu: 1,
+    earthAu: 1, // the Earth's distance from the Sun
+    tilt: 0, // 0 side-on in the ecliptic, 1 from its north
+    progress: 0, // position among the views, in page order
+    view: 'north', // the nearest view's id
+    dim: 1,
+    time: 0, // the time shown, ms
+    live: true,
+    dt: 0, // seconds since the last frame
+    clock: 0, // seconds of animation so far; barely moves under reduced motion
+    basis: basis, // east, north, out in globe coordinates
+    sun: sunDir, // toward the Sun, globe coordinates
+    clearTop: 0, clearBottom: 0, // the room the panels leave
+    portrait: false,
+    reducedMotion: reducedMotion,
+    fontsReady: false,
+    colors: C
+  };
+
   function applyCamera() {
     var lat = cam.lat * DEG;
-    var lon = (cam.lon + spin) * DEG;
+    var lon = (cam.lon + spin * spinShare()) * DEG;
+    var roll = cam.roll * DEG;
     var cl = Math.cos(lat), sl = Math.sin(lat), co = Math.cos(lon), so = Math.sin(lon);
+    var cr = Math.cos(roll), sr = Math.sin(roll);
+    var e = [-so, co, 0], n = [-sl * co, -sl * so, cl];
     // east, north, out: the columns of uBasis
-    basis[0] = -so; basis[1] = co; basis[2] = 0;
-    basis[3] = -sl * co; basis[4] = -sl * so; basis[5] = cl;
+    basis[0] = cr * e[0] + sr * n[0]; basis[1] = cr * e[1] + sr * n[1]; basis[2] = cr * e[2] + sr * n[2];
+    basis[3] = cr * n[0] - sr * e[0]; basis[4] = cr * n[1] - sr * e[1]; basis[5] = cr * n[2] - sr * e[2];
     basis[6] = cl * co; basis[7] = cl * so; basis[8] = sl;
     eye[0] = basis[6] * CAMERA_DIST;
     eye[1] = basis[7] * CAMERA_DIST;
@@ -1305,6 +1455,23 @@
     focalPx = radiusPx * Math.sqrt(CAMERA_DIST * CAMERA_DIST - 1);
     centerX = cam.cx * w;
     centerY = cam.cy * h;
+    detail = smooth(DETAIL_FROM, DETAIL_FULL, radiusPx);
+    shown = smooth(GLOBE_FROM, GLOBE_FULL, radiusPx);
+
+    scene.w = w; scene.h = h; scene.dpr = dpr;
+    scene.earthX = centerX; scene.earthY = centerY;
+    scene.pxPerRe = radiusPx;
+    scene.pxPerAu = radiusPx * AU_RE;
+    scene.earthAu = earthAu;
+    scene.tilt = cam.tilt;
+    scene.progress = progress;
+    scene.view = ids[Math.round(progress)];
+    scene.dim = cam.dim;
+    scene.sun = sunDir;
+    scene.clearTop = clearTop; scene.clearBottom = clearBottom;
+    scene.portrait = portrait();
+    scene.fontsReady = fontsReady;
+    scene.colors = C;
   }
 
   // Globe coordinates to CSS px, exactly as the shaders do it. Returns null when the
@@ -1327,6 +1494,7 @@
     var narrow = w < 700;
     dpr = Math.min(window.devicePixelRatio || 1, narrow ? DPR_CAP_NARROW : DPR_CAP);
     while (dpr > 1 && w * h * dpr * dpr > MAX_PIXELS) { dpr -= 0.25; }
+    scene.w = w; scene.h = h; scene.dpr = dpr;
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
     overlay.width = canvas.width;
@@ -1337,6 +1505,7 @@
     tops = sectionTops();
     readClearance();
     readScroll();
+    layers.forEach(function (l) { if (l.resize) { l.resize(scene); } });
   }
 
   /* ---------- State the rest of the page sets ---------- */
@@ -1409,8 +1578,6 @@
     gl.activeTexture(gl.TEXTURE0);
   }
 
-  var sunDir = [1, 0, 0];
-
   function render() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, canvas.width, canvas.height);
@@ -1432,6 +1599,8 @@
     gl.uniform1f(u.uSkyRad, Geo.horizonAngle(SKY_KM));
     gl.uniform1f(u.uLayer, layer);
     gl.uniform1f(u.uDim, cam.dim);
+    gl.uniform1f(u.uDetail, detail);
+    gl.uniform1f(u.uShow, shown);
     gl.uniform3fv(u.uInk, C.ink);
     gl.uniform3fv(u.uProb, C.prob);
     gl.uniform3fv(u.uSkyTop, C.skyTop);
@@ -1457,23 +1626,32 @@
     gl.bindVertexArray(emptyVao);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
 
+    // What surrounds the Earth from space: the layers, over the sky. Each leaves the
+    // GL state as it likes; what follows sets its own.
+    for (var i = 0; i < layers.length; i++) {
+      if (layers[i].ready && layers[i].draw) { layers[i].draw(scene); }
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.activeTexture(gl.TEXTURE0);
+
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-    if (mesh && lineVao) {
+    if (mesh && lineVao && detail > 0) {
       // 2. Coastlines.
       gl.useProgram(lineProg);
       setCamera(lineProg);
       u = lineProg.u;
       gl.uniform1f(u.uLinePx, LINE_PX * dpr);
       gl.uniform1f(u.uDim, cam.dim);
-      gl.uniform4f(u.uColor, C.ink[0], C.ink[1], C.ink[2], C.coastAlpha);
+      gl.uniform4f(u.uColor, C.ink[0], C.ink[1], C.ink[2], C.coastAlpha * detail);
       gl.bindVertexArray(lineVao);
       gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, lineCount);
     }
 
     // 3. The aurora, bloomed, added over everything.
-    if (auroraTarget) { drawAurora(); }
+    if (auroraTarget && radiusPx >= AURORA_MIN_PX) { drawAurora(); }
 
     gl.bindVertexArray(null);
   }
@@ -1614,14 +1792,26 @@
   }
 
   function drawOverlay() {
-    var key = [cam.lat, cam.lon, cam.cx, cam.cy, cam.size, cam.dim, spin, place.lat, place.lon, place.label, fontsReady,
+    var key = [cam.lat, cam.lon, cam.roll, cam.cx, cam.cy, cam.size, cam.dim, cam.tilt, spin, place.lat, place.lon, place.label, fontsReady,
       sunDir[0].toFixed(4), sunDir[1].toFixed(4), sunDir[2].toFixed(4)].join();
+    for (var li = 0; li < layers.length; li++) {
+      if (layers[li].ready && layers[li].overlayKey) { key += '|' + layers[li].overlayKey(scene); }
+    }
     if (key === overlayKey) { return; }
     overlayKey = key;
     octx.setTransform(1, 0, 0, 1, 0, 0);
     octx.clearRect(0, 0, overlay.width, overlay.height);
     octx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    var alpha = cam.dim;
+    for (li = 0; li < layers.length; li++) {
+      if (layers[li].ready && layers[li].overlay) {
+        octx.save();
+        layers[li].overlay(octx, scene);
+        octx.restore();
+      }
+    }
+    // The globe's own marks leave with its fine lines.
+    var alpha = cam.dim * detail;
+    if (alpha < 0.01) { return; }
     var ink = rgba(C.ink);
     var mark = rgba(C.place);
 
@@ -1769,15 +1959,20 @@
   var drawnViewTime = null;
 
   // Anything moving besides the shimmer: the camera, a drag or spin, a layer or data
-  // fade, or the slider being scrubbed or played.
+  // fade, the slider being scrubbed or played, or a layer with something in motion.
   function moving() {
     var M = window.AuroraModel;
-    return dragging || spinVel !== 0 || resetFrom !== null || layer !== layerTarget || dataMix < 1
-      || cam.lat !== target.lat || cam.lon !== target.lon || cam.cx !== target.cx
-      || cam.cy !== target.cy || cam.size !== target.size || cam.dim !== target.dim
+    if (dragging || spinVel !== 0 || resetFrom !== null || layer !== layerTarget || dataMix < 1
       || (M ? M.viewTime : null) !== drawnViewTime
       || (earthImage && earthReady < 1)
-      || (nameCanvas && nameReady < 1);
+      || (nameCanvas && nameReady < 1)) { return true; }
+    for (var k = 0; k < KEYS.length; k++) {
+      if (cam[KEYS[k]] !== target[KEYS[k]]) { return true; }
+    }
+    for (var i = 0; i < layers.length; i++) {
+      if (layers[i].ready && layers[i].moving && layers[i].moving(scene)) { return true; }
+    }
+    return false;
   }
 
   function tick(now) {
@@ -1800,12 +1995,16 @@
     var M = window.AuroraModel;
     drawnViewTime = M ? M.viewTime : null;
     if (M && M.viewTime !== null) {
-      sunDir = Geo.sun(new Date(M.viewTime)).dir;
+      sunFor(new Date(M.viewTime));
       sunAt = 0;
     } else if (now - sunAt > 30000 || !sunAt) {
-      sunDir = Geo.sun(new Date()).dir;
+      sunFor(new Date());
       sunAt = now;
     }
+    scene.time = drawnViewTime === null ? Date.now() : drawnViewTime;
+    scene.live = drawnViewTime === null;
+    scene.dt = dt;
+    scene.clock = clockS;
     stepModel();
 
     if (layer !== layerTarget) {
@@ -1823,6 +2022,7 @@
     }
 
     if (readClearance()) { readScroll(); }
+    aim();
     stepCamera(dt);
     applyCamera();
     render();
@@ -1832,6 +2032,13 @@
       readyMarked = true;
       document.documentElement.classList.add('is-ready');
     }
+  }
+
+  // The Sun, and with it the ecliptic and the Earth's place in its orbit, at a time.
+  function sunFor(date) {
+    sunDir = Geo.sun(date).dir;
+    eclPole = Geo.eclipticPole(date);
+    earthAu = Geo.sunDistance(date);
   }
 
   function start() {
@@ -1857,6 +2064,7 @@
   function onDown(e) {
     if (e.button !== undefined && e.button !== 0) { return; }
     if (interactive(e.target)) { return; }
+    if (spinShare() < 0.5) { return; } // from space the view is set by the Sun, not by hand
     dragId = e.pointerId;
     dragX = e.clientX;
     dragY = e.clientY;
@@ -1913,6 +2121,7 @@
   function onKey(e) {
     if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) { return; }
     if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    if (spinShare() < 0.5) { return; }
     if (e.key === 'r' || e.key === 'R') { resetSpin(); }
     else if (e.key === 'ArrowLeft') { spinVel = 0; resetFrom = null; spin = wrap180(spin - 10); }
     else if (e.key === 'ArrowRight') { spinVel = 0; resetFrom = null; spin = wrap180(spin + 10); }
@@ -1930,10 +2139,19 @@
       return;
     }
 
+    // The page opens on the northern view, with the views from space above it to scroll
+    // up into. A link to another view, or a reload part-way down, is left where it is.
+    var nav = window.performance && performance.getEntriesByType ? performance.getEntriesByType('navigation')[0] : null;
+    if (NORTH > 0 && !window.location.hash && !(nav && (nav.type === 'reload' || nav.type === 'back_forward'))) {
+      window.scrollTo(0, sections[NORTH].offsetTop);
+    }
+
+    sunFor(new Date());
     resize();
     // Start framed for this screen: the camera eases between views, not in from nowhere.
-    cam.lat = target.lat; cam.lon = target.lon; cam.cx = target.cx;
-    cam.cy = target.cy; cam.size = target.size; cam.dim = target.dim;
+    aim();
+    KEYS.forEach(function (key) { cam[key] = target[key]; });
+    cam.size = Math.exp(cam.ls);
     window.addEventListener('resize', resize);
     window.addEventListener('scroll', readScroll, { passive: true });
     if (views) {
@@ -1952,6 +2170,7 @@
     canvas.addEventListener('webglcontextrestored', function () {
       try {
         initGL();
+        layers.forEach(initLayer);
         start();
       } catch (err) {
         fail();
@@ -1969,7 +2188,7 @@
     });
 
     if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(function () { fontsReady = true; setNames(); });
+      document.fonts.ready.then(function () { fontsReady = true; overlayKey = ''; setNames(); });
     } else {
       fontsReady = true;
       setNames();
@@ -2004,13 +2223,58 @@
     return 'rgb(' + rgb.join(',') + ')';
   }
 
+  /*
+   * Layers: what is drawn around the Earth from space (aurora-wind-view.js). A layer is
+   * an object with any of
+   *
+   *   init(gl, kit)        build programs and textures; called again if the context is
+   *                        lost and restored. kit has program(vs, fs), HEADER and
+   *                        FULLSCREEN_VS, and the canvas.
+   *   resize(scene)        the canvas changed size.
+   *   draw(scene)          once a frame, after the sky and the Earth and before the
+   *                        coasts and the aurora, into the default framebuffer.
+   *   overlay(ctx, scene)  labels, on the 2D canvas, in CSS px. Redrawn only when the
+   *                        camera or overlayKey(scene) changes.
+   *   moving(scene)        true while it has something in motion, to hold the frame rate.
+   *
+   * A layer that throws in init() is dropped; the globe carries on without it.
+   */
+  var layers = [];
+  var kit = { program: program, HEADER: HEADER, FULLSCREEN_VS: FULLSCREEN_VS, canvas: canvas };
+
+  function initLayer(l) {
+    l.ready = false;
+    if (failed || !gl || gl.isContextLost() || !sphereProg) { return; }
+    try {
+      if (l.init) { l.init(gl, kit); }
+      l.ready = true;
+      if (l.resize) { l.resize(scene); }
+    } catch (err) {
+      if (window.console) { console.error('aurora-globe: layer', err); }
+    }
+  }
+
+  function addLayer(l) {
+    layers.push(l);
+    initLayer(l);
+    overlayKey = '';
+  }
+
   window.AuroraGlobe = {
     setLayer: setLayer,
     setPlace: setPlace,
     setGrid: setGrid,
     swatch: swatch,
     gain: GAIN,
-    LIFT: AURORA_LIFT
+    LIFT: AURORA_LIFT,
+    addLayer: addLayer,
+    scene: scene,
+    AU_RE: AU_RE,
+    // Scroll to a view by its section's id.
+    go: function (id) {
+      var k = ids.indexOf(id);
+      if (k >= 0) { window.scrollTo({ top: sections[k].offsetTop, behavior: reducedMotion ? 'auto' : 'smooth' }); }
+    }
   };
 
   boot();
