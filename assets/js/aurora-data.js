@@ -101,7 +101,7 @@
     kpNow: null, // { kp, time }
     kpForecast: null, // [{ time, kp, kind: 'observed'|'estimated'|'predicted', scale }], past week and 3 days ahead
     mag: null, // [{ time, bt, bz }] oldest first, active spacecraft only
-    wind: null, // [{ time, speed, density }]
+    wind: null, // [{ time, speed, density, temp }]
     scales: null,
     alerts: null,
     magie: null,
@@ -192,7 +192,8 @@
   function parseWind(rows) {
     return parseRtsw(rows, function (r) {
       if (r.proton_speed == null) { return null; }
-      return { speed: +r.proton_speed, density: r.proton_density == null ? null : +r.proton_density };
+      return { speed: +r.proton_speed, density: r.proton_density == null ? null : +r.proton_density,
+        temp: r.proton_temperature == null ? null : +r.proton_temperature };
     });
   }
 
