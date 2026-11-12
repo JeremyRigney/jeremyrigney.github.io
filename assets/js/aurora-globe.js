@@ -166,7 +166,10 @@
   // a second), the camera keeps to these paces, in views a second: through the rise,
   // slow enough to watch the Moon's orbit open and L1 swing under the Earth; through
   // the zoom to the Sun a little quicker; elsewhere about as fast as a snap.
-  var PACE_RISE = 0.1, PACE_ZOOM = 0.5, PACE = 4;
+  // While L1 (L1_RE sunward of the Earth) is on screen, and drawn (at an Earth radius
+  // of at least L1_MIN_PX), the zoom slows to PACE_L1 so that it can be seen.
+  var PACE_RISE = 0.1, PACE_L1 = 0.04, PACE_ZOOM = 0.5, PACE = 4;
+  var L1_RE = 236, L1_MIN_PX = 0.3;
   var PACE_EASE = 4; // per second: how it slows into a view, and gathers speed
   var ZOOM_EASE = 2.2;
 
@@ -1476,7 +1479,12 @@
     var s = ids.indexOf('sun');
     if (s < 0 || at < s || at > s + 1 || ids[s + 1] !== 'wind') { return PACE; }
     var e = easeInOut(at - s);
-    return e > TILT_SPAN[0] - 0.05 && e < TILT_SPAN[1] ? PACE_RISE : PACE_ZOOM;
+    if (e > TILT_SPAN[0] - 0.05 && e < TILT_SPAN[1]) { return PACE_RISE; }
+    // L1 by the framing the camera is heading for (aim's, a frame behind): on screen
+    // to the Earth's left, and big enough to draw. The camera itself trails it.
+    var px = Math.exp(target.ls) * frame();
+    if (px >= L1_MIN_PX && target.cx * w - L1_RE * px > 24) { return PACE_L1; }
+    return PACE_ZOOM;
   }
 
   // shownAt after dt: toward progress, gathering speed and slowing into it, never
