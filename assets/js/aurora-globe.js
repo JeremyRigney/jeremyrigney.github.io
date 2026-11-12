@@ -56,6 +56,10 @@
   var FOLLOW = 6.5; // per second: how quickly the camera eases to the scroll's framing
   var SPIN_DECAY = 2.4; // per second, once a drag is let go
   var RESET_MS = 900;
+  // A jump to another view glides there: this long, plus this much for each view it
+  // passes (the Sun to the wind counting extra, for the three decades of zoom), capped.
+  var GLIDE_MS = [450, 650, 3000];
+  var GLIDE_SUN_WIND = 1.6;
 
   var LINE_PX = 1; // coastlines, CSS px
 
@@ -1362,6 +1366,94 @@
     }
   }
 
+  /*
+   * The glide to a view picked from the index or a chip. A plain jump left the camera to
+   * catch up in half a second, all three decades of zoom at once; the browser's own
+   * smooth scroll is quicker still over four screens, and eases in and out of every view
+   * on the way, since aim() eases each step between views. So the glide scrolls itself,
+   * with snapping off, choosing each frame the scroll position at which aim()'s eased
+   * position is where one ease over the whole journey says it should be: the camera
+   * passes through the views between without stopping. Any wheel, touch or key ends it.
+   */
+  var glide = null;
+
+  // The inverse of easeInOut on [0, 1], by bisection: it is monotonic there.
+  function uneaseInOut(e) {
+    var lo = 0, hi = 1;
+    for (var i = 0; i < 24; i++) {
+      var mid = (lo + hi) / 2;
+      if (easeInOut(mid) < e) { lo = mid; } else { hi = mid; }
+    }
+    return (lo + hi) / 2;
+  }
+
+  // The scroll position at which the eased position among the views is e.
+  function scrollForEased(e) {
+    var i = Math.max(0, Math.min(tops.length - 1, Math.floor(e)));
+    if (i >= tops.length - 1) { return tops[tops.length - 1]; }
+    return tops[i] + uneaseInOut(e - i) * (tops[i + 1] - tops[i]);
+  }
+
+  // Where the camera now is, as an eased position among the views.
+  function easedNow() {
+    var i = Math.min(ids.length - 1, Math.floor(progress));
+    return i + easeInOut(progress - i);
+  }
+
+  function endGlide() {
+    if (!glide) { return; }
+    window.cancelAnimationFrame(glide.raf);
+    glide = null;
+    document.documentElement.style.scrollSnapType = '';
+    ['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach(function (t) {
+      window.removeEventListener(t, endGlide, true);
+    });
+  }
+
+  function glideTo(k) {
+    endGlide();
+    tops = sectionTops();
+    readScroll();
+    var from = easedNow(), to = k;
+    if (reducedMotion || Math.abs(to - from) < 0.01) {
+      window.scrollTo(0, tops[k]);
+      return;
+    }
+    var lo = Math.min(from, to), hi = Math.max(from, to), weight = hi - lo;
+    var sw = ids.indexOf('sun');
+    if (sw >= 0 && ids[sw + 1] === 'wind') {
+      // The part of the journey that crosses between the Sun and the wind counts extra.
+      weight += (GLIDE_SUN_WIND - 1) * Math.max(0, Math.min(hi, sw + 1) - Math.max(lo, sw));
+    }
+    var ms = Math.min(GLIDE_MS[2], GLIDE_MS[0] + GLIDE_MS[1] * weight);
+    var t0 = performance.now();
+    document.documentElement.style.scrollSnapType = 'none';
+    glide = { raf: 0 };
+    ['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach(function (t) {
+      window.addEventListener(t, endGlide, true);
+    });
+    (function step(now) {
+      if (!glide) { return; }
+      var u = Math.min(1, (now - t0) / ms);
+      // Ease in and out over the whole journey (smootherstep: gentler starts than aim's).
+      var g = u * u * u * (u * (u * 6 - 15) + 10);
+      window.scrollTo(0, u < 1 ? scrollForEased(from + (to - from) * g) : tops[k]);
+      if (u < 1) { glide.raf = window.requestAnimationFrame(step); } else { endGlide(); }
+    })(t0);
+  }
+
+  // The index and any in-page link to a view glide there, and keep the link's hash.
+  function onViewLink(e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) { return; }
+    var a = e.target.closest && e.target.closest('a[href^="#"]');
+    if (!a) { return; }
+    var id = a.getAttribute('href').slice(1), k = ids.indexOf(id);
+    if (k < 0) { return; }
+    e.preventDefault();
+    if (window.location.hash !== '#' + id && window.history && history.pushState) { history.pushState(null, '', '#' + id); }
+    glideTo(k);
+  }
+
   // The framing that position asks for. Worked out every frame, not only on a scroll:
   // the views from space follow the Sun, which the time slider can move.
   function aim() {
@@ -2285,6 +2377,7 @@
       views.addEventListener('dblclick', function (e) { if (!interactive(e.target)) { resetSpin(); } });
     }
     window.addEventListener('keydown', onKey);
+    document.addEventListener('click', onViewLink);
 
     canvas.addEventListener('webglcontextlost', function (e) {
       e.preventDefault();
@@ -2401,7 +2494,7 @@
     // Scroll to a view by its section's id.
     go: function (id) {
       var k = ids.indexOf(id);
-      if (k >= 0) { window.scrollTo({ top: sections[k].offsetTop, behavior: reducedMotion ? 'auto' : 'smooth' }); }
+      if (k >= 0) { glideTo(k); }
     }
   };
 
