@@ -22,8 +22,8 @@
  * place on screen and a size, eased between five framings as the page scrolls. From
  * the top:
  *
- *   sun      the whole inner solar system, seen from north of the ecliptic, the Earth
- *            a dot 1 AU right of the Sun;
+ *   sun      the inner solar system from north of the ecliptic, filling the screen:
+ *            the Sun left of centre, the Earth a dot 1 AU to its right;
  *   wind     the Earth about 40 px across, seen from its dusk side with the ecliptic's
  *            north up, so the Sun is off-screen to the left and its wind blows right;
  *   north    the northern half rising from the bottom with Ireland in frame (where
@@ -136,8 +136,15 @@
   // The wind view shows this many Earth radii across a landscape screen (or down it,
   // whichever binds), and fewer on a portrait one, where the tail runs off the side.
   var WIND_SPAN = 62, WIND_SPAN_TALL = 44, WIND_SPAN_PORTRAIT = 34;
-  // The sun view fits the model's disc, 1.7 AU in radius, with a margin.
-  var SUN_DISC_AU = 1.76;
+  // The sun view fills the screen with the model. The Sun stands left of centre and the
+  // Earth right of it, at these fractions of the width, so the wind crosses the screen
+  // the way it does in the wind view; that sets the scale. On a short, wide window the
+  // scale is raised until SUN_REACH_AU, which is inside the model, still covers the room
+  // the panels leave above and below; and the Earth keeps SUN_EARTH_ROOM px for its name.
+  var SUN_X = 0.4, SUN_EARTH_X = 0.6;
+  var SUN_X_PORTRAIT = 0.27, SUN_EARTH_X_PORTRAIT = 0.77;
+  var SUN_REACH_AU = 1.45;
+  var SUN_EARTH_ROOM = 96;
 
   // Leaving the wind view for the sun, the zoom runs fast at first and settles: most of
   // the scroll is spent on the last decade, where the Sun comes into frame and the
@@ -1240,36 +1247,17 @@
   // of the dock, all fixed. Read every frame (a few rects), since the capsule can grow
   // as its text arrives; when they move the views are framed again.
   var clearTop = 0, clearBottom = 0;
-  // Where the capsule parts into a pill each side: how far in from the middle each
-  // reaches, and their foot. Zero where there is one capsule right across.
-  var pillReach = 0, pillFoot = 0;
 
   function readClearance() {
     var top = document.querySelector('.topdock');
     var controls = document.querySelector('.header-controls');
     var dock = document.querySelector('.dock');
-    var parted = !(top && top.getClientRects().length);
-    var t = !parted ? top.getBoundingClientRect().bottom
+    var t = top && top.getClientRects().length ? top.getBoundingClientRect().bottom
       : controls ? controls.getBoundingClientRect().bottom : 0;
     var b = dock ? dock.getBoundingClientRect().top : h;
-    var reach = 0, foot = 0;
-    if (parted) {
-      var pills = document.querySelectorAll('.top-time, .top-seg');
-      for (var i = 0; i < pills.length; i++) {
-        if (!pills[i].getClientRects().length) { continue; }
-        var r = pills[i].getBoundingClientRect();
-        if (r.width <= 0 || getComputedStyle(pills[i]).visibility === 'hidden') { continue; }
-        // The gap from the middle of the screen to this pill's near end.
-        var gap = r.left > w / 2 ? r.left - w / 2 : w / 2 - r.right;
-        reach = reach ? Math.min(reach, gap) : gap;
-        foot = Math.max(foot, r.bottom);
-      }
-    }
-    if (t === clearTop && b === clearBottom && reach === pillReach && foot === pillFoot) { return false; }
+    if (t === clearTop && b === clearBottom) { return false; }
     clearTop = t;
     clearBottom = b;
-    pillReach = reach;
-    pillFoot = foot;
     return true;
   }
 
@@ -1294,8 +1282,8 @@
   // limb sits below the top capsule by the name's height, in the south the disc's foot
   // sits above the dock by the depth of the name hanging under it. The views from space
   // are sized to the screen: the wind view to a span of Earth radii with the Earth left
-  // of centre and its tail running right, the sun view to the model's whole disc with
-  // the Sun in the middle of the room the panels leave. lat/lon, and the drivers'
+  // of centre and its tail running right, the sun view to put the Sun and the Earth
+  // either side of the middle with the model all round them. lat/lon, and the drivers'
   // framing, are VIEWS' own.
   var PORTRAIT_SIZE = 0.95;
   var NAME_ROOM = 12; // px between the panels and the name
@@ -1313,22 +1301,14 @@
     }
     if (id === 'sun') {
       aim = spaceAim();
-      // The largest disc that stands on the room above the dock, centred. Under one
-      // capsule it keeps below that. Where the capsule parts into pills it may rise
-      // between them, as far as the switches' row, so long as it clears their corners.
-      var bottom = (clearBottom > clearTop ? clearBottom : h) - 16;
-      var top = clearTop + 12;
-      var rad = (bottom - top) / 2;
-      if (pillReach > 0) {
-        var half = Math.max(0, pillReach - 10), foot = pillFoot + 10;
-        // Standing on the dock with its centre at y: clear of a corner at (half, foot)
-        // once y is this far down.
-        var y = (bottom * bottom - half * half - foot * foot) / (2 * (bottom - foot));
-        rad = bottom - Math.max(y, (top + bottom) / 2);
-      }
-      rad = Math.max(40, Math.min(rad, w * 0.47));
-      var pxAu = rad / SUN_DISC_AU;
-      return { lat: aim.lat, lon: aim.lon, roll: aim.roll, cx: (w / 2 + earthAu * pxAu) / w, cy: (bottom - rad) / h,
+      var tall = portrait();
+      var sunX = w * (tall ? SUN_X_PORTRAIT : SUN_X);
+      var pxAu = (w * (tall ? SUN_EARTH_X_PORTRAIT : SUN_EARTH_X) - sunX) / earthAu;
+      // The room the panels leave, top to bottom: the Sun stands half way down it.
+      var bottom = clearBottom > clearTop ? clearBottom : h;
+      pxAu = Math.max(pxAu, (bottom - clearTop) / 2 / SUN_REACH_AU);
+      pxAu = Math.max(40, Math.min(pxAu, (w - SUN_EARTH_ROOM - sunX) / earthAu));
+      return { lat: aim.lat, lon: aim.lon, roll: aim.roll, cx: (sunX + earthAu * pxAu) / w, cy: (clearTop + bottom) / 2 / h,
         size: pxAu / AU_RE / frame(), dim: v.dim, tilt: 1 };
     }
     if (id === 'drivers') {

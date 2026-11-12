@@ -75,13 +75,16 @@
   /* The solar wind's speed, at 300, 400, 500, 600, 700 and 800 km/s
      (aurora-wind-view.js blends between them): one hue, darker for slow, near white
      for fast, and the one colour family nothing else here uses. Lightness rises
-     evenly and the slow end still clears the ground at 2.2:1. */
-  --wind-1: #244a96;
-  --wind-2: #2a66c2;
-  --wind-3: #3f86e0;
-  --wind-4: #6faaf0;
-  --wind-5: #a9cff8;
-  --wind-6: #e9f3fd;
+     evenly. The slow end sits close to the ground (1.25:1) on purpose: the field
+     fills the screen, so there is no edge for it to be told from, and slow wind is
+     meant to recede so that a fast stream stands out of the dark. An earlier ramp
+     that cleared the ground at 2.2:1 made the whole screen one bright blue. */
+  --wind-1: #16264d;
+  --wind-2: #1e418a;
+  --wind-3: #2c68cc;
+  --wind-4: #5b9aec;
+  --wind-5: #a5ccf8;
+  --wind-6: #eaf4fe;
 
   /* The globe (aurora-globe.js): the space behind it, top to bottom of the
      screen, the haze above the limb, the earth by night and in full sun, its
