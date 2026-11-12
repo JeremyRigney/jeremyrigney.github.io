@@ -819,8 +819,16 @@ body:is([data-view="south"], [data-view="wind"], [data-view="sun"]) .top-time .c
   margin: 0 0 var(--s-2);
 }
 
+.top-more .top-figures + .top-figures {
+  margin-top: var(--s-4);
+}
+
 .top-more .top-figures dt {
   font-size: var(--fs-sm);
+}
+
+.top-figures .unit sub {
+  font-size: 0.8em;
 }
 
 .top-more .top-figures dd {
@@ -861,8 +869,11 @@ body:is([data-view="south"], [data-view="wind"], [data-view="sun"]) .top-time .c
   }
 }
 
-/* North shows the place, south the southern oval, the drivers neither. */
-.top-oval {
+/* North shows the place, south the southern oval, each view from space its own
+   wind, the drivers none of them. */
+.top-oval,
+.top-wind,
+.top-sun {
   display: none;
 }
 
@@ -870,8 +881,27 @@ body:is([data-view="south"], [data-view="wind"], [data-view="sun"]) .top-place {
   display: none;
 }
 
-body[data-view="south"] .top-oval {
+body[data-view="south"] .top-oval,
+body[data-view="wind"] .top-wind,
+body[data-view="sun"] .top-sun {
   display: flex;
+}
+
+/* The layer switch is the globe's: from space there is nothing for it to switch. It
+   keeps its place, so the views' switch beside it doesn't move. */
+.layer-toggle {
+  transition: opacity 400ms var(--ease), visibility 400ms;
+}
+
+body:is([data-view="sun"], [data-view="wind"]) .layer-toggle {
+  visibility: hidden;
+  opacity: 0;
+}
+
+/* It stands before the views' switch, so that one keeps the row's end whether or not
+   this one is showing. */
+.layer-toggle {
+  order: -1;
 }
 
 .topdock,
@@ -906,9 +936,11 @@ body[data-view="drivers"] :is(.topdock, .top-time, .top-seg) {
     align-self: center;
   }
 
+  /* Five views and the layer switch are wider than the pill under them, so the row
+     keeps its right edge and runs on to the left, over the open middle. */
   .header-controls {
-    justify-self: stretch;
-    justify-content: space-between;
+    grid-column: 2 / -1;
+    justify-self: end;
   }
 
   .topdock {
@@ -1216,6 +1248,44 @@ body[data-view="drivers"] :is(.topdock, .top-time, .top-seg) {
 }
 
 .place-status:empty {
+  display: none;
+}
+
+/* The way up, at the head of the two views with something above them: on a wide
+   screen in the open middle of the switches' row, otherwise under the capsule. */
+.up-hint {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + var(--s-2));
+  translate: -50% 0;
+  background: var(--card);
+  text-decoration: none;
+  color: var(--ink-soft);
+}
+
+.up-hint:hover {
+  color: var(--ink);
+}
+
+.up-hint::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-top: 0.2rem;
+  border-top: 1.5px solid currentColor;
+  border-left: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+
+@media (min-width: 1241px) {
+  .up-hint {
+    top: calc(var(--s-3) + env(safe-area-inset-top, 0px) + 0.3125rem);
+  }
+}
+
+/* Without the stage there is nothing to see from space. */
+.no-webgl :is(.view-sun, .view-wind, .up-hint),
+.no-webgl .view-index a:is([data-view="sun"], [data-view="wind"]) {
   display: none;
 }
 
@@ -1847,6 +1917,44 @@ body[data-view="drivers"] .dock > * {
 .legend-ticks-steps span {
   position: static;
 }
+
+/* From space the legend is the wind's speed: the ramp the streaks and the model's
+   field are drawn in, a colour on each hundred km/s and blended between. */
+.legend-wind {
+  display: none;
+}
+
+body:is([data-view="sun"], [data-view="wind"]) .legend-wind {
+  display: block;
+}
+
+body:is([data-view="sun"], [data-view="wind"]) .legend > :is(.legend-seen, .legend-prob, .legend-model) {
+  display: none;
+}
+
+.legend-bar-wind {
+  height: 8px;
+  margin-top: var(--s-2);
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--wind-1) 0%, var(--wind-2) 20%, var(--wind-3) 40%,
+    var(--wind-4) 60%, var(--wind-5) 80%, var(--wind-6) 100%);
+}
+
+/* Each number stands on its colour: the ends flush, the rest centred on their fifths. */
+.legend-ticks-wind {
+  display: flex;
+  justify-content: space-between;
+}
+
+.legend-ticks-wind span {
+  position: static;
+  display: flex;
+  justify-content: center;
+  width: 0;
+}
+
+.legend-ticks-wind span:first-child { justify-content: flex-start; }
+.legend-ticks-wind span:last-child { justify-content: flex-end; }
 
 /* Shown whenever the globe is on the model rather than NOAA's live grid. */
 .legend-model {

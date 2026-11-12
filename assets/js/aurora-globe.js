@@ -137,7 +137,7 @@
   // whichever binds), and fewer on a portrait one, where the tail runs off the side.
   var WIND_SPAN = 62, WIND_SPAN_TALL = 44, WIND_SPAN_PORTRAIT = 34;
   // The sun view fits the model's disc, 1.7 AU in radius, with a margin.
-  var SUN_SPAN_AU = 3.56;
+  var SUN_DISC_AU = 1.76;
 
   // Leaving the wind view for the sun, the zoom runs fast at first and settles: most of
   // the scroll is spent on the last decade, where the Sun comes into frame and the
@@ -1236,17 +1236,36 @@
   // of the dock, all fixed. Read every frame (a few rects), since the capsule can grow
   // as its text arrives; when they move the views are framed again.
   var clearTop = 0, clearBottom = 0;
+  // Where the capsule parts into a pill each side: how far in from the middle each
+  // reaches, and their foot. Zero where there is one capsule right across.
+  var pillReach = 0, pillFoot = 0;
 
   function readClearance() {
     var top = document.querySelector('.topdock');
     var controls = document.querySelector('.header-controls');
     var dock = document.querySelector('.dock');
-    var t = top && top.getClientRects().length ? top.getBoundingClientRect().bottom
+    var parted = !(top && top.getClientRects().length);
+    var t = !parted ? top.getBoundingClientRect().bottom
       : controls ? controls.getBoundingClientRect().bottom : 0;
     var b = dock ? dock.getBoundingClientRect().top : h;
-    if (t === clearTop && b === clearBottom) { return false; }
+    var reach = 0, foot = 0;
+    if (parted) {
+      var pills = document.querySelectorAll('.top-time, .top-seg');
+      for (var i = 0; i < pills.length; i++) {
+        if (!pills[i].getClientRects().length) { continue; }
+        var r = pills[i].getBoundingClientRect();
+        if (r.width <= 0 || getComputedStyle(pills[i]).visibility === 'hidden') { continue; }
+        // The gap from the middle of the screen to this pill's near end.
+        var gap = r.left > w / 2 ? r.left - w / 2 : w / 2 - r.right;
+        reach = reach ? Math.min(reach, gap) : gap;
+        foot = Math.max(foot, r.bottom);
+      }
+    }
+    if (t === clearTop && b === clearBottom && reach === pillReach && foot === pillFoot) { return false; }
     clearTop = t;
     clearBottom = b;
+    pillReach = reach;
+    pillFoot = foot;
     return true;
   }
 
@@ -1290,13 +1309,22 @@
     }
     if (id === 'sun') {
       aim = spaceAim();
-      // On a wide screen the capsule parts into pills at the sides and the disc may
-      // rise between them; otherwise it keeps below the capsule.
-      var top = w > 1240 ? 18 : clearTop + 10;
-      var bottom = (clearBottom > clearTop ? clearBottom : h) - 18;
-      var pxAu = Math.max(40, Math.min(w * 0.94, bottom - top)) / SUN_SPAN_AU;
-      mid = (top + bottom) / 2;
-      return { lat: aim.lat, lon: aim.lon, roll: aim.roll, cx: (w / 2 + earthAu * pxAu) / w, cy: mid / h,
+      // The largest disc that stands on the room above the dock, centred. Under one
+      // capsule it keeps below that. Where the capsule parts into pills it may rise
+      // between them, as far as the switches' row, so long as it clears their corners.
+      var bottom = (clearBottom > clearTop ? clearBottom : h) - 16;
+      var top = clearTop + 12;
+      var rad = (bottom - top) / 2;
+      if (pillReach > 0) {
+        var half = Math.max(0, pillReach - 10), foot = pillFoot + 10;
+        // Standing on the dock with its centre at y: clear of a corner at (half, foot)
+        // once y is this far down.
+        var y = (bottom * bottom - half * half - foot * foot) / (2 * (bottom - foot));
+        rad = bottom - Math.max(y, (top + bottom) / 2);
+      }
+      rad = Math.max(40, Math.min(rad, w * 0.47));
+      var pxAu = rad / SUN_DISC_AU;
+      return { lat: aim.lat, lon: aim.lon, roll: aim.roll, cx: (w / 2 + earthAu * pxAu) / w, cy: (bottom - rad) / h,
         size: pxAu / AU_RE / frame(), dim: v.dim, tilt: 1 };
     }
     if (id === 'drivers') {
@@ -2144,7 +2172,8 @@
     // The page opens on the northern view, with the views from space above it to scroll
     // up into. A link to another view, or a reload part-way down, is left where it is.
     var nav = window.performance && performance.getEntriesByType ? performance.getEntriesByType('navigation')[0] : null;
-    if (NORTH > 0 && !window.location.hash && !(nav && (nav.type === 'reload' || nav.type === 'back_forward'))) {
+    var named = ids.indexOf(window.location.hash.slice(1)) >= 0; // #probability is the layer's, not a view
+    if (NORTH > 0 && !named && !(nav && (nav.type === 'reload' || nav.type === 'back_forward'))) {
       window.scrollTo(0, sections[NORTH].offsetTop);
     }
 
@@ -2272,6 +2301,11 @@
     addLayer: addLayer,
     scene: scene,
     AU_RE: AU_RE,
+    // An Earth radius in CSS px once the camera has settled on a view.
+    pxPerReAt: function (id) {
+      var k = ids.indexOf(id);
+      return k < 0 ? 0 : viewAt(k).size * frame();
+    },
     // Scroll to a view by its section's id.
     go: function (id) {
       var k = ids.indexOf(id);
