@@ -556,9 +556,11 @@
   // The model's streaks: a (degrees of longitude), r (AU).
   var helio = [];
 
+  // One starts at the inner boundary, a little way in so that they don't leave it in
+  // ranks, or, to fill the disc at once, anywhere.
   function spawnHelio(p, rIn, rOut, anywhere) {
     p.a = Math.random() * 360 - 180;
-    p.r = anywhere ? rIn + Math.random() * (rOut - rIn) : rIn;
+    p.r = anywhere ? rIn + Math.random() * (rOut - rIn) : rIn + Math.random() * 0.012;
     p.age = anywhere ? 1 : 0;
     return p;
   }
@@ -723,6 +725,12 @@
     label(ctx, scene, text, x, y, a, weight);
   }
 
+  // Where a boundary is on screen at an angle from the Sun-Earth line.
+  function onCurve(scene, radius, deg) {
+    var t = deg * DEG, r = radius(shape, t);
+    return { x: scene.earthX - r * Math.cos(t) * scene.pxPerRe, y: scene.earthY - r * Math.sin(t) * scene.pxPerRe };
+  }
+
   // A name set along a boundary, as the globe sets DAY and NIGHT along the terminator.
   function alongCurve(ctx, scene, text, radius, deg, a) {
     var t = deg * DEG, e = 0.5 * DEG;
@@ -746,18 +754,31 @@
   function overlayMag(ctx, scene) {
     if (labelA < 0.03 || !scene.fontsReady) { return; }
     var a = labelA;
-    // South of the Sun-Earth line, where the panels leave them room.
-    var deg = scene.portrait ? -72 : -46;
-    alongCurve(ctx, scene, 'BOW SHOCK', Wind.bsR, deg, 0.85 * a);
-    alongCurve(ctx, scene, 'MAGNETOPAUSE', Wind.mpR, deg, 0.85 * a);
-
     // In the corner by the dock: ten Earth radii, since this view is to scale, and
     // over it which way the Sun is.
-    ctx.textBaseline = 'middle';
-    ctx.textAlign = 'left';
     var len = 10 * scene.pxPerRe;
     var bx = 18.5, by = Math.round((scene.clearBottom > 0 ? scene.clearBottom : scene.h) - 20) + 0.5;
     var y = by - 22;
+
+    // The boundaries' names go where there is room for both: south of the Sun-Earth
+    // line for choice, nearer to it as the screen shortens, clear of the panels and of
+    // that corner. The first angle that fits is taken; failing all, the last.
+    var angles = scene.portrait ? [-72, -62, -52, -42, 72, 62] : [-46, -38, -30, -22, 46, 38, 30];
+    var top = scene.clearTop + 34, foot = y - 34, side = bx + len + 150;
+    var deg = angles[angles.length - 1];
+    for (var i = 0; i < angles.length; i++) {
+      var p1 = onCurve(scene, Wind.bsR, angles[i]), p2 = onCurve(scene, Wind.mpR, angles[i]);
+      var fits = [p1, p2].every(function (p) {
+        return p.x > 56 && p.x < scene.w - 56 && p.y > top && p.y < scene.h - 30
+          && (p.y < foot || p.x > side) && p.y < (scene.clearBottom > 0 ? scene.clearBottom : scene.h) - 30;
+      });
+      if (fits) { deg = angles[i]; break; }
+    }
+    alongCurve(ctx, scene, 'BOW SHOCK', Wind.bsR, deg, 0.85 * a);
+    alongCurve(ctx, scene, 'MAGNETOPAUSE', Wind.mpR, deg, 0.85 * a);
+
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
     function rules(width, colour) {
       ctx.lineWidth = width;
       ctx.strokeStyle = colour;
@@ -888,14 +909,11 @@
 
   Globe.addLayer({ init: init, draw: draw, overlay: overlay, overlayKey: overlayKey, moving: moving });
 
+  // What the page's panels repeat about how this is drawn (aurora-hud.js).
   window.AuroraWindView = {
     STOPS: STOPS,
-    // How many times faster than life the wind's streaks run, at a given scale.
-    speedup: function (pxPerRe) { return NEAR_PX_PER_KMS / pxPerRe * Geo.EARTH_KM; },
     HELIO_HOURS_PER_S: HELIO_HOURS_PER_S,
-    get up() { return up; },
-    get weights() { return { mag: magA, labels: labelA, near: nearA, l1: l1A, helio: helioA, helioStreaks: helioStreakA }; },
-    get streaks() { return { near: near, drawn: nearBuf ? nearBuf.count : 0, helio: helioBuf ? helioBuf.count : 0 }; },
-    get shape() { return shape; }
+    // How many times faster than life the wind's streaks run, at a given scale.
+    speedup: function (pxPerRe) { return NEAR_PX_PER_KMS / pxPerRe * Geo.EARTH_KM; }
   };
 })();

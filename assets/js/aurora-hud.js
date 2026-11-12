@@ -485,7 +485,9 @@
     } else if (o.trend === 'easing') {
       line = 'Easing to ' + Math.round(o.low.speed) + ' km/s by ' + when(new Date(o.low.time)) + '.';
     } else {
-      line = 'Steady near ' + Math.round(o.now) + ' km/s for three days.';
+      // As far ahead as the run goes, which near its end is less than three days.
+      var span = o.hours >= 66 ? 'for three days' : o.hours >= 40 ? 'for two days' : o.hours >= 18 ? 'for a day' : 'to the end of this run';
+      line = 'Steady near ' + Math.round(o.now) + ' km/s ' + span + '.';
     }
     return at ? 'From ' + when(at) + ': ' + lowerFirst(line) : line;
   }

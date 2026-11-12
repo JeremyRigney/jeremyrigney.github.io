@@ -115,22 +115,14 @@
     return { r0: r0, alpha: alpha, bs0: r0 * off, bsAlpha: alpha + BS_FLARE, pd: pd, mach: m, bz: bz };
   }
 
-  // The magnetopause's distance at angle t (radians) from the Sun-Earth line, and how
-  // fast that grows with t. Even in t; unbounded straight down the tail.
+  // The magnetopause's distance at angle t (radians) from the Sun-Earth line, and the
+  // bow shock's. Even in t; unbounded straight down the tail.
   function mpR(b, t) {
     return b.r0 * Math.pow(2 / (1 + Math.cos(t)), b.alpha);
   }
 
-  function mpDr(b, t) {
-    return mpR(b, t) * b.alpha * Math.sin(t) / (1 + Math.cos(t));
-  }
-
   function bsR(b, t) {
     return b.bs0 * Math.pow(2 / (1 + Math.cos(t)), b.bsAlpha);
-  }
-
-  function bsDr(b, t) {
-    return bsR(b, t) * b.bsAlpha * Math.sin(t) / (1 + Math.cos(t));
   }
 
   /*
@@ -361,7 +353,9 @@
     if (!m || !a) { return null; }
     var nr = m.r.count, nl = m.lon.count;
     var fr = (r - m.r.first) / m.r.step;
-    if (fr < -0.5 || fr > nr - 0.5) { return null; }
+    // The edges themselves count as inside: worked out in floating point, the inner one
+    // lands a hair short of the first cell's edge.
+    if (fr < -0.5 - 1e-9 || fr > nr - 0.5 + 1e-9) { return null; }
     fr = clamp(fr, 0, nr - 1);
     var fl = (lon - m.lon.first) / m.lon.step;
     fl = ((fl % nl) + nl) % nl;
@@ -404,8 +398,9 @@
 
   /*
    * What the next days hold at the Earth, by the model: where the speed is now, and its
-   * highest and lowest over the span ahead, each with its time. Null without a run that
-   * covers now.
+   * highest and lowest over the span ahead, each with its time. The span is OUTLOOK_H
+   * hours or as far as the run goes, whichever is less; hours says which. Null without
+   * a run that covers now.
    */
   var OUTLOOK_H = 72;
   var RISE = 75; // km/s: less of a change than this over the span is "steady"
@@ -429,7 +424,8 @@
         if (t >= now && t <= peak.time && e.speed[i] != null && e.speed[i] >= (here.speed + peak.speed) / 2) { onset = t; break; }
       }
     }
-    return { now: here.speed, peak: peak, low: low, onset: onset,
+    var end = Math.min(now + OUTLOOK_H * HOUR, e.t0 + (e.speed.length - 1) * e.dt);
+    return { now: here.speed, peak: peak, low: low, onset: onset, hours: (end - now) / HOUR,
       trend: onset !== null ? 'rising' : here.speed - low.speed >= RISE ? 'easing' : 'steady' };
   }
 

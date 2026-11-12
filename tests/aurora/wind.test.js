@@ -233,6 +233,20 @@ test('speed is read between radii, longitudes and frames, wrapping in longitude'
   isNull(W.speedAt(1.6, 0, 0), 'beyond the outer');
 });
 
+test('the model\'s own edges count as inside it', function () {
+  // With the real grid's numbers the inner edge, first - step / 2, comes out in floating
+  // point a hair under 0.1. A streak born there must still be given a speed.
+  tinyRun();
+  var m = W.state.meta;
+  m.r = { first: 0.10625, step: 0.0125, count: 4 };
+  var rIn = m.r.first - 0.5 * m.r.step, rOut = m.r.first + (m.r.count - 0.5) * m.r.step;
+  ok(rIn < 0.1, 'the case this guards: ' + rIn);
+  notNull(W.speedAt(rIn, 0, 0), 'at the inner edge');
+  notNull(W.speedAt(rOut, 0, 0), 'at the outer edge');
+  isNull(W.speedAt(rIn - 0.001, 0, 0), 'inside it');
+  isNull(W.speedAt(rOut + 0.001, 0, 0), 'beyond it');
+});
+
 test('the series at the Earth is read between its points', function () {
   tinyRun();
   var t0 = Date.parse('2026-11-11T00:00:00Z'), H = 3600000;
@@ -251,7 +265,9 @@ test('the outlook names a rise, and when it gets going', function () {
   near(o.now, 400, 1e-9);
   eq(o.peak, { speed: 600, time: t0 + 4 * H });
   eq(o.onset, t0 + 4 * H, 'the first point at least half way up');
+  near(o.hours, 4, 1e-9, 'the run ends four hours on, well short of three days');
   eq(W.outlook(t0 + 4 * H).trend, 'steady', 'nothing ahead of the last point');
+  near(W.outlook(t0 + 4 * H).hours, 0, 1e-9);
   isNull(W.outlook(t0 + 9 * H));
 });
 

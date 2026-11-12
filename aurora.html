@@ -153,15 +153,19 @@
       <div class="card-more top-more" id="sun-seg-more" hidden>
         <dl class="top-figures">
           <div><dt>At the Earth</dt><dd><span data-bind="sun-now">&ndash;</span><span class="unit">km/s</span></dd></div>
-          <div><dt>Highest, 3 days</dt><dd><span data-bind="sun-peak">&ndash;</span><span class="unit">km/s</span></dd></div>
-          <div><dt>Lowest</dt><dd><span data-bind="sun-low">&ndash;</span><span class="unit">km/s</span></dd></div>
+          <div><dt>Highest ahead</dt><dd><span data-bind="sun-peak">&ndash;</span><span class="unit">km/s</span></dd></div>
+          <div><dt>Lowest ahead</dt><dd><span data-bind="sun-low">&ndash;</span><span class="unit">km/s</span></dd></div>
         </dl>
         <p class="card-meta" data-bind="sun-run">&nbsp;</p>
         <p class="card-note"><b>WSA-Enlil</b> is the model NOAA&rsquo;s forecasters use: it takes the Sun&rsquo;s magnetic field as mapped that day and carries the wind out past Mars. Drawn here is its radial speed in the plane of the Earth&rsquo;s orbit, seen from the north, from 0.1 to 1.7&nbsp;AU. The frame keeps the Earth still, so the Sun&rsquo;s 27-day rotation sweeps the spiral past it.</p>
         <p class="card-note" data-bind="sun-cme"></p>
-        <p class="card-note">The time slider runs the model from a day back to three days on. The Sun and planets are marks, not to scale: at this size the Sun would be a pixel across.</p>
+        <p class="card-note">&ldquo;Ahead&rdquo; is the next three days, or as far as this run goes. The time slider runs the model from a day back to three days on. The Sun and planets are marks, not to scale: at this size the Sun would be a pixel across.</p>
       </div>
     </section>
+
+    <!-- The way up, from the two views with something above them. -->
+    <a class="chip up-hint" href="#wind" data-go="wind">The solar wind</a>
+    <a class="chip up-hint" href="#sun" data-go="sun">Out to the Sun</a>
 
     <div class="header-controls">
       <nav class="seg view-index" aria-label="Views">
@@ -191,12 +195,10 @@
 
     <section class="view view-wind" id="wind" aria-labelledby="wind-title">
       <h2 class="visually-hidden" id="wind-title">The solar wind arriving at the Earth</h2>
-      <a class="chip up-hint" href="#sun" data-go="sun">Out to the Sun</a>
     </section>
 
     <section class="view view-north" id="north" aria-labelledby="north-title">
       <h1 class="visually-hidden" id="north-title">Aurora Borealis</h1>
-      <a class="chip up-hint" href="#wind" data-go="wind">The solar wind</a>
     </section>
 
     <section class="view view-south" id="south" aria-labelledby="south-title">

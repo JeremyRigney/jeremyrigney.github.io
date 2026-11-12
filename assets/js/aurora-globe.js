@@ -143,6 +143,10 @@
   // the scroll is spent on the last decade, where the Sun comes into frame and the
   // camera rises over the ecliptic. This is the exponent of that ease.
   var ZOOM_EASE = 2.2;
+  // The camera rises over the ecliptic across this stretch of the way from the sun view
+  // to the wind view (0 to 1). The Sun comes into frame a little under half way, by when
+  // the ecliptic has begun to open; before then there is only the wind going by.
+  var TILT_SPAN = [0.08, 0.66];
 
   // The globe's fine lines (graticule, contours, coasts, labels) fade out between these
   // radii, in CSS px, and the globe itself between the last two.
@@ -1387,7 +1391,7 @@
     var zt = t, tt = t;
     if (ids[i0] === 'sun' && ids[i1] === 'wind') {
       zt = Math.pow(t, ZOOM_EASE);
-      tt = smooth(0.03, 0.5, t);
+      tt = smooth(TILT_SPAN[0], TILT_SPAN[1], t);
     }
     target.lat = a.lat + (b.lat - a.lat) * t;
     target.lon = a.lon + wrap180(b.lon - a.lon) * t;

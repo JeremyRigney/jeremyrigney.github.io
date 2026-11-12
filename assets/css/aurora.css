@@ -1251,16 +1251,27 @@ body[data-view="drivers"] :is(.topdock, .top-time, .top-seg) {
   display: none;
 }
 
-/* The way up, at the head of the two views with something above them: on a wide
-   screen in the open middle of the switches' row, otherwise under the capsule. */
+/* The way up, from the two views with something above them: on a wide screen in the
+   open middle of the switches' row, otherwise under the capsule. It belongs to the
+   header, so it stands still while the views scroll, and each shows in its own view. */
 .up-hint {
-  position: absolute;
+  position: fixed;
+  z-index: 19;
   left: 50%;
   top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + var(--s-2));
   translate: -50% 0;
   background: var(--card);
   text-decoration: none;
   color: var(--ink-soft);
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 400ms var(--ease), visibility 400ms, color 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+body[data-view="north"] .up-hint[data-go="wind"],
+body[data-view="wind"] .up-hint[data-go="sun"] {
+  visibility: visible;
+  opacity: 1;
 }
 
 .up-hint:hover {
@@ -1284,7 +1295,8 @@ body[data-view="drivers"] :is(.topdock, .top-time, .top-seg) {
 }
 
 /* Without the stage there is nothing to see from space. */
-.no-webgl :is(.view-sun, .view-wind, .up-hint),
+.no-webgl :is(.view-sun, .view-wind),
+.no-webgl .up-hint,
 .no-webgl .view-index a:is([data-view="sun"], [data-view="wind"]) {
   display: none;
 }
@@ -2153,6 +2165,26 @@ body:is([data-view="sun"], [data-view="wind"]) .legend > :is(.legend-seen, .lege
 
 @media (max-width: 720px) {
   .view-index { display: none; }
+}
+
+/* Between there and about 1000 px, five views beside the layer switch leave the
+   wordmark's row short of room: the byline goes under the wordmark, as it does on a
+   phone, and the layer switch drops its gain. */
+@media (min-width: 721px) and (max-width: 1000px) {
+  .layer-gain {
+    display: none;
+  }
+
+  .brand {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.125rem;
+  }
+
+  .brand-by {
+    font-size: var(--fs-xs);
+    line-height: 1.2;
+  }
 }
 
 /* Too narrow for the slider between the two cards: they sit side by side above it. */
