@@ -44,7 +44,8 @@
     the camera (aurora-globe.js). The page opens on the north, with Ireland in frame;
     below it the camera tilts to the south, then dims the globe behind the charts; above
     it the camera pulls back to the Earth in the solar wind, then to the Sun
-    (aurora-wind-view.js). A sideways drag spins the globe; vertical drags still scroll.
+    (aurora-wind-view.js). A sideways drag spins the globe; vertical drags still scroll. In the wind view a
+    drag swings the camera a few degrees instead, and it sways a little on its own.
 
     Data comes straight from NOAA SWPC, which allows cross-origin reads, and from
     MagIE's magnetometers through the site's Cloud Run relay, because MagIE does not
@@ -58,7 +59,7 @@
     card doesn't need to say at first (aurora-hud.js).
   -->
   <div class="stage" id="stage">
-    <canvas id="aurora-gl" role="img" aria-label="A globe with the current aurora drawn over it from NOAA's OVATION model. Scroll down to move from the northern to the southern hemisphere, or up to pull back to the Earth in the solar wind and then to the Sun; drag sideways to spin the globe."></canvas>
+    <canvas id="aurora-gl" role="img" aria-label="A globe with the current aurora drawn over it from NOAA's OVATION model. Scroll down to move from the northern to the southern hemisphere, or up to pull back to the Earth in the solar wind and then to the Sun; drag sideways to spin the globe, or, at the Earth in the solar wind, to swing the view a little."></canvas>
     <canvas id="aurora-overlay" aria-hidden="true"></canvas>
   </div>
 
@@ -140,6 +141,7 @@
         </dl>
         <p class="card-meta" data-bind="up-source">&nbsp;</p>
         <p class="card-note">The <b>magnetopause</b> is where the Earth&rsquo;s field holds the wind off, and the <b>bow shock</b> where the wind, faster than any wave in it, is first slowed. Both are drawn to scale from that wind: the magnetopause by Shue et&nbsp;al. (1998), from its pressure and B<sub>z</sub>; the shock&rsquo;s distance by Farris and Russell (1994), from its Mach number. The distances above are along the line to the Sun, in Earth radii.</p>
+        <p class="card-note">The glow between the two is the <b>sheath</b>, where the slowed wind piles up: brighter where it is denser, and brighter overall as the wind&rsquo;s pressure rises. The field lines and the flow round them are sketches, drawn in the round: drag the view to swing it a little and see them as a cage.</p>
         <p class="card-note">The <b>field lines</b> are a sketch: a dipole at today&rsquo;s tilt, squeezed and stretched to fit inside that magnetopause. The <b>streaks</b> are a sketch of the flow, slowing at the shock and parting round the Earth; their speed and number follow the measured speed and density.</p>
       </div>
     </section>
@@ -367,11 +369,11 @@
   </noscript>
 
   <script src="assets/js/aurora-geo.js?v=20261111a"></script>
-  <script src="assets/js/aurora-globe.js?v=20261111a"></script>
+  <script src="assets/js/aurora-globe.js?v=20261112a"></script>
   <script src="assets/js/aurora-data.js?v=20261111a"></script>
   <script src="assets/js/aurora-model.js?v=20261028d"></script>
-  <script src="assets/js/aurora-wind.js?v=20261111a"></script>
-  <script src="assets/js/aurora-wind-view.js?v=20261111a"></script>
+  <script src="assets/js/aurora-wind.js?v=20261112a"></script>
+  <script src="assets/js/aurora-wind-view.js?v=20261112a"></script>
   <script src="assets/js/aurora-hud.js?v=20261111a"></script>
   <script src="assets/js/aurora-charts.js?v=20261103e"></script>
   <script src="assets/js/aurora-timeline.js?v=20261103a"></script>

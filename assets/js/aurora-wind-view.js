@@ -6,16 +6,25 @@
  * What it draws goes by the scale the camera has reached, not by which view is
  * nearest, so each thing hands over to the next on the way out:
  *
- *   AT THE EARTH, while an Earth radius is a few pixels to a few tens. The numbers are
- *   aurora-wind.js's: the bow shock and the magnetopause as hairlines, and the
- *   field-line sketch inside them.
+ *   AT THE EARTH, while an Earth radius is a few pixels to a few tens, and in three
+ *   dimensions, since the globe's camera can be swung a little round it there (x
+ *   toward the Sun, z north, y toward dusk and the camera). The numbers are
+ *   aurora-wind.js's. The magnetopause and the bow shock are surfaces of revolution
+ *   about the Sun-Earth line, drawn as a few of their meridians and hoops, the one in
+ *   the camera's plane strongest. Between them the sheath glows: its light is added up
+ *   along each line of sight, as the aurora's is, so the shock stands out as a bright
+ *   limb and the nose, where the wind is piled deepest, is brightest. How bright goes
+ *   by the wind's measured pressure. Inside is the field-line sketch, as a cage.
  *
  *   THE WIND ITSELF, as streaks, from there out until the Sun is nearly in frame. They
- *   run straight away from the Sun, slow and bunch at the shock and part round the
- *   magnetopause (aurora-wind.js's flow). Their speed on screen and their number
- *   follow the speed and density measured at L1 and carried to the Earth, so a fast,
- *   dense wind looks it. The speed is in pixels, whatever the zoom: at the Earth that
- *   is about 130 times faster than life, and more the further out the camera is.
+ *   fill the screen and have depth, run straight away from the Sun, slow and bunch at
+ *   the shock and stream on round the magnetopause and down its flanks
+ *   (aurora-wind.js's flow, turned about the Sun-Earth line), so the magnetosphere
+ *   shows as the hollow they leave. They are added to the picture as light, each with
+ *   a soft glow. Their speed on screen and their number follow the speed and density
+ *   measured at L1 and carried to the Earth, so a fast, dense wind looks it. The speed
+ *   is in pixels, whatever the zoom: at the Earth that is about 130 times faster than
+ *   life, and more the further out the camera is.
  *
  *   L1, on the way out, a million and a half km sunward: where that wind is measured,
  *   and how long before it arrives.
@@ -55,6 +64,7 @@
 
   var DEG = Geo.DEG;
   var L1_RE = Wind.L1_KM / Geo.EARTH_KM;
+  var AU_RE = Globe.AU_RE;
 
   /* ---------- Tunables ---------- */
 
@@ -92,8 +102,22 @@
   // view's scale that is 9 Earth radii, where in life it covers 0.07.
   var NEAR_PX_PER_KMS = 0.4; // CSS px a second, per km/s
   var NEAR_TRAIL_S = 0.22; // a streak is this many seconds of its own travel long
-  var NEAR_BASE = 260, NEAR_PER_N = 120, NEAR_MAX = 2600; // how many, by density per cm^3
-  var NEAR_LIFE = [2.5, 6]; // seconds a streak lasts, so they don't march in ranks
+  var NEAR_BASE = 1100, NEAR_PER_N = 200, NEAR_MAX = 4600; // how many, by density per cm^3
+  var NEAR_LIFE = [7, 16]; // seconds a streak lasts: long enough to cross the screen
+  var NEAR_DEPTH = 0.45; // they fill this fraction of the screen's height either side of its plane
+  var NEAR_GLOW_PX = 7, NEAR_GLOW = 0.2; // the soft light round each
+
+  // The sheath's glow. Its light is added up over SHEATH_STEPS samples along each line
+  // of sight, SHEATH_DEPTH Earth radii either side of the Earth; SHEATH_GAIN sets how
+  // bright a pressure of 2 nPa makes it, and it grows with the logarithm of pressure.
+  var SHEATH_STEPS = 44, SHEATH_STEPS_NARROW = 26;
+  var SHEATH_DEPTH = 46;
+  var SHEATH_GAIN = 0.024;
+  // A streak in front of or behind the magnetosphere is dimmed to this, so that it shows
+  // as the hollow in the wind that it is.
+  var NEAR_OVER_CAVITY = 0.1;
+  // The far side of the cage is dimmed to this, over this many Earth radii of depth.
+  var CAGE_BACK = 0.3, CAGE_DEPTH = 10;
   var NEAR_MARGIN = 40; // px beyond the screen they start and end
   // How far a streak's colour is taken from the ramp toward the ink. The ramp's slow end
   // is close to the ground, which suits a field that fills the screen and would lose a
@@ -242,18 +266,22 @@
     ].join('\n');
   }
 
-  // Segments with analytic edges, each end with its own opacity: field lines and
-  // boundaries in Earth radii, streaks in device px. Coloured ink, or by speed.
+  // Segments with analytic edges, each end with its own opacity: the cage in Earth
+  // radii, in three dimensions, and streaks already placed on screen in device px.
+  // Coloured ink, or by speed; crisp, or as a soft glow uLinePx wide.
   function segVS(kit) {
     return [
       kit.HEADER,
-      'in vec2 aA;',
-      'in vec2 aB;',
+      'in vec3 aA;',
+      'in vec3 aB;',
       'in vec2 aFade;', // opacity at A and at B
       'in float aV;', // km/s, for the ramp
       'uniform vec2 uRes;',
       'uniform vec2 uOrigin;', // device px
-      'uniform vec2 uScale;', // device px per unit, each axis signed
+      'uniform vec3 uRowX;', // device px across the screen per unit along each axis
+      'uniform vec3 uRowY;', // and down it
+      'uniform vec3 uRowZ;', // toward the camera, in units
+      'uniform vec2 uDepth;', // the depth over which the far side dims, and what it dims to
       'uniform float uLinePx;',
       'out float vD;',
       'out float vFade;',
@@ -261,8 +289,8 @@
       'const vec2 CORNER[6] = vec2[6](vec2(0.0, -1.0), vec2(1.0, -1.0), vec2(0.0, 1.0),',
       '  vec2(0.0, 1.0), vec2(1.0, -1.0), vec2(1.0, 1.0));',
       'void main() {',
-      '  vec2 sa = uOrigin + aA * uScale;',
-      '  vec2 sb = uOrigin + aB * uScale;',
+      '  vec2 sa = uOrigin + vec2(dot(aA, uRowX), dot(aA, uRowY));',
+      '  vec2 sb = uOrigin + vec2(dot(aB, uRowX), dot(aB, uRowY));',
       '  vec2 c = CORNER[gl_VertexID];',
       '  vec2 dir = sb - sa;',
       '  float len = length(dir);',
@@ -271,7 +299,8 @@
       '  float hw = uLinePx * 0.5 + 1.0;',
       '  vec2 s = mix(sa, sb, c.x) + nrm * c.y * hw;',
       '  vD = c.y * hw;',
-      '  vFade = mix(aFade.x, aFade.y, c.x);',
+      '  float depth = dot((aA + aB) * 0.5, uRowZ);',
+      '  vFade = mix(aFade.x, aFade.y, c.x) * mix(uDepth.y, 1.0, smoothstep(-uDepth.x, uDepth.x, depth));',
       '  vV = aV;',
       '  gl_Position = vec4(s.x / uRes.x * 2.0 - 1.0, 1.0 - s.y / uRes.y * 2.0, 0.0, 1.0);',
       '}'
@@ -289,15 +318,68 @@
       'uniform float uBySpeed;', // 0 ink, 1 the ramp at vV
       'uniform float uLift;', // how far the ramp's colour is taken toward the ink
       'uniform float uAlpha;',
+      'uniform float uSoft;', // 0 a crisp line, 1 a glow falling off across uLinePx
       'uniform vec3 uKeepOut;', // device px from the top: clear above x, full below y; z is the canvas height
       RAMP_GLSL,
       'out vec4 outColor;',
       'void main() {',
-      '  float cov = clamp(uLinePx * 0.5 + 0.5 - abs(vD), 0.0, 1.0) * vFade * uAlpha;',
+      '  float crisp = clamp(uLinePx * 0.5 + 0.5 - abs(vD), 0.0, 1.0);',
+      '  float q = vD / (uLinePx * 0.3);',
+      '  float cov = mix(crisp, exp(-q * q), uSoft) * vFade * uAlpha;',
       '  cov *= smoothstep(uKeepOut.x, uKeepOut.y, uKeepOut.z - gl_FragCoord.y);',
-      '  if (cov <= 0.0) { discard; }',
+      '  if (cov <= 0.002) { discard; }',
       '  vec3 c = mix(uInk, mix(rampAt(vV), uInk, uLift), uBySpeed);',
       '  outColor = vec4(c * cov, cov);',
+      '}'
+    ].join('\n');
+  }
+
+  // The sheath: plasma between two surfaces of revolution about the Sun-Earth line,
+  // r = r0 (2 / (1 + cos t))^a each, its light added up along the line of sight.
+  function sheathFS(kit) {
+    return [
+      kit.HEADER,
+      'uniform vec2 uRes;',
+      'uniform vec2 uEarth;', // device px from the top left
+      'uniform float uPxRe;', // device px in an Earth radius
+      'uniform vec3 uRight;', // the screen's right, up and toward-the-camera, in the
+      'uniform vec3 uUp;', //    magnetosphere's own axes
+      'uniform vec3 uOut;',
+      'uniform vec2 uMp;', // r0 and a of the magnetopause
+      'uniform vec2 uBs;', // and of the bow shock
+      'uniform float uGain;',
+      'uniform float uAlpha;',
+      'uniform vec3 uColor;',
+      'uniform int uSteps;',
+      'uniform vec3 uKeepOut;',
+      'out vec4 outColor;',
+      'void main() {',
+      '  vec2 frag = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);',
+      '  vec2 q = (frag - uEarth) / uPxRe;',
+      '  vec3 o = q.x * uRight - q.y * uUp;',
+      // A fixed offset for each pixel, so the samples' spacing shows as grain, not bands.
+      '  float jit = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));',
+      '  float n = float(uSteps);',
+      '  float sum = 0.0;',
+      '  for (int i = 0; i < 64; i++) {',
+      '    if (i >= uSteps) { break; }',
+      '    vec3 p = o + uOut * (((float(i) + jit) / n * 2.0 - 1.0) * ' + SHEATH_DEPTH.toFixed(1) + ');',
+      '    float r = length(p);',
+      '    float c = p.x / max(r, 1e-4);', // cosine of the angle from the Sun-Earth line
+      '    float lg = log(2.0 / (1.0 + max(c, -0.98)));',
+      '    float mp = uMp.x * exp(uMp.y * lg);',
+      '    float bs = uBs.x * exp(uBs.y * lg);',
+      '    float k = (r - mp) / (bs - mp);', // 0 on the magnetopause, 1 on the shock
+      // Densest at the nose and thinning down the flanks; denser toward the shock,
+      // with a bright front just behind it; eased at both surfaces.
+      '    float nose = 0.07 + 0.93 * pow(smoothstep(-0.95, 1.0, c), 1.6);',
+      '    float across = smoothstep(0.0, 0.14, k) * smoothstep(1.0, 0.94, k) * (0.4 + 0.6 * k * k);',
+      '    float front = smoothstep(0.78, 0.95, k) * smoothstep(1.0, 0.95, k);',
+      '    sum += nose * (across + 1.4 * front);',
+      '  }',
+      '  float light = 1.0 - exp(-sum * (2.0 * ' + SHEATH_DEPTH.toFixed(1) + ' / n) * uGain);',
+      '  light *= smoothstep(uKeepOut.x, uKeepOut.y, frag.y) * uAlpha;',
+      '  outColor = vec4(uColor * light, light);',
       '}'
     ].join('\n');
   }
@@ -305,10 +387,10 @@
   /* ---------- GL state ---------- */
 
   var gl = null, kit = null;
-  var helioProg = null, segProg = null;
+  var helioProg = null, segProg = null, sheathProg = null;
   var emptyVao = null;
   var eclTex = null, blankTex = null, texRun = null;
-  var nearBuf = null, helioBuf = null, fieldBuf = null; // { vao, buffer, data, count }
+  var nearBuf = null, helioBuf = null, fieldBuf = null, hoopBuf = null; // { vao, buffer, data, count }
 
   function make3D(width, height, depth, bytes, wrapS) {
     var t = gl.createTexture();
@@ -333,8 +415,8 @@
     texRun = st.run;
   }
 
-  // An instanced buffer of segments: 7 floats each (a.xy, b.xy, fade a, fade b, speed).
-  var SEG = 7;
+  // An instanced buffer of segments: 9 floats each (a.xyz, b.xyz, fade a, fade b, speed).
+  var SEG = 9;
 
   function makeSegs(capacity, usage) {
     var vao = gl.createVertexArray();
@@ -344,7 +426,7 @@
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, data.byteLength, usage);
     var stride = SEG * 4;
-    [['aA', 2, 0], ['aB', 2, 8], ['aFade', 2, 16], ['aV', 1, 24]].forEach(function (a) {
+    [['aA', 3, 0], ['aB', 3, 12], ['aFade', 2, 24], ['aV', 1, 32]].forEach(function (a) {
       var loc = gl.getAttribLocation(segProg, a[0]);
       if (loc < 0) { return; }
       gl.enableVertexAttribArray(loc);
@@ -366,13 +448,15 @@
     readColors();
     helioProg = kit.program(kit.FULLSCREEN_VS, helioFS(kit));
     segProg = kit.program(segVS(kit), segFS(kit));
+    sheathProg = kit.program(kit.FULLSCREEN_VS, sheathFS(kit));
     emptyVao = gl.createVertexArray();
     eclTex = null;
     texRun = null;
     blankTex = make3D(1, 1, 1, new Uint8Array([0]), gl.REPEAT);
     nearBuf = makeSegs(NEAR_MAX, gl.DYNAMIC_DRAW);
     helioBuf = makeSegs(HELIO_COUNT, gl.DYNAMIC_DRAW);
-    fieldBuf = makeSegs(6000, gl.DYNAMIC_DRAW);
+    fieldBuf = makeSegs(11000, gl.DYNAMIC_DRAW);
+    hoopBuf = makeSegs(400, gl.DYNAMIC_DRAW);
     fieldKey = '';
     if (Wind.ready()) { uploadRun(); }
   }
@@ -425,122 +509,207 @@
     if (gl && Wind.ready() && Wind.state.run !== texRun) { uploadRun(); }
   });
 
-  // Boundaries and field lines as segments, rebuilt when the shapes or the tilt change.
+  /*
+   * The magnetosphere's axes as the camera sees them: for a point (x toward the Sun, y
+   * toward dusk, z north, Earth radii), how far right of the Earth it is on screen, how
+   * far up, and how far toward the camera. Side-on that is (-x, z, y); the wobble turns
+   * it. The axes are made square from the Sun and the ecliptic's north, which the
+   * low-precision formulae leave half a degree off a right angle.
+   */
+  function axes(scene) {
+    var X = scene.sun, b = scene.basis;
+    var Y = Geo.normalize(Geo.cross(scene.pole, X));
+    var Z = Geo.cross(X, Y);
+    function row(k) {
+      var e = [b[k], b[k + 1], b[k + 2]];
+      return [Geo.dot(X, e), Geo.dot(Y, e), Geo.dot(Z, e)];
+    }
+    return { right: row(0), up: row(3), out: row(6) };
+  }
+
+  function onScreen(scene, M, x, y, z) {
+    return {
+      x: scene.earthX + (x * M.right[0] + y * M.right[1] + z * M.right[2]) * scene.pxPerRe,
+      y: scene.earthY - (x * M.up[0] + y * M.up[1] + z * M.up[2]) * scene.pxPerRe
+    };
+  }
+
+  // The cage as segments, rebuilt when the shapes or the tilt change: the two
+  // boundaries' meridians and hoops, and the field lines.
   var fieldKey = '';
 
   function buildField() {
     var key = shape.r0.toFixed(2) + ',' + shape.alpha.toFixed(3) + ',' + shape.bs0.toFixed(2) + ',' + tilt.toFixed(3);
     if (key === fieldKey) { return; }
     fieldKey = key;
-    var d = fieldBuf.data, n = 0;
+    var buf = fieldBuf, d = buf.data, n = 0;
 
-    function seg(ax, az, bx, bz, fa, fb) {
-      if (n >= fieldBuf.capacity) { return; }
+    function seg(a, b, fa, fb) {
+      if (n >= buf.capacity) { return; }
       var o = n * SEG;
-      d[o] = ax; d[o + 1] = az; d[o + 2] = bx; d[o + 3] = bz; d[o + 4] = fa; d[o + 5] = fb; d[o + 6] = 0;
+      d[o] = a[0]; d[o + 1] = a[1]; d[o + 2] = a[2];
+      d[o + 3] = b[0]; d[o + 4] = b[1]; d[o + 5] = b[2];
+      d[o + 6] = fa; d[o + 7] = fb; d[o + 8] = 0;
       n++;
     }
 
-    // The two boundaries, bright at the nose and fading down the tail.
-    [[Wind.mpR, 0.85], [Wind.bsR, 0.5]].forEach(function (curve) {
-      var prev = null;
-      for (var deg = -158; deg <= 158; deg += 1) {
-        var t = deg * DEG, r = curve[0](shape, t);
-        var cur = [r * Math.cos(t), r * Math.sin(t), curve[1] * (1 - 0.75 * smooth(60, 150, Math.abs(deg)))];
-        if (prev) { seg(prev[0], prev[1], cur[0], cur[1], prev[2], cur[2]); }
-        prev = cur;
-      }
+    // Each boundary: the meridian in the plane of the Sun-Earth line and the
+    // ecliptic's north at full strength, and two more turned about that line faintly.
+    // (Not the one at a right angle: side-on it is a straight line through the Earth.)
+    // Bright at the nose and fading down the tail.
+    var curves = [[Wind.mpR, 0.85, [50, 90]], [Wind.bsR, 0.5, [90]]];
+    curves.forEach(function (curve) {
+      [0, 45, 135].forEach(function (turn) {
+        var ct = Math.cos(turn * DEG), st = Math.sin(turn * DEG);
+        var strength = curve[1] * (turn ? 0.3 : 1);
+        var prev = null;
+        for (var deg = -158; deg <= 158; deg += 2) {
+          var t = deg * DEG, r = curve[0](shape, t);
+          var cur = [r * Math.cos(t), r * Math.sin(t) * st, r * Math.sin(t) * ct];
+          var f = strength * (1 - 0.75 * smooth(60, 150, Math.abs(deg)));
+          if (prev) { seg(prev.p, cur, prev.f, f); }
+          prev = { p: cur, f: f };
+        }
+      });
     });
 
-    Wind.fieldLines(shape, tilt).forEach(function (line) {
-      var p = line.pts, last = p.length / 2 - 1;
-      // Inner lines fainter: they crowd at the Earth. Open ones fade out as they go.
-      var base = line.open ? 0.3 : 0.2 + 0.2 * Math.min(1, line.L / 8);
+    Wind.fieldLines3(shape, tilt).forEach(function (line) {
+      var p = line.pts, last = p.length / 3 - 1;
+      // Inner lines fainter: they crowd at the Earth. The planes off the camera's
+      // fainter again. Open ones fade out as they go.
+      var base = (line.open ? 0.3 : 0.2 + 0.2 * Math.min(1, line.L / 8)) * (line.phi % 180 ? 0.42 : 1);
       for (var i = 0; i < last; i++) {
         var fa = line.open ? base * (1 - i / last) : base;
         var fb = line.open ? base * (1 - (i + 1) / last) : base;
-        seg(p[i * 2], p[i * 2 + 1], p[i * 2 + 2], p[i * 2 + 3], fa, fb);
+        seg([p[i * 3], p[i * 3 + 1], p[i * 3 + 2]], [p[i * 3 + 3], p[i * 3 + 4], p[i * 3 + 5]], fa, fb);
       }
     });
     fieldBuf.count = n;
     fillSegs(fieldBuf);
+
+    // A hoop or two round each boundary, in a buffer of their own: side-on a hoop is a
+    // straight line, so they are drawn only as far as the camera has swung to open them.
+    buf = hoopBuf; d = buf.data; n = 0;
+    curves.forEach(function (curve) {
+      curve[2].forEach(function (deg) {
+        var t = deg * DEG, r = curve[0](shape, t);
+        var prev = null;
+        for (var a = 0; a <= 360; a += 5) {
+          var cur = [r * Math.cos(t), r * Math.sin(t) * Math.sin(a * DEG), r * Math.sin(t) * Math.cos(a * DEG)];
+          if (prev) { seg(prev, cur, curve[1] * 0.3, curve[1] * 0.3); }
+          prev = cur;
+        }
+      });
+    });
+    hoopBuf.count = n;
+    fillSegs(hoopBuf);
   }
 
-  // The wind's streaks, in CSS px on screen. Where one stands in the magnetosphere's
-  // plane (x toward the Sun, z north, Earth radii) says how the wind moves there.
-  var near = []; // { x, y, age, life }
+  // The wind's streaks, in the magnetosphere's axes (Earth radii), so that they slide
+  // past one another when the camera swings. How the wind moves at each comes from the
+  // flow in the plane through it and the Sun-Earth line.
+  var near = []; // { x, y, z, age, life, lost }
+  var nearPx = 0; // the scale they were last stepped at
 
-  // A streak starts at the sunward edge, or, to fill the screen at once (and to stand
-  // still under reduced motion), anywhere the wind is, part-way through its life.
-  function spawnNear(p, scene, anywhere) {
+  function flowAt(p) {
+    return Wind.flow(shape, p.x, Math.sqrt(p.y * p.y + p.z * p.z));
+  }
+
+  // A streak starts at the sunward side of what the screen shows, or, to fill it at
+  // once (and to stand still under reduced motion), anywhere the wind is, part-way
+  // through its life. box is that volume in the camera's terms: left, right, bottom,
+  // top and half-depth, Earth radii from the Earth.
+  function spawnNear(p, box, M, anywhere) {
     p.life = NEAR_LIFE[0] + Math.random() * (NEAR_LIFE[1] - NEAR_LIFE[0]);
-    p.x = -NEAR_MARGIN;
-    p.y = -NEAR_MARGIN + Math.random() * (scene.h + 2 * NEAR_MARGIN);
-    p.age = 0;
-    if (anywhere) {
-      for (var tries = 0; tries < 6; tries++) {
-        var x = -NEAR_MARGIN + Math.random() * (scene.w + 2 * NEAR_MARGIN);
-        var y = -NEAR_MARGIN + Math.random() * (scene.h + 2 * NEAR_MARGIN);
-        if (Wind.flow(shape, (scene.earthX - x) / scene.pxPerRe, (scene.earthY - y) / scene.pxPerRe) !== null) {
-          p.x = x; p.y = y;
-          break;
-        }
-      }
-      p.age = (0.15 + 0.6 * Math.random()) * p.life;
+    p.age = anywhere ? (0.1 + 0.7 * Math.random()) * p.life : 0;
+    for (var tries = 0; tries < 6; tries++) {
+      var vx = anywhere ? box.l + Math.random() * (box.r - box.l) : box.l;
+      var vy = box.b + Math.random() * (box.t - box.b);
+      var vd = (Math.random() * 2 - 1) * box.d;
+      p.x = vx * M.right[0] + vy * M.up[0] + vd * M.out[0];
+      p.y = vx * M.right[1] + vy * M.up[1] + vd * M.out[1];
+      p.z = vx * M.right[2] + vy * M.up[2] + vd * M.out[2];
+      if (flowAt(p) !== null) { break; }
     }
     return p;
   }
 
-  function stepNear(scene, dt) {
+  function stepNear(scene, dt, M) {
     var v = up && up.v > 0 ? up.v : 420, n = up && up.n > 0 ? up.n : 5;
-    var want = Math.round(Math.max(NEAR_BASE, Math.min(NEAR_MAX, NEAR_BASE + NEAR_PER_N * n)) * (scene.w < 700 ? 0.5 : 1));
-    while (near.length < want) { near.push(spawnNear({}, scene, true)); }
+    var want = Math.round(Math.max(NEAR_BASE, Math.min(NEAR_MAX, NEAR_BASE + NEAR_PER_N * n)) * (scene.w < 700 ? 0.45 : 1));
+    var px = scene.pxPerRe, s = scene.dpr;
+    var m = NEAR_MARGIN / px;
+    var box = { l: -scene.earthX / px - m, r: (scene.w - scene.earthX) / px + m,
+      b: -(scene.h - scene.earthY) / px - m, t: scene.earthY / px + m, d: NEAR_DEPTH * scene.h / px };
+    while (near.length < want) { near.push(spawnNear({}, box, M, true)); }
     if (near.length > want) { near.length = want; }
 
-    var speed = v * NEAR_PX_PER_KMS; // px a second, in the free wind
-    var sunX = scene.earthX - scene.earthAu * scene.pxPerAu, sunY = scene.earthY;
-    var px = scene.pxPerRe, s = scene.dpr;
+    // While the camera zooms, what the screen shows changes faster than the wind can
+    // refill it from the sunward side, and streaks sent round again would all come in
+    // there at once, as a front. So as the volume grows, the share of streaks that
+    // matches the new space is scattered through it, and any that fall outside (or had
+    // nowhere to start, the screen being inside the magnetopause) start anywhere.
+    var zoom = nearPx > 0 ? px / nearPx : 0;
+    var zooming = Math.abs(zoom - 1) > 0.002;
+    var scatterShare = zoom < 1 ? 1 - zoom * zoom * zoom : 0;
+    nearPx = px;
+
+    var speed = v * NEAR_PX_PER_KMS / px; // Earth radii a second, in the free wind
+    var sunRe = scene.earthAu * AU_RE;
     var d = nearBuf.data, count = 0;
     for (var i = 0; i < near.length; i++) {
       var p = near[i];
-      var f = Wind.flow(shape, (scene.earthX - p.x) / px, (scene.earthY - p.y) / px);
-      if (f === null || p.x > scene.w + NEAR_MARGIN || p.y < -NEAR_MARGIN || p.y > scene.h + NEAR_MARGIN || p.age > p.life) {
+      var f = flowAt(p);
+      var vx = p.x * M.right[0] + p.y * M.right[1] + p.z * M.right[2];
+      var vy = p.x * M.up[0] + p.y * M.up[1] + p.z * M.up[2];
+      var vd = p.x * M.out[0] + p.y * M.out[1] + p.z * M.out[2];
+      var scatter = p.lost || (scatterShare > 0 && Math.random() < scatterShare);
+      if (scatter || f === null || vx > box.r || vx < box.l - m || vy > box.t || vy < box.b || Math.abs(vd) > box.d * 1.2 || p.age > p.life) {
         // One that ran its life starts again anywhere; one the wind carried off, or into
-        // the magnetopause, comes in again at the sunward edge.
-        spawnNear(p, scene, f !== null && p.age > p.life);
-        if (p.age > 0) { p.age = 0; }
-        f = Wind.flow(shape, (scene.earthX - p.x) / px, (scene.earthY - p.y) / px);
-        if (f === null) { p.x = -NEAR_MARGIN; f = [-1, 0]; }
+        // the magnetopause, comes in again on the sunward side.
+        var ended = f !== null && p.age > p.life;
+        spawnNear(p, box, M, scatter || zooming || ended);
+        if (ended || !(scatter || zooming)) { p.age = 0; }
+        f = flowAt(p);
+        p.lost = f === null;
+        if (f === null) { continue; }
+        vd = p.x * M.out[0] + p.y * M.out[1] + p.z * M.out[2];
       }
-      // On screen: the free wind runs straight away from the Sun, which from the Earth
-      // is straight across, and fans out as the camera pulls back; in the sheath it
-      // follows the flow, whose x is toward the Sun (left) and z north (up).
-      var ux, uy, frac = 1;
+      // The free wind runs straight away from the Sun, which from the Earth is straight
+      // across and fans out as the camera pulls back; in the sheath it follows the flow.
+      var ux, uy, uz, frac = 1;
       if (f[0] === -1 && f[1] === 0) {
-        ux = p.x - sunX; uy = p.y - sunY;
-        var len = Math.sqrt(ux * ux + uy * uy) || 1;
-        ux /= len; uy /= len;
+        ux = p.x - sunRe; uy = p.y; uz = p.z;
+        var len = Math.sqrt(ux * ux + uy * uy + uz * uz) || 1;
+        ux /= len; uy /= len; uz /= len;
       } else {
-        frac = Math.sqrt(f[0] * f[0] + f[1] * f[1]);
-        ux = -f[0]; uy = -f[1];
-        if (frac > 1e-6) { ux /= frac; uy /= frac; }
+        var rho = Math.sqrt(p.y * p.y + p.z * p.z) || 1;
+        frac = Math.sqrt(f[0] * f[0] + f[1] * f[1]) || 1e-6;
+        ux = f[0] / frac; uy = f[1] * p.y / rho / frac; uz = f[1] * p.z / rho / frac;
       }
-      p.x += ux * speed * frac * dt;
-      p.y += uy * speed * frac * dt;
+      var step = speed * frac;
+      p.x += ux * step * dt; p.y += uy * step * dt; p.z += uz * step * dt;
       p.age += dt;
 
-      // Fades in from birth, out toward the end of its life.
-      var a = Math.min(1, p.age / 0.4) * Math.min(1, (p.life - p.age) / 0.6);
+      // Fades in from birth and out toward the end of its life; the far ones fainter.
+      var a = Math.min(1, p.age / 0.5) * Math.min(1, (p.life - p.age) / 0.8) * (0.62 + 0.38 * Math.max(-1, Math.min(1, vd / box.d)));
+      // Where the line of sight through it passes inside the magnetopause, on the
+      // screen's own plane through the Earth, it is in front of the hollow or behind it.
+      vx = p.x * M.right[0] + p.y * M.right[1] + p.z * M.right[2];
+      vy = p.x * M.up[0] + p.y * M.up[1] + p.z * M.up[2];
+      var qx = vx * M.right[0] + vy * M.up[0], qr = Math.sqrt(vx * vx + vy * vy) || 1e-6;
+      var edge = Wind.mpR(shape, Math.acos(Math.max(-1, Math.min(1, qx / qr))));
+      a *= NEAR_OVER_CAVITY + (1 - NEAR_OVER_CAVITY) * smooth(0.9, 1.06, qr / edge);
       if (a <= 0) { continue; }
-      var trail = speed * frac * NEAR_TRAIL_S;
+      var trail = step * NEAR_TRAIL_S;
+      var head = onScreen(scene, M, p.x, p.y, p.z);
+      var tail = onScreen(scene, M, p.x - ux * trail, p.y - uy * trail, p.z - uz * trail);
       var o = count * SEG;
-      d[o] = (p.x - ux * trail) * s; // tail
-      d[o + 1] = (p.y - uy * trail) * s;
-      d[o + 2] = p.x * s; // head
-      d[o + 3] = p.y * s;
-      d[o + 4] = 0;
-      d[o + 5] = a * 0.85;
-      d[o + 6] = v * frac;
+      d[o] = tail.x * s; d[o + 1] = tail.y * s; d[o + 2] = 0;
+      d[o + 3] = head.x * s; d[o + 4] = head.y * s; d[o + 5] = 0;
+      d[o + 6] = 0;
+      d[o + 7] = a * 0.72;
+      d[o + 8] = v * frac;
       count++;
     }
     nearBuf.count = count;
@@ -551,19 +720,34 @@
   // streaks stay out of it: none above HEAD_CLEAR[0] CSS px, all of them below [1].
   var HEAD_CLEAR = [50, 92];
 
-  function useSegs(scene, alpha, bySpeed, lift, linePx, ox, oy, sx, sy) {
-    var u = segProg.u;
+  // Sets the segment program up. o: alpha, bySpeed, lift, px (line width), soft, and M
+  // (the camera's axes) for segments in Earth radii; without M they are in device px.
+  function useSegs(scene, o) {
+    var u = segProg.u, s = scene.dpr;
     gl.useProgram(segProg);
     gl.uniform2f(u.uRes, kit.canvas.width, kit.canvas.height);
-    gl.uniform2f(u.uOrigin, ox, oy);
-    gl.uniform2f(u.uScale, sx, sy);
-    gl.uniform1f(u.uLinePx, linePx * scene.dpr);
+    if (o.M) {
+      var k = scene.pxPerRe * s;
+      gl.uniform2f(u.uOrigin, scene.earthX * s, scene.earthY * s);
+      gl.uniform3f(u.uRowX, o.M.right[0] * k, o.M.right[1] * k, o.M.right[2] * k);
+      gl.uniform3f(u.uRowY, -o.M.up[0] * k, -o.M.up[1] * k, -o.M.up[2] * k);
+      gl.uniform3f(u.uRowZ, o.M.out[0], o.M.out[1], o.M.out[2]);
+      gl.uniform2f(u.uDepth, CAGE_DEPTH, CAGE_BACK);
+    } else {
+      gl.uniform2f(u.uOrigin, 0, 0);
+      gl.uniform3f(u.uRowX, 1, 0, 0);
+      gl.uniform3f(u.uRowY, 0, 1, 0);
+      gl.uniform3f(u.uRowZ, 0, 0, 0);
+      gl.uniform2f(u.uDepth, 1, 1);
+    }
+    gl.uniform1f(u.uLinePx, o.px * s);
     gl.uniform3fv(u.uInk, ink);
-    gl.uniform1f(u.uBySpeed, bySpeed);
-    gl.uniform1f(u.uLift, lift);
-    gl.uniform1f(u.uAlpha, alpha);
-    if (bySpeed) {
-      gl.uniform3f(u.uKeepOut, HEAD_CLEAR[0] * scene.dpr, HEAD_CLEAR[1] * scene.dpr, kit.canvas.height);
+    gl.uniform1f(u.uBySpeed, o.bySpeed ? 1 : 0);
+    gl.uniform1f(u.uLift, o.lift || 0);
+    gl.uniform1f(u.uAlpha, o.alpha);
+    gl.uniform1f(u.uSoft, o.soft ? 1 : 0);
+    if (o.bySpeed) {
+      gl.uniform3f(u.uKeepOut, HEAD_CLEAR[0] * s, HEAD_CLEAR[1] * s, kit.canvas.height);
     } else {
       gl.uniform3f(u.uKeepOut, -2, -1, kit.canvas.height);
     }
@@ -577,22 +761,56 @@
     gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, b.count);
   }
 
-  function drawMag(scene) {
-    tilt = Wind.dipoleTilt(Geo.MAG.z, scene.sun, scene.pole);
-    buildField();
-    var s = scene.dpr;
+  // The sheath's glow, added to the picture as light.
+  function drawSheath(scene, M) {
+    var u = sheathProg.u, s = scene.dpr;
+    gl.useProgram(sheathProg);
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    useSegs(scene, magA, 0, 0, LINE_PX, scene.earthX * s, scene.earthY * s, -scene.pxPerRe * s, -scene.pxPerRe * s);
-    drawSegs(fieldBuf);
+    gl.blendFunc(gl.ONE, gl.ONE);
+    gl.uniform2f(u.uRes, kit.canvas.width, kit.canvas.height);
+    gl.uniform2f(u.uEarth, scene.earthX * s, scene.earthY * s);
+    gl.uniform1f(u.uPxRe, scene.pxPerRe * s);
+    gl.uniform3fv(u.uRight, M.right);
+    gl.uniform3fv(u.uUp, M.up);
+    gl.uniform3fv(u.uOut, M.out);
+    gl.uniform2f(u.uMp, shape.r0, shape.alpha);
+    gl.uniform2f(u.uBs, shape.bs0, shape.bsAlpha);
+    // Brighter with pressure, by its logarithm: 2 nPa is an ordinary day.
+    gl.uniform1f(u.uGain, SHEATH_GAIN * Math.max(0.5, Math.min(2.6, 1 + 0.55 * Math.log(shape.pd / 2) / Math.LN2)));
+    gl.uniform1f(u.uAlpha, magA);
+    // The ramp's colour at 600 km/s, a little toward the ink: the wind's own family.
+    gl.uniform3f(u.uColor, ramp[9] * 0.8 + ink[0] * 0.2, ramp[10] * 0.8 + ink[1] * 0.2, ramp[11] * 0.8 + ink[2] * 0.2);
+    gl.uniform1i(u.uSteps, scene.w < 700 ? SHEATH_STEPS_NARROW : SHEATH_STEPS);
+    gl.uniform3f(u.uKeepOut, HEAD_CLEAR[0] * s, HEAD_CLEAR[1] * s, kit.canvas.height);
+    gl.bindVertexArray(emptyVao);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.bindVertexArray(null);
   }
 
-  function drawNear(scene, dt) {
-    stepNear(scene, dt);
+  function drawMag(scene, M) {
+    tilt = Wind.dipoleTilt(Geo.MAG.z, scene.sun, scene.pole);
+    buildField();
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    useSegs(scene, nearA, 1, NEAR_LIFT, STREAK_PX, 0, 0, 1, 1);
+    useSegs(scene, { alpha: magA, px: LINE_PX, M: M });
+    drawSegs(fieldBuf);
+    // How far the hoops have opened: the Sun-Earth line's lean toward the camera.
+    var opened = smooth(0.03, 0.22, Math.abs(M.out[0]));
+    if (opened > 0) {
+      useSegs(scene, { alpha: magA * opened, px: LINE_PX, M: M });
+      drawSegs(hoopBuf);
+    }
+    gl.bindVertexArray(null);
+  }
+
+  // The streaks, as light: a soft glow round each, then the streak itself.
+  function drawNear(scene, dt, M) {
+    stepNear(scene, dt, M);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
+    useSegs(scene, { alpha: nearA * NEAR_GLOW, bySpeed: true, lift: NEAR_LIFT, px: NEAR_GLOW_PX, soft: true });
+    drawSegs(nearBuf);
+    useSegs(scene, { alpha: nearA, bySpeed: true, lift: NEAR_LIFT, px: STREAK_PX });
     drawSegs(nearBuf);
     gl.bindVertexArray(null);
   }
@@ -659,12 +877,14 @@
       var o = count * SEG;
       d[o] = (sunX + rt * ca * pxAu) * s;
       d[o + 1] = (sunY - rt * sa * st * pxAu) * s;
-      d[o + 2] = hx * s;
-      d[o + 3] = hy * s;
-      d[o + 4] = 0;
+      d[o + 2] = 0;
+      d[o + 3] = hx * s;
+      d[o + 4] = hy * s;
+      d[o + 5] = 0;
+      d[o + 6] = 0;
       // In over the first quarter AU, where they are packed closest, and out with the field.
-      d[o + 5] = Math.min(1, p.age / 0.5) * smooth(rIn, rIn + 0.25, p.r) * (1 - smooth(rOut, rFar, p.r)) * HELIO_STREAK_ALPHA;
-      d[o + 6] = v;
+      d[o + 7] = Math.min(1, p.age / 0.5) * smooth(rIn, rIn + 0.25, p.r) * (1 - smooth(rOut, rFar, p.r)) * HELIO_STREAK_ALPHA;
+      d[o + 8] = v;
       count++;
     }
     helioBuf.count = count;
@@ -722,7 +942,8 @@
 
     if (has && fr && helioStreakA > 0.004) {
       stepHelio(scene, dt, fr.f, sunX, sunY, rFar);
-      useSegs(scene, helioStreakA, 1, 0.72, HELIO_STREAK_PX, 0, 0, 1, 1);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      useSegs(scene, { alpha: helioStreakA, bySpeed: true, lift: 0.72, px: HELIO_STREAK_PX });
       drawSegs(helioBuf);
     }
     gl.bindVertexArray(null);
@@ -738,9 +959,11 @@
     var dt = reducedMotion ? 0 : scene.dt;
     if (magA > 0.004 || nearA > 0.004 || l1A > 0.004) { conditions(scene); }
     if (helioA > 0.004 && scene.tilt > 0.01) { drawHelio(scene, dt); }
-    // Streaks under the field lines and boundaries, so those stay crisp.
-    if (nearA > 0.004) { drawNear(scene, dt); }
-    if (magA > 0.004) { drawMag(scene); }
+    // The glow, then the streaks, then the cage over both, so its lines stay crisp.
+    var M = (nearA > 0.004 || magA > 0.004) ? axes(scene) : null;
+    if (magA > 0.004) { drawSheath(scene, M); }
+    if (nearA > 0.004) { drawNear(scene, dt, M); }
+    if (magA > 0.004) { drawMag(scene, M); }
   }
 
   function moving() {
@@ -794,20 +1017,17 @@
     label(ctx, scene, text, x, y, a, weight);
   }
 
-  // Where a boundary is on screen at an angle from the Sun-Earth line.
+  // Where a boundary's strongest meridian is on screen, at an angle from the Sun-Earth line.
   function onCurve(scene, radius, deg) {
     var t = deg * DEG, r = radius(shape, t);
-    return { x: scene.earthX - r * Math.cos(t) * scene.pxPerRe, y: scene.earthY - r * Math.sin(t) * scene.pxPerRe };
+    return onScreen(scene, axes(scene), r * Math.cos(t), 0, r * Math.sin(t));
   }
 
   // A name set along a boundary, as the globe sets DAY and NIGHT along the terminator.
   function alongCurve(ctx, scene, text, radius, deg, a) {
-    var t = deg * DEG, e = 0.5 * DEG;
-    var r = radius(shape, t), r2 = radius(shape, t + e);
-    var px = scene.pxPerRe;
-    var x = scene.earthX - r * Math.cos(t) * px, y = scene.earthY - r * Math.sin(t) * px;
-    var x2 = scene.earthX - r2 * Math.cos(t + e) * px, y2 = scene.earthY - r2 * Math.sin(t + e) * px;
-    var ang = Math.atan2(y2 - y, x2 - x);
+    var here = onCurve(scene, radius, deg), next = onCurve(scene, radius, deg + 0.5);
+    var x = here.x, y = here.y;
+    var ang = Math.atan2(next.y - y, next.x - x);
     if (Math.cos(ang) < 0) { ang += Math.PI; }
     // Off the line on the side away from the Earth.
     var nx = x - scene.earthX, ny = y - scene.earthY, nl = Math.sqrt(nx * nx + ny * ny) || 1;

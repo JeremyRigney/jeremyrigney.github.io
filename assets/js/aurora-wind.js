@@ -211,6 +211,82 @@
     return lines;
   }
 
+  /*
+   * The same sketch in three dimensions, for a camera that can swing round it: x toward
+   * the Sun, z north, y toward dusk. The lines above are the ones in the plane y = 0;
+   * the rest lie in other planes through the dipole's axis, so together they make a
+   * cage. The deformation is the same one, turned round the Sun-Earth line, about
+   * which the magnetopause is a surface of revolution. The hinge alone keeps to one
+   * axis (y), since the tilt it undoes is in the x-z plane.
+   */
+  var FIELD_CAGE = [3.4, 7.5, 12]; // the lines kept in the planes off y = 0
+  var FIELD_CAGE_OPEN = [78, 84];
+
+  // Where the dipole's point at distance rho in direction (ux, uy, uz) goes: [x, y, z].
+  function deform3(b, rho, ux, uy, uz, tilt) {
+    var u = Math.min(1, rho / FIELD_LMAX);
+    var d = tilt * smooth(0.2, 0.8, u) * smooth(60 * DEG, 150 * DEG, Math.acos(clamp(ux, -1, 1)));
+    var cd = Math.cos(d), sd = Math.sin(d);
+    var x = ux * cd - uz * sd, z = ux * sd + uz * cd, y = uy;
+    var at = Math.acos(clamp(x, -1, 1));
+    var turned = at + FIELD_SWEEP * u * u * smooth(50 * DEG, 100 * DEG, at) * (Math.PI - at);
+    var c = FIELD_FIT * Math.min(mpR(b, turned), FIELD_TAIL) / FIELD_LMAX;
+    var r;
+    if (c >= 1) {
+      r = rho * (1 + u * u * u * (c - 1));
+    } else {
+      r = rho / Math.pow(1 + (1 / (c * c * c) - 1) * u * u * u, 1 / 3);
+    }
+    var w = Math.sqrt(y * y + z * z) || 1, sr = Math.sin(turned);
+    return [r * Math.cos(turned), r * sr * y / w, r * sr * z / w];
+  }
+
+  // [{ pts: [x0, y0, z0, x1, ...], open, L, phi }], phi the plane's turn about the dipole
+  // axis from the one facing the Sun, degrees.
+  function fieldLines3(b, tilt) {
+    var ax = Math.sin(tilt), az = Math.cos(tilt);
+    var ex = Math.cos(tilt), ez = -Math.sin(tilt);
+    var lines = [];
+
+    function trace(L, phi, lat0, lat1, open, ease) {
+      var cp = Math.cos(phi * DEG), sp = Math.sin(phi * DEG);
+      var pts = [];
+      for (var i = 0; i <= FIELD_STEPS; i++) {
+        var lat = ease(i / FIELD_STEPS, lat0, lat1);
+        var cl = Math.cos(lat), sl = Math.sin(lat);
+        var p = deform3(b, L * cl * cl, cl * cp * ex + sl * ax, cl * sp, cl * cp * ez + sl * az, tilt);
+        pts.push(p[0], p[1], p[2]);
+      }
+      lines.push({ pts: pts, open: open, L: L, phi: phi });
+    }
+
+    function closed(k, lat0, lat1) {
+      var s = k * 2 - 1;
+      return lat1 * s * (0.3 + 0.7 * Math.abs(s));
+    }
+
+    function lobe(k, lat0, lat1) {
+      return lat0 + (lat1 - lat0) * k * k;
+    }
+
+    [0, 45, 90, 135, 180, 225, 270, 315].forEach(function (phi) {
+      (phi % 180 ? FIELD_CAGE : FIELD_CLOSED).forEach(function (L) {
+        var foot = Math.acos(Math.sqrt(1 / L));
+        trace(L, phi, -foot, foot, false, closed);
+      });
+    });
+    [135, 180, 225].forEach(function (phi) {
+      (phi === 180 ? FIELD_OPEN : FIELD_CAGE_OPEN).forEach(function (footDeg) {
+        var foot = footDeg * DEG;
+        var L = 1 / (Math.cos(foot) * Math.cos(foot));
+        var end = Math.acos(Math.sqrt(FIELD_LMAX / L));
+        trace(L, phi, foot, end, true, lobe);
+        trace(L, phi, -foot, -end, true, lobe);
+      });
+    });
+    return lines;
+  }
+
   // The dipole's lean toward the Sun, radians, from the geomagnetic pole, the Sun and
   // the ecliptic's north, all in globe coordinates. What leans out of the plane is dropped.
   function dipoleTilt(magPole, sun, pole) {
@@ -498,6 +574,7 @@
     mpR: mpR,
     bsR: bsR,
     fieldLines: fieldLines,
+    fieldLines3: fieldLines3,
     dipoleTilt: dipoleTilt,
     flow: flow,
     upstream: upstream,

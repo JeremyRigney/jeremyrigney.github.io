@@ -116,6 +116,34 @@ test('the lobe lines are open, run tailward and end inside the magnetopause', fu
   eq(open, 8, 'four a hemisphere');
 });
 
+test('the cage in three dimensions holds the flat sketch, and stays inside the magnetopause', function () {
+  [0, 0.3, -0.55].forEach(function (tilt) {
+    [{ pd: 2, bz: 0 }, { pd: 15, bz: -12 }].forEach(function (up) {
+      var b = W.boundaries({ pd: up.pd, bz: up.bz, mach: 8 });
+      var flat = W.fieldLines(b, tilt).filter(function (l) { return !l.open; });
+      var cage = W.fieldLines3(b, tilt);
+      // The planes facing the Sun and the tail are the flat sketch's day and night lines.
+      flat.forEach(function (line) {
+        var twin = cage.filter(function (l) { return !l.open && l.L === line.L && l.phi === (line.side === 1 ? 0 : 180); })[0];
+        notNull(twin, 'L ' + line.L);
+        for (var i = 0; i < line.pts.length / 2; i += 7) {
+          near(twin.pts[i * 3], line.pts[i * 2], 1e-9, 'x');
+          near(twin.pts[i * 3 + 1], 0, 1e-9, 'y');
+          near(twin.pts[i * 3 + 2], line.pts[i * 2 + 1], 1e-9, 'z');
+        }
+      });
+      cage.forEach(function (line) {
+        for (var i = 0; i < line.pts.length; i += 3) {
+          var x = line.pts[i], y = line.pts[i + 1], z = line.pts[i + 2];
+          var r = Math.sqrt(x * x + y * y + z * z);
+          ok(r >= 0.98, 'under the surface');
+          ok(r <= W.mpR(b, Math.acos(Math.max(-1, Math.min(1, x / r)))) * 1.0001, 'outside the magnetopause: L ' + line.L + ' phi ' + line.phi);
+        }
+      });
+    });
+  });
+});
+
 test('the dipole leans toward the Sun in northern summer, away in winter', function () {
   near(W.dipoleTilt([0, 0, 1], [1, 0, 0], [0, 0, 1]), 0, 1e-12);
   ok(W.dipoleTilt([0.5, 0, 0.866], [1, 0, 0], [0, 0, 1]) > 0, 'toward');

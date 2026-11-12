@@ -136,6 +136,9 @@
   // The wind view shows this many Earth radii across a landscape screen (or down it,
   // whichever binds), and fewer on a portrait one, where the tail runs off the side.
   var WIND_SPAN = 62, WIND_SPAN_TALL = 44, WIND_SPAN_PORTRAIT = 34;
+  // On a landscape screen the Earth stands just left of the middle, so the wind coming
+  // in and the shock it meets have the left half and the tail the right.
+  var WIND_EARTH_X = 0.47;
   // The sun view fills the screen with the model. The Sun stands left of centre and the
   // Earth right of it, at these fractions of the width, so the wind crosses the screen
   // the way it does in the wind view; that sets the scale. On a short, wide window the
@@ -1296,7 +1299,7 @@
       aim = spaceAim();
       var pxRe = portrait() ? w / WIND_SPAN_PORTRAIT : Math.min(w / WIND_SPAN, h / WIND_SPAN_TALL);
       mid = (clearTop + (clearBottom > clearTop ? clearBottom : h)) / 2;
-      return { lat: aim.lat, lon: aim.lon, roll: aim.roll, cx: portrait() ? 0.56 : 0.36, cy: mid / h,
+      return { lat: aim.lat, lon: aim.lon, roll: aim.roll, cx: portrait() ? 0.56 : WIND_EARTH_X, cy: mid / h,
         size: pxRe / frame(), dim: v.dim, tilt: 0 };
     }
     if (id === 'sun') {
@@ -1383,6 +1386,40 @@
     target.tilt = a.tilt + (b.tilt - a.tilt) * tt;
   }
 
+  /*
+   * The wobble. In the wind view a drag swings the camera a little way round the
+   * Earth, enough to show that what is drawn there has depth, and letting go eases it
+   * back to side-on, the view that keeps the Sun off to the left. Left alone it sways
+   * by a degree or two, so the depth shows without being asked for. A mouse drags it
+   * both ways; a finger only sideways, since up and down has to keep scrolling. Under
+   * reduced motion there is no sway and it returns at once.
+   */
+  var WOBBLE_MAX = 22; // degrees either way
+  var WOBBLE_PER_PX = 0.12;
+  var WOBBLE_BACK = 2.6; // per second
+  var WOBBLE_SWAY = [2.4, 1.1]; // degrees, sideways and up and down
+  var wobble = { yaw: 0, pitch: 0 };
+  var wobbling = false, wobbleMouse = false;
+  var WIND = ids.indexOf('wind');
+
+  // All of it in the wind view, none by a third of the way to either neighbour.
+  function wobbleShare() {
+    if (WIND < 0) { return 0; }
+    return Math.max(0, Math.min(1, 1.5 - Math.abs(progress - WIND) / 0.22));
+  }
+
+  function stepWobble(dt) {
+    if (wobbling) { return; }
+    var ty = 0, tp = 0;
+    if (!reducedMotion && wobbleShare() > 0) {
+      ty = WOBBLE_SWAY[0] * Math.sin(clockS * 0.31);
+      tp = WOBBLE_SWAY[1] * Math.sin(clockS * 0.23 + 1.3);
+    }
+    var k = reducedMotion ? 1 : 1 - Math.exp(-WOBBLE_BACK * dt);
+    wobble.yaw += (ty - wobble.yaw) * k;
+    wobble.pitch += (tp - wobble.pitch) * k;
+  }
+
   // How much of a sideways spin still shows: all of it from north down, none from space.
   function spinShare() {
     return Math.max(0, Math.min(1, progress - (NORTH - 1)));
@@ -1412,6 +1449,8 @@
       KEYS.forEach(function (key) { cam[key] = target[key]; });
     }
     cam.size = Math.exp(cam.ls);
+
+    stepWobble(dt);
 
     if (resetFrom !== null) {
       resetT = Math.min(1, resetT + dt * 1000 / RESET_MS);
@@ -1460,6 +1499,24 @@
     basis[0] = cr * e[0] + sr * n[0]; basis[1] = cr * e[1] + sr * n[1]; basis[2] = cr * e[2] + sr * n[2];
     basis[3] = cr * n[0] - sr * e[0]; basis[4] = cr * n[1] - sr * e[1]; basis[5] = cr * n[2] - sr * e[2];
     basis[6] = cl * co; basis[7] = cl * so; basis[8] = sl;
+    // The wobble, in the wind view: the camera swung a little round the Earth, first
+    // about the screen's upright, then about its level.
+    var share = wobbleShare();
+    if (share > 0 && (wobble.yaw || wobble.pitch)) {
+      var k, a, b;
+      var cy = Math.cos(wobble.yaw * share * DEG), sy = Math.sin(wobble.yaw * share * DEG);
+      for (k = 0; k < 3; k++) {
+        a = basis[k]; b = basis[6 + k];
+        basis[k] = a * cy + b * sy;
+        basis[6 + k] = b * cy - a * sy;
+      }
+      var cp = Math.cos(wobble.pitch * share * DEG), sp = Math.sin(wobble.pitch * share * DEG);
+      for (k = 0; k < 3; k++) {
+        a = basis[3 + k]; b = basis[6 + k];
+        basis[3 + k] = a * cp + b * sp;
+        basis[6 + k] = b * cp - a * sp;
+      }
+    }
     eye[0] = basis[6] * CAMERA_DIST;
     eye[1] = basis[7] * CAMERA_DIST;
     eye[2] = basis[8] * CAMERA_DIST;
@@ -1806,7 +1863,7 @@
   }
 
   function drawOverlay() {
-    var key = [cam.lat, cam.lon, cam.roll, cam.cx, cam.cy, cam.size, cam.dim, cam.tilt, spin, place.lat, place.lon, place.label, fontsReady,
+    var key = [cam.lat, cam.lon, cam.roll, cam.cx, cam.cy, cam.size, cam.dim, cam.tilt, spin, wobble.yaw.toFixed(2), wobble.pitch.toFixed(2), place.lat, place.lon, place.label, fontsReady,
       sunDir[0].toFixed(4), sunDir[1].toFixed(4), sunDir[2].toFixed(4)].join();
     for (var li = 0; li < layers.length; li++) {
       if (layers[li].ready && layers[li].overlayKey) { key += '|' + layers[li].overlayKey(scene); }
@@ -2078,7 +2135,19 @@
   function onDown(e) {
     if (e.button !== undefined && e.button !== 0) { return; }
     if (interactive(e.target)) { return; }
-    if (spinShare() < 0.5) { return; } // from space the view is set by the Sun, not by hand
+    wobbling = false;
+    if (spinShare() < 0.5) {
+      // From space the view is set by the Sun, not by hand, but for the wind view's wobble.
+      if (wobbleShare() < 0.5) { return; }
+      wobbleMouse = e.pointerType === 'mouse';
+      dragId = e.pointerId;
+      dragX = e.clientX;
+      dragY = e.clientY;
+      dragAxis = wobbleMouse ? 'w' : null;
+      wobbling = wobbleMouse;
+      if (wobbling) { document.body.classList.add('is-spinning'); }
+      return;
+    }
     dragId = e.pointerId;
     dragX = e.clientX;
     dragY = e.clientY;
@@ -2095,6 +2164,25 @@
   function onMove(e) {
     if (e.pointerId !== dragId) { return; }
     var dx = e.clientX - dragX, dy = e.clientY - dragY;
+    if (spinShare() < 0.5) {
+      // The wobble. A finger's drag has first to show itself as sideways.
+      if (!dragAxis) {
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) { return; }
+        dragAxis = Math.abs(dx) > Math.abs(dy) ? 'w' : 'y';
+        if (dragAxis === 'w') {
+          wobbling = true;
+          document.body.classList.add('is-spinning');
+          if (e.target.setPointerCapture) { try { e.target.setPointerCapture(e.pointerId); } catch (err) { /* already released */ } }
+        }
+      }
+      if (dragAxis !== 'w') { return; }
+      wobble.yaw = Math.max(-WOBBLE_MAX, Math.min(WOBBLE_MAX, wobble.yaw + dx * WOBBLE_PER_PX));
+      if (wobbleMouse) { wobble.pitch = Math.max(-WOBBLE_MAX, Math.min(WOBBLE_MAX, wobble.pitch + dy * WOBBLE_PER_PX)); }
+      dragX = e.clientX;
+      dragY = e.clientY;
+      e.preventDefault();
+      return;
+    }
     if (!dragAxis) {
       if (Math.abs(dx) < 6 && Math.abs(dy) < 6) { return; }
       dragAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
@@ -2121,6 +2209,7 @@
     dragId = null;
     if (dragging && performance.now() - dragT > 80) { spinVel = 0; }
     dragging = false;
+    wobbling = false;
     document.body.classList.remove('is-spinning');
   }
 
