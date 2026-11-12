@@ -130,7 +130,7 @@
   // The model's streaks.
   var HELIO_HOURS_PER_S = 10;
   var HELIO_TRAIL_S = 0.55;
-  var HELIO_COUNT = 4200, HELIO_COUNT_NARROW = 1800;
+  var HELIO_COUNT = 7000, HELIO_COUNT_NARROW = 3000; // out to 4.1 AU, of which about 60% on screen
   var HELIO_STREAK_ALPHA = 0.42;
   var KMS_TO_AU_PER_H = 3600 / 1.495978707e8;
 
@@ -850,11 +850,16 @@
     return rOut + Math.max(FADE_AU[0], Math.min(FADE_AU[1], far - rOut));
   }
 
+  // rFar, where they have faded out, moves with the zoom, so it only fades them: they
+  // run on to a fixed rMax before starting again at the Sun. Recycling at rFar sent
+  // every one past it back to the Sun at once whenever the view changed, and they came
+  // out again as a single ring.
   function stepHelio(scene, dt, frame, sunX, sunY, rFar) {
     var m = Wind.state.atlasMeta;
     var want = scene.w < 700 ? HELIO_COUNT_NARROW : HELIO_COUNT;
     var rIn = m.r.first - 0.5 * m.r.step, rOut = m.r.first + (m.r.count - 0.5) * m.r.step;
-    while (helio.length < want) { helio.push(spawnHelio({}, rIn, rFar, true)); }
+    var rMax = rOut + FADE_AU[1];
+    while (helio.length < want) { helio.push(spawnHelio({}, rIn, rMax, true)); }
     helio.length = want;
 
     var st = Math.sin(scene.tilt * Math.PI / 2);
@@ -869,11 +874,11 @@
       var v = null;
       if (p.r <= rOut) {
         v = Wind.speedAt(p.r, p.a, k);
-      } else if (p.r <= rFar) {
+      } else if (p.r <= rMax) {
         v = p.v > 0 ? p.v : Wind.speedAt(rOut, p.a, k);
       }
       if (v === null) {
-        spawnHelio(p, rIn, rFar, false);
+        spawnHelio(p, rIn, rMax, false);
         v = Wind.speedAt(p.r, p.a, k);
         if (v === null) { continue; }
       }
