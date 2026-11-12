@@ -184,7 +184,11 @@
       '  float wr = fwidth(r) + 1e-6;',
       '  float rIn = uR.x - 0.5 * uR.y, rOut = uR.x + (uR.z - 0.5) * uR.y;',
       '  float inside = clamp((r - rIn) / wr + 0.5, 0.0, 1.0) * clamp((rOut - r) / wr + 0.5, 0.0, 1.0);',
-      '  float a = ((atan(p.y, p.x) / DEG - uLon.x) / uLon.y + 0.5) / uLon.z;',
+      // Longitude. A pixel row centred exactly on the Sun-Earth line has p.y of 0, and
+      // on the far side of the Sun some GL implementations then give atan as 0, not
+      // pi, which paints that one row with the Earth's side of the model. The nudge
+      // keeps it off zero and is far too small to move anything else.
+      '  float a = ((atan(p.y + 1e-9, p.x) / DEG - uLon.x) / uLon.y + 0.5) / uLon.z;',
       '  float v = speedAt(a, clamp(r, rIn, rOut));',
       '  vec4 acc = over(vec4(0.0), rampAt(v), inside * uData * ' + FIELD_ALPHA.toFixed(2) + ');',
       // The rings, with or without a run: where the model starts and ends, and each half AU.
