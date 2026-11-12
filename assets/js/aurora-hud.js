@@ -560,7 +560,7 @@
     } else {
       var px = G && G.pxPerReAt ? G.pxPerReAt('wind') : 0;
       var times = px > 0 ? Math.round(V.speedup(px) / 10) * 10 : 0;
-      text('wind-legend-note', 'The streaks are the wind measured at L1, carried to the Earth: their colour and speed follow its speed, their number its density.'
+      text('wind-legend-note', 'The streaks are the wind measured at L1, carried to the Earth: their colour and speed follow its speed (a warm white when slow, through gold to red when fast), their number its density.'
         + (times ? ' They run about ' + times + ' times faster than life.' : ''));
     }
   }

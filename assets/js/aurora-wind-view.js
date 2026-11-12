@@ -49,8 +49,11 @@
  * and read as noise), and the model's north-south cut through the Earth, drawn side-on
  * before the camera rose (deep inside it, it was a flat wash over the whole screen).
  *
- * The speed ramp is --wind-1 to --wind-6 in aurora.css: one hue, darker for slow,
- * near white for fast, the one colour family nothing else on the page uses.
+ * Two speed ramps, both in aurora.css. From the Sun, --wind-1 to --wind-6: one hue,
+ * darker for slow, near white for fast, since the field fills the screen and slow wind
+ * should recede. At the Earth, --gust-1 to --gust-6: the streaks are light on a dark
+ * ground, so slow wind is a warm white and fast wind runs through gold to red. The two
+ * cross as the camera moves between the views, each fading with what it colours.
  *
  * Under reduced motion the streaks are drawn where they stand and do not move.
  */
@@ -122,7 +125,7 @@
   // How far a streak's colour is taken from the ramp toward the ink. The ramp's slow end
   // is close to the ground, which suits a field that fills the screen and would lose a
   // one-pixel streak, so the wind's own streaks are lifted well clear of it.
-  var NEAR_LIFT = 0.45;
+  var NEAR_LIFT = 0.08;
 
   // The model's streaks.
   var HELIO_HOURS_PER_S = 10;
@@ -147,11 +150,16 @@
   }
 
   var RAMP_FALLBACK = ['#16264d', '#1e418a', '#2c68cc', '#5b9aec', '#a5ccf8', '#eaf4fe'];
-  var ramp = [], ink = [0.93, 0.91, 0.89];
+  var GUST_FALLBACK = ['#fbf3e4', '#fbe2a6', '#f8c062', '#f4933c', '#ea6232', '#d83a3c'];
+  var ramp = [], gust = [], ink = [0.93, 0.91, 0.89];
 
   function readColors() {
     ramp = [];
-    for (var i = 0; i < 6; i++) { ramp = ramp.concat(cssColor('--wind-' + (i + 1), RAMP_FALLBACK[i])); }
+    gust = [];
+    for (var i = 0; i < 6; i++) {
+      ramp = ramp.concat(cssColor('--wind-' + (i + 1), RAMP_FALLBACK[i]));
+      gust = gust.concat(cssColor('--gust-' + (i + 1), GUST_FALLBACK[i]));
+    }
     ink = cssColor('--ink', '#ece9e2');
   }
 
@@ -375,7 +383,9 @@
       '    float nose = 0.07 + 0.93 * pow(smoothstep(-0.95, 1.0, c), 1.6);',
       '    float across = smoothstep(0.0, 0.14, k) * smoothstep(1.0, 0.94, k) * (0.4 + 0.6 * k * k);',
       '    float front = smoothstep(0.78, 0.95, k) * smoothstep(1.0, 0.95, k);',
-      '    sum += nose * (across + 1.4 * front);',
+      // Far down the tail the samples are too few for so thin a shell, and it is past
+      // what the view at the Earth shows, so the glow is let go before then.
+      '    sum += nose * (across + 1.4 * front) * (1.0 - smoothstep(55.0, 100.0, r));',
       '  }',
       '  float light = 1.0 - exp(-sum * (2.0 * ' + SHEATH_DEPTH.toFixed(1) + ' / n) * uGain);',
       '  light *= smoothstep(uKeepOut.x, uKeepOut.y, frag.y) * uAlpha;',
@@ -751,7 +761,7 @@
     } else {
       gl.uniform3f(u.uKeepOut, -2, -1, kit.canvas.height);
     }
-    gl.uniform3fv(u.uRamp, ramp);
+    gl.uniform3fv(u.uRamp, o.ramp || ramp);
     gl.uniform1fv(u.uStops, STOPS);
   }
 
@@ -778,8 +788,9 @@
     // Brighter with pressure, by its logarithm: 2 nPa is an ordinary day.
     gl.uniform1f(u.uGain, SHEATH_GAIN * Math.max(0.5, Math.min(2.6, 1 + 0.55 * Math.log(shape.pd / 2) / Math.LN2)));
     gl.uniform1f(u.uAlpha, magA);
-    // The ramp's colour at 600 km/s, a little toward the ink: the wind's own family.
-    gl.uniform3f(u.uColor, ramp[9] * 0.8 + ink[0] * 0.2, ramp[10] * 0.8 + ink[1] * 0.2, ramp[11] * 0.8 + ink[2] * 0.2);
+    // The warm ramp's gold: the wind's own family at the Earth, whatever its speed, so
+    // that the glow stays a ground for the streaks and their colour says how fast.
+    gl.uniform3f(u.uColor, gust[6] * 0.7 + gust[9] * 0.3, gust[7] * 0.7 + gust[10] * 0.3, gust[8] * 0.7 + gust[11] * 0.3);
     gl.uniform1i(u.uSteps, scene.w < 700 ? SHEATH_STEPS_NARROW : SHEATH_STEPS);
     gl.uniform3f(u.uKeepOut, HEAD_CLEAR[0] * s, HEAD_CLEAR[1] * s, kit.canvas.height);
     gl.bindVertexArray(emptyVao);
@@ -808,9 +819,9 @@
     stepNear(scene, dt, M);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE);
-    useSegs(scene, { alpha: nearA * NEAR_GLOW, bySpeed: true, lift: NEAR_LIFT, px: NEAR_GLOW_PX, soft: true });
+    useSegs(scene, { alpha: nearA * NEAR_GLOW, bySpeed: true, lift: NEAR_LIFT, px: NEAR_GLOW_PX, soft: true, ramp: gust });
     drawSegs(nearBuf);
-    useSegs(scene, { alpha: nearA, bySpeed: true, lift: NEAR_LIFT, px: STREAK_PX });
+    useSegs(scene, { alpha: nearA, bySpeed: true, lift: NEAR_LIFT, px: STREAK_PX, ramp: gust });
     drawSegs(nearBuf);
     gl.bindVertexArray(null);
   }

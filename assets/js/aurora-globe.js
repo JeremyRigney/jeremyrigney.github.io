@@ -1391,14 +1391,18 @@
    * Earth, enough to show that what is drawn there has depth, and letting go eases it
    * back to side-on, the view that keeps the Sun off to the left. Left alone it sways
    * by a degree or two, so the depth shows without being asked for. A mouse drags it
-   * both ways; a finger only sideways, since up and down has to keep scrolling. Under
-   * reduced motion there is no sway and it returns at once.
+   * both ways; a finger only sideways, since up and down has to keep scrolling. A
+   * mouse merely moving over the view leans it a few degrees toward the pointer, which
+   * is the hint that it can be taken hold of. Under reduced motion there is no sway and
+   * no lean, and it returns at once.
    */
   var WOBBLE_MAX = 22; // degrees either way
   var WOBBLE_PER_PX = 0.12;
   var WOBBLE_BACK = 2.6; // per second
   var WOBBLE_SWAY = [2.4, 1.1]; // degrees, sideways and up and down
+  var WOBBLE_HOVER = [7, 4]; // degrees at the screen's edge, sideways and up and down
   var wobble = { yaw: 0, pitch: 0 };
+  var hover = { yaw: 0, pitch: 0 };
   var wobbling = false, wobbleMouse = false;
   var WIND = ids.indexOf('wind');
 
@@ -1414,6 +1418,8 @@
     if (!reducedMotion && wobbleShare() > 0) {
       ty = WOBBLE_SWAY[0] * Math.sin(clockS * 0.31);
       tp = WOBBLE_SWAY[1] * Math.sin(clockS * 0.23 + 1.3);
+      ty += hover.yaw;
+      tp += hover.pitch;
     }
     var k = reducedMotion ? 1 : 1 - Math.exp(-WOBBLE_BACK * dt);
     wobble.yaw += (ty - wobble.yaw) * k;
@@ -2161,8 +2167,20 @@
     lastTap = now;
   }
 
+  // A mouse over the wind view, no button down: lean toward it.
+  function onHover(e) {
+    if (reducedMotion || e.pointerType !== 'mouse') { return; }
+    hover.yaw = WOBBLE_HOVER[0] * Math.max(-1, Math.min(1, e.clientX / Math.max(1, window.innerWidth) * 2 - 1));
+    hover.pitch = WOBBLE_HOVER[1] * Math.max(-1, Math.min(1, e.clientY / Math.max(1, window.innerHeight) * 2 - 1));
+  }
+
+  function onLeave() {
+    hover.yaw = 0;
+    hover.pitch = 0;
+  }
+
   function onMove(e) {
-    if (e.pointerId !== dragId) { return; }
+    if (e.pointerId !== dragId) { onHover(e); return; }
     var dx = e.clientX - dragX, dy = e.clientY - dragY;
     if (spinShare() < 0.5) {
       // The wobble. A finger's drag has first to show itself as sideways.
@@ -2263,6 +2281,7 @@
       window.addEventListener('pointermove', onMove, { passive: false });
       window.addEventListener('pointerup', onUp);
       window.addEventListener('pointercancel', onUp);
+      document.documentElement.addEventListener('pointerleave', onLeave);
       views.addEventListener('dblclick', function (e) { if (!interactive(e.target)) { resetSpin(); } });
     }
     window.addEventListener('keydown', onKey);

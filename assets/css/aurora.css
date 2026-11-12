@@ -86,6 +86,17 @@
   --wind-5: #a5ccf8;
   --wind-6: #eaf4fe;
 
+  /* The same speeds at the Earth, where the wind is streaks of light on the dark and
+     not a field: slow is a warm white, the commonest wind and so the plain one, and a
+     fast stream heats through gold to red. Amber here is also the city lights' and
+     orange the 3-sigma mark's, but neither is on the screen in this view. */
+  --gust-1: #fbf3e4;
+  --gust-2: #fbe2a6;
+  --gust-3: #f8c062;
+  --gust-4: #f4933c;
+  --gust-5: #ea6232;
+  --gust-6: #d83a3c;
+
   /* The globe (aurora-globe.js): the space behind it, top to bottom of the
      screen, the haze above the limb, the earth by night and in full sun, its
      coasts, the place marker, and the night side's lights. */
@@ -1953,6 +1964,11 @@ body:is([data-view="sun"], [data-view="wind"]) .legend > :is(.legend-seen, .lege
   border-radius: var(--r-pill);
   background: linear-gradient(90deg, var(--wind-1) 0%, var(--wind-2) 20%, var(--wind-3) 40%,
     var(--wind-4) 60%, var(--wind-5) 80%, var(--wind-6) 100%);
+}
+
+body[data-view="wind"] .legend-bar-wind {
+  background: linear-gradient(90deg, var(--gust-1) 0%, var(--gust-2) 20%, var(--gust-3) 40%,
+    var(--gust-4) 60%, var(--gust-5) 80%, var(--gust-6) 100%);
 }
 
 /* Each number stands on its colour: the ends flush, the rest centred on their fifths. */
