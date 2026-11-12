@@ -58,8 +58,8 @@
   var RESET_MS = 900;
   // A jump to another view glides there: this long, plus this much for each view it
   // passes (the Sun to the wind counting extra, for the three decades of zoom), capped.
-  var GLIDE_MS = [450, 650, 3000];
-  var GLIDE_SUN_WIND = 1.6;
+  var GLIDE_MS = [450, 650, 5200];
+  var GLIDE_SUN_WIND = 5; // nearer the camera's own pace there (PACE_RISE, PACE_ZOOM)
 
   var LINE_PX = 1; // coastlines, CSS px
 
@@ -162,6 +162,12 @@
   // decade, where the Sun comes into frame. ZOOM_EASE is the exponent of that ease.
   var TILT_SPAN = [0.6, 0.97];
   var RISE_ZOOM = 0.19;
+  // However quickly the page is scrolled (a snap carries a whole view in a fraction of
+  // a second), the camera keeps to these paces, in views a second: through the rise,
+  // slow enough to watch the Moon's orbit open and L1 swing under the Earth; through
+  // the zoom to the Sun a little quicker; elsewhere about as fast as a snap.
+  var PACE_RISE = 0.1, PACE_ZOOM = 0.5, PACE = 4;
+  var PACE_EASE = 4; // per second: how it slows into a view, and gathers speed
   var ZOOM_EASE = 2.2;
 
   // The globe's fine lines (graticule, contours, coasts, labels) fade out between these
@@ -1230,6 +1236,11 @@
   var spin = 0, spinVel = 0; // degrees, degrees per second
   var resetFrom = null, resetT = 0;
   var progress = NORTH;
+  // Where the camera is among the views: progress, at the paces above.
+  var shownAt = NORTH, shownVel = 0;
+  // Until the reader first scrolls or clicks, the camera is wherever the page is: the
+  // browser's own move to a #view after load is not a journey to watch.
+  var settledIn = false;
 
   var basis = new Float32Array(9);
   var eye = [0, 0, CAMERA_DIST];
@@ -1357,6 +1368,7 @@
       break;
     }
     progress = Math.max(0, Math.min(ids.length - 1, p));
+    if (!settledIn) { shownAt = progress; shownVel = 0; }
 
     var nearest = ids[Math.round(progress)];
     if (document.body.getAttribute('data-view') !== nearest) {
@@ -1458,8 +1470,31 @@
 
   // The framing that position asks for. Worked out every frame, not only on a scroll:
   // the views from space follow the Sun, which the time slider can move.
+  // The pace allowed at a position: slow between the sun and the wind views, slowest
+  // where the camera turns over the ecliptic (TILT_SPAN, in aim's eased terms).
+  function paceAt(at) {
+    var s = ids.indexOf('sun');
+    if (s < 0 || at < s || at > s + 1 || ids[s + 1] !== 'wind') { return PACE; }
+    var e = easeInOut(at - s);
+    return e > TILT_SPAN[0] - 0.05 && e < TILT_SPAN[1] ? PACE_RISE : PACE_ZOOM;
+  }
+
+  // shownAt after dt: toward progress, gathering speed and slowing into it, never
+  // faster than the pace where it is, and never past it.
+  function stepShown(dt) {
+    if (reducedMotion || dt <= 0) { shownAt = progress; shownVel = 0; return; }
+    var gap = progress - shownAt;
+    if (Math.abs(gap) < 1e-4 && Math.abs(shownVel) < 1e-3) { shownAt = progress; shownVel = 0; return; }
+    var cap = paceAt(shownAt);
+    var want = Math.max(-cap, Math.min(cap, gap * PACE_EASE));
+    shownVel += (want - shownVel) * (1 - Math.exp(-PACE_EASE * 2 * dt));
+    var next = shownAt + shownVel * dt;
+    if ((progress - next) * gap <= 0) { next = progress; shownVel = 0; }
+    shownAt = next;
+  }
+
   function aim() {
-    var at = reducedMotion ? Math.round(progress) : progress;
+    var at = reducedMotion ? Math.round(progress) : shownAt;
     var i0 = Math.min(ids.length - 1, Math.floor(at));
     var i1 = Math.min(ids.length - 1, i0 + 1);
     var t = easeInOut(at - i0);
@@ -2148,7 +2183,7 @@
   // fade, the slider being scrubbed or played, or a layer with something in motion.
   function moving() {
     var M = window.AuroraModel;
-    if (dragging || spinVel !== 0 || resetFrom !== null || layer !== layerTarget || dataMix < 1
+    if (dragging || spinVel !== 0 || shownAt !== progress || resetFrom !== null || layer !== layerTarget || dataMix < 1
       || (M ? M.viewTime : null) !== drawnViewTime
       || (earthImage && earthReady < 1)
       || (nameCanvas && nameReady < 1)) { return true; }
@@ -2208,6 +2243,7 @@
     }
 
     if (readClearance()) { readScroll(); }
+    stepShown(dt);
     aim();
     stepCamera(dt);
     applyCamera();
@@ -2380,11 +2416,16 @@
     sunFor(new Date());
     resize();
     // Start framed for this screen: the camera eases between views, not in from nowhere.
+    readScroll();
+    shownAt = progress;
     aim();
     KEYS.forEach(function (key) { cam[key] = target[key]; });
     cam.size = Math.exp(cam.ls);
     window.addEventListener('resize', resize);
     window.addEventListener('scroll', readScroll, { passive: true });
+    ['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach(function (t) {
+      window.addEventListener(t, function () { settledIn = true; }, { capture: true, passive: true, once: true });
+    });
     if (views) {
       views.addEventListener('pointerdown', onDown);
       window.addEventListener('pointermove', onMove, { passive: false });
