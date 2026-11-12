@@ -153,14 +153,16 @@
   var SUN_REACH_AU = 1.45;
   var SUN_EARTH_ROOM = 96;
 
-  // Leaving the wind view for the sun, the zoom runs fast at first and settles: most of
-  // the scroll is spent on the last decade, where the Sun comes into frame and the
-  // camera rises over the ecliptic. This is the exponent of that ease.
+  // Leaving the wind view for the sun, in two moves. First the camera rises over the
+  // ecliptic, from side-on to its north, while it is still close enough for the
+  // magnetosphere and the Moon's orbit to turn in front of it: over the stretch of the
+  // way from the sun view to the wind view (0 to 1) in TILT_SPAN, pulling back only
+  // RISE_ZOOM of the zoom's span of decades. Then, looking straight down, it pulls back
+  // to the Sun, fast at first and settling: most of that scroll is spent on the last
+  // decade, where the Sun comes into frame. ZOOM_EASE is the exponent of that ease.
+  var TILT_SPAN = [0.6, 0.97];
+  var RISE_ZOOM = 0.19;
   var ZOOM_EASE = 2.2;
-  // The camera rises over the ecliptic across this stretch of the way from the sun view
-  // to the wind view (0 to 1). The Sun comes into frame a little under half way, by when
-  // the ecliptic has begun to open; before then there is only the wind going by.
-  var TILT_SPAN = [0.08, 0.66];
 
   // The globe's fine lines (graticule, contours, coasts, labels) fade out between these
   // radii, in CSS px, and the globe itself between the last two.
@@ -1462,10 +1464,12 @@
     var i1 = Math.min(ids.length - 1, i0 + 1);
     var t = easeInOut(at - i0);
     var a = viewAt(i0), b = viewAt(i1);
-    // Between the sun and the wind the zoom and the tilt keep their own pace (ZOOM_EASE).
+    // Between the sun and the wind the zoom and the tilt keep their own pace: the rise
+    // first, then the zoom (see TILT_SPAN).
     var zt = t, tt = t;
     if (ids[i0] === 'sun' && ids[i1] === 'wind') {
-      zt = Math.pow(t, ZOOM_EASE);
+      var t1 = TILT_SPAN[0], z1 = 1 - RISE_ZOOM;
+      zt = t >= t1 ? z1 + RISE_ZOOM * (t - t1) / (1 - t1) : z1 * Math.pow(t / t1, ZOOM_EASE);
       tt = smooth(TILT_SPAN[0], TILT_SPAN[1], t);
     }
     target.lat = a.lat + (b.lat - a.lat) * t;
@@ -1597,6 +1601,19 @@
     basis[0] = cr * e[0] + sr * n[0]; basis[1] = cr * e[1] + sr * n[1]; basis[2] = cr * e[2] + sr * n[2];
     basis[3] = cr * n[0] - sr * e[0]; basis[4] = cr * n[1] - sr * e[1]; basis[5] = cr * n[2] - sr * e[2];
     basis[6] = cl * co; basis[7] = cl * so; basis[8] = sl;
+    // The rise over the ecliptic, between the wind and the sun views: a real turn of
+    // the camera about the Sun-Earth line (the screen's level, there), from the dusk
+    // side up to the ecliptic's north, so that the Earth, its magnetosphere and the wind
+    // round it turn with the model's plane as it opens. That plane is drawn flat, seen
+    // from above by sin(tilt * 90 degrees), which is just this turn's foreshortening.
+    if (cam.tilt > 1e-4) {
+      var ct = Math.cos(cam.tilt * Math.PI / 2), st = Math.sin(cam.tilt * Math.PI / 2);
+      for (var j = 0; j < 3; j++) {
+        var u0 = basis[3 + j], o0 = basis[6 + j];
+        basis[3 + j] = u0 * ct - o0 * st;
+        basis[6 + j] = o0 * ct + u0 * st;
+      }
+    }
     // The wobble, in the wind view: the camera swung a little round the Earth, first
     // about the screen's upright, then about its level.
     var share = wobbleShare();

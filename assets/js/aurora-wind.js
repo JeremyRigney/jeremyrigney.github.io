@@ -368,6 +368,25 @@
     });
   }
 
+  /*
+   * The Moon, from the Earth, in the magnetosphere's axes (GSE): x toward the Sun, y
+   * toward dusk in the ecliptic, z to its north; Earth radii. The few largest terms of
+   * its motion and the Sun's (the Astronomical Almanac's low-precision formulae), good
+   * to about a degree and a couple of Earth radii, which at this scale is a pixel or two.
+   */
+  function moon(date) {
+    var d = date.getTime() / 86400000 - 10957.5; // days from J2000.0
+    var M = (134.963 + 13.064993 * d) * DEG; // the Moon's mean anomaly
+    var F = (93.272 + 13.229350 * d) * DEG; // its argument of latitude
+    var lon = 218.316 + 13.176396 * d + 6.289 * Math.sin(M);
+    var lat = 5.128 * Math.sin(F) * DEG;
+    var km = 385001 - 20905 * Math.cos(M);
+    var g = (357.529 + 0.98560028 * d) * DEG; // the Sun's mean anomaly
+    var sun = 280.459 + 0.98564736 * d + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g);
+    var from = (lon - sun) * DEG, r = km / 6371.0;
+    return { x: r * Math.cos(lat) * Math.cos(from), y: r * Math.cos(lat) * Math.sin(from), z: r * Math.sin(lat), r: r };
+  }
+
   /* ---------- The model run ---------- */
 
   var state = {
@@ -583,6 +602,7 @@
     // the planets
     planet: planet,
     planets: planets,
+    moon: moon,
     // the model
     accept: accept,
     frameAt: frameAt,

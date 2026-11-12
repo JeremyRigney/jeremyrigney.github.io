@@ -211,6 +211,16 @@ test('Venus and Mercury pass between us and the Sun on their conjunction dates',
   near(lonOf('venus', '2025-03-23T01:00:00').r, 0.72, 0.01);
 });
 
+test('the Moon is sunward when new, behind us when full, and on the dusk side at first quarter', function () {
+  function angle(when) { var m = W.moon(utc(when)); return Math.atan2(m.y, m.x) * 180 / Math.PI; }
+  near(angle('2024-01-11T11:57:00'), 0, 1.5, 'new, 11 January 2024');
+  near(Math.abs(angle('2024-01-25T17:54:00')), 180, 1.5, 'full, 25 January 2024');
+  near(angle('2024-01-18T03:53:00'), 90, 1.5, 'first quarter, 18 January 2024');
+  var m = W.moon(utc('2026-11-11T21:00:00'));
+  ok(m.r > 55 && m.r < 65, 'distance ' + m.r);
+  ok(Math.abs(m.z) < 0.1 * m.r, 'near the ecliptic');
+});
+
 /* ---------- the model run ---------- */
 
 // Three frames two hours apart, 4 radii x 4 longitudes; a byte is 4 km/s from 200. Speed

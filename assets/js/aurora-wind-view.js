@@ -1033,10 +1033,54 @@
     label(ctx, scene, text, x, y, a, weight);
   }
 
-  // Where a boundary's strongest meridian is on screen, at an angle from the Sun-Earth line.
+  // Where a boundary is on screen, at an angle from the Sun-Earth line. The boundaries
+  // turn about that line, so their outline is the meridian facing the camera: the one
+  // through the screen's upright, side-on or from above.
   function onCurve(scene, radius, deg) {
-    var t = deg * DEG, r = radius(shape, t);
-    return onScreen(scene, axes(scene), r * Math.cos(t), 0, r * Math.sin(t));
+    var t = deg * DEG, r = radius(shape, t), M = axes(scene);
+    var uy = M.up[1], uz = M.up[2], ul = Math.sqrt(uy * uy + uz * uz) || 1;
+    return onScreen(scene, M, r * Math.cos(t), r * Math.sin(t) * uy / ul, r * Math.sin(t) * uz / ul);
+  }
+
+  /*
+   * The Moon's orbit, round the Earth in the ecliptic (it is tilted from it by five
+   * degrees), and the Moon on it. Side-on it is a line through the Earth, so it shows
+   * only as the camera rises between the wind and the sun views, opening as it does,
+   * so the rise reads as a turn and not a change of picture; it goes when it is small.
+   */
+  var MOON_ORBIT_RE = 60.3;
+  var moonAt = 0, moonPos = null;
+
+  function overlayMoon(ctx, scene) {
+    var st = Math.sin(scene.tilt * Math.PI / 2);
+    var rPx = MOON_ORBIT_RE * scene.pxPerRe, big = Math.max(scene.w, scene.h);
+    var a = smooth(0.05, 0.3, st) * smooth(14, 40, rPx) * (1 - smooth(1.5 * big, 3 * big, rPx)) * scene.dim;
+    if (a < 0.02) { return; }
+    var M = axes(scene);
+    ctx.save();
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 4]);
+    ctx.strokeStyle = rgba(ink, 0.55 * a);
+    ctx.beginPath();
+    for (var i = 0; i <= 180; i++) {
+      var t = i / 180 * Math.PI * 2;
+      var q = onScreen(scene, M, MOON_ORBIT_RE * Math.cos(t), MOON_ORBIT_RE * Math.sin(t), 0);
+      if (i === 0) { ctx.moveTo(q.x, q.y); } else { ctx.lineTo(q.x, q.y); }
+    }
+    ctx.stroke();
+    ctx.restore();
+    if (!moonPos || Math.abs(scene.time - moonAt) > 300000) {
+      moonPos = Wind.moon(new Date(scene.time));
+      moonAt = scene.time;
+    }
+    var m = onScreen(scene, M, moonPos.x, moonPos.y, moonPos.z);
+    if (m.x < -20 || m.x > scene.w + 20 || m.y < scene.clearTop || m.y > scene.h) { return; }
+    dot(ctx, scene, m.x, m.y, 2.5, 0.95 * a);
+    if (scene.fontsReady) {
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      named(ctx, scene, 'MOON', m.x + 9, m.y, 0.9 * a, 500);
+    }
   }
 
   // A name set along a boundary, as the globe sets DAY and NIGHT along the terminator.
@@ -1246,6 +1290,7 @@
   function overlay(ctx, scene) {
     weigh(scene);
     overlayHelio(ctx, scene);
+    overlayMoon(ctx, scene);
     overlayL1(ctx, scene);
     overlayMag(ctx, scene);
   }
