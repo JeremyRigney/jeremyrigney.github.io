@@ -236,6 +236,10 @@
     var note = document.querySelector('.legend-model');
     if (note) { note.hidden = !(f0 && f0.modelMix > 0); }
     var v = view();
+    if (v === 'sun') {
+      renderGoesTime();
+      return;
+    }
     if (Wind && (v === 'wind' || v === 'l1' || v === 'system')) {
       renderSpaceTimes(v);
       return;
@@ -548,6 +552,41 @@
     stale('times', Wind.stale());
   }
 
+  // The Sun view: the time shown, and which of NOAA's pictures stands for it.
+  function renderGoesTime() {
+    var S = window.AuroraSun;
+    var t = shownTime(), live = isLive(), at = new Date(t);
+    var l = S ? S.lookup(t) : null;
+    var src = l ? (l.latest ? 'latest picture, ' : 'picture of ') + clock(new Date(l.a.t))
+      : S && S.state.failed ? 'NOAA’s pictures didn’t load' : 'loading NOAA’s pictures…';
+    html('times', '<span class="tag">GOES-19</span><span class="times-main"><b>' + clockHtml(live ? clock(at) : when(at)) + '</b></span>'
+      + '<span class="times-rel">' + escapeHtml(live ? 'now' : relative(at)) + '</span>'
+      + '<span class="times-src">' + escapeHtml(src) + '</span>');
+    stale('times', !!(S && S.state.failed));
+  }
+
+  // Its card: what the picture shows now, and how much of the day is in.
+  function renderGoes() {
+    var S = window.AuroraSun;
+    if (!S) { return; }
+    var st = S.state, n = st.frames.length, t = shownTime();
+    var l = S.lookup(t);
+    var verdict;
+    if (!n) {
+      verdict = st.failed ? 'NOAA’s pictures didn’t load. Retrying.' : 'Loading NOAA’s pictures…';
+    } else if (l.latest && t - l.a.t > 30 * 60000) {
+      verdict = 'No picture this far ahead: the latest, from ' + when(new Date(l.a.t)) + '.';
+    } else if (l.earliest) {
+      verdict = 'Before NOAA’s day of pictures: the earliest, from ' + when(new Date(l.a.t)) + '.';
+    } else {
+      verdict = 'The corona at 171 Å, about 600,000 K, at ' + when(new Date(l.a.t)) + '.';
+    }
+    text('goes-verdict', verdict);
+    var left = S.loading();
+    text('goes-frames', n ? n + ' of NOAA’s ' + st.list.length + ' pictures for the day loaded'
+      + (left ? ', ' + left + ' more on the way.' : '.') : ' ');
+  }
+
   // The legend from space: what the colours are of, and what the streaks are.
   function renderWindLegend() {
     var V = window.AuroraWindView, G = window.AuroraGlobe;
@@ -598,6 +637,7 @@
     renderLegend();
     renderWind();
     renderSun();
+    renderGoes();
     renderWindLegend();
   }
 
@@ -789,6 +829,7 @@
   document.addEventListener('aurora:model', renderAll);
   document.addEventListener('aurora:view', renderAll);
   document.addEventListener('aurora:wind', renderAll);
+  document.addEventListener('aurora:sun', onTime); // a frame in: as often as the slider's
 
   // The chips that lead to another view scroll there, smoothly where motion is welcome.
   Array.prototype.forEach.call(document.querySelectorAll('[data-go]'), function (a) {

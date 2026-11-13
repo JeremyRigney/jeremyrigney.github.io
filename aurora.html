@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/aurora.css?v=20261113b" />
+  <link rel="stylesheet" href="assets/css/aurora.css?v=20261113c" />
 
   <!-- Cookie consent: sets the Consent Mode defaults, so it must come before the Google tag -->
   <link rel="stylesheet" href="assets/css/consent.css?v=20261008" />
@@ -40,12 +40,13 @@
 </head>
 <body>
   <!--
-    The globe is one fixed stage behind five scrolling views. Scroll position drives
+    The globe is one fixed stage behind seven scrolling views. Scroll position drives
     the camera (aurora-globe.js). The page opens on the north, with Ireland in frame;
     below it the camera tilts to the south, then dims the globe behind the charts; above
     it the camera pulls back to the Earth in the solar wind, then rises over the
     ecliptic (the Moon's orbit opening round the Earth) to L1, then pulls back to the
-    Sun (aurora-wind-view.js). A sideways drag spins the globe; vertical drags still scroll. In the wind view a
+    planets (aurora-wind-view.js), then zooms into the Sun as GOES-19 sees it
+    (aurora-sun-view.js). A sideways drag spins the globe; vertical drags still scroll. In the wind view a
     drag swings the camera a few degrees instead, a mouse moving over it leans it, and
     it sways a little on its own. The wind's speed is in a warm ramp there and a blue
     one from the Sun.
@@ -170,13 +171,30 @@
       </div>
     </section>
 
+    <section class="top-seg top-goes" aria-labelledby="goes-seg-title">
+      <div class="top-seg-head">
+        <h2 class="top-label" id="goes-seg-title">The Sun, from GOES-19</h2>
+        <p class="place-verdict" data-bind="goes-verdict" aria-live="polite">&nbsp;</p>
+      </div>
+      <button type="button" class="more" aria-expanded="false" aria-controls="goes-seg-more"><span class="visually-hidden">The Sun: what this picture is, and how it is played back</span></button>
+      <div class="card-more top-more" id="goes-seg-more" hidden>
+        <p class="card-note"><b>SUVI</b>, the Solar Ultraviolet Imager on NOAA&rsquo;s GOES-19, photographs the Sun every few minutes in extreme ultraviolet. At <b>171&nbsp;&Aring;</b> the light is from iron at about 600,000&nbsp;K: it traces the corona&rsquo;s loops, brightest where the field arches over active regions.</p>
+        <p class="card-note">Dark gaps are <b>coronal holes</b>, where the field opens out into space and the fast solar wind streams away. Wind from one facing the Earth tends to reach it two to four days later: in the system view below, as a fast stream in NOAA&rsquo;s model.</p>
+        <p class="card-note">The picture is NOAA&rsquo;s own, face on with solar north up, as GOES sees it from the Earth; the camera does not turn to look along that line. It is to scale with the views below it.</p>
+        <p class="card-note">The time slider plays back NOAA&rsquo;s last 24 hours, loaded from NOAA as they are wanted: a frame an hour first, then one every 20 minutes on a wide screen. Ahead of now the latest picture stays up.</p>
+        <p class="card-meta" data-bind="goes-frames">&nbsp;</p>
+      </div>
+    </section>
+
     <!-- The way up, from the views with something above them. -->
     <a class="chip up-hint" href="#wind" data-go="wind">The solar wind</a>
     <a class="chip up-hint" href="#l1" data-go="l1">Out to L1</a>
     <a class="chip up-hint" href="#system" data-go="system">Out to the planets</a>
+    <a class="chip up-hint" href="#sun" data-go="sun">Into the Sun</a>
 
     <div class="header-controls">
       <nav class="seg view-index" aria-label="Views">
+        <a href="#sun" data-view="sun">Sun</a>
         <a href="#system" data-view="system">System</a>
         <a href="#l1" data-view="l1">L1</a>
         <a href="#wind" data-view="wind">Wind</a>
@@ -193,12 +211,17 @@
 
   <main class="views" id="views">
     <!--
-      Three views from space, above the one the page opens on: scrolling up from the
+      Four views from space, above the one the page opens on: scrolling up from the
       north pulls the camera back to the Earth in the solar wind, then rises over the
-      ecliptic to L1, where the wind is measured, then pulls back to the Sun. All are
-      drawn on the stage (aurora-wind-view.js); their readouts are in the top capsule,
+      ecliptic to L1, where the wind is measured, then pulls back to the planets, then
+      zooms into the Sun as GOES-19 sees it. All are drawn on the stage
+      (aurora-wind-view.js, aurora-sun-view.js); their readouts are in the top capsule,
       L1 sharing the wind view's.
     -->
+    <section class="view view-sun" id="sun" aria-labelledby="sun-title">
+      <h2 class="visually-hidden" id="sun-title">The Sun, as GOES-19 sees it, over the last 24 hours</h2>
+    </section>
+
     <section class="view view-system" id="system" aria-labelledby="system-title">
       <h2 class="visually-hidden" id="system-title">The solar wind, from the Sun out past the Earth</h2>
     </section>
@@ -357,6 +380,10 @@
         <div class="legend-ticks legend-ticks-steps" aria-hidden="true"><span>5</span><span>10</span><span>30</span><span>50</span><span>70</span><span>90</span></div>
         <p class="card-more card-note" id="legend-note-prob" hidden>The chance that aurora is visible straight up, assuming a clear, dark sky.</p>
       </div>
+      <div class="legend-goes">
+        <p class="card-title">The Sun at 171&nbsp;&Aring;</p>
+        <p class="card-meta">GOES-19 SUVI, in NOAA&rsquo;s colours</p>
+      </div>
       <div class="legend-wind">
         <p class="card-title">Wind speed</p>
         <p class="card-meta">km/s, <span data-bind="wind-legend-of">measured at L1</span></p>
@@ -380,13 +407,15 @@
   </noscript>
 
   <script src="assets/js/aurora-geo.js?v=20261111a"></script>
-  <script src="assets/js/aurora-globe.js?v=20261113e"></script>
+  <script src="assets/js/aurora-globe.js?v=20261113f"></script>
   <script src="assets/js/aurora-data.js?v=20261111a"></script>
   <script src="assets/js/aurora-model.js?v=20261028d"></script>
   <script src="assets/js/aurora-wind.js?v=20261112c"></script>
-  <script src="assets/js/aurora-wind-view.js?v=20261113c"></script>
-  <script src="assets/js/aurora-hud.js?v=20261113b"></script>
+  <script src="assets/js/aurora-wind-view.js?v=20261113d"></script>
+  <script src="assets/js/aurora-sun.js?v=20261113b"></script>
+  <script src="assets/js/aurora-sun-view.js?v=20261113a"></script>
+  <script src="assets/js/aurora-hud.js?v=20261113c"></script>
   <script src="assets/js/aurora-charts.js?v=20261103e"></script>
-  <script src="assets/js/aurora-timeline.js?v=20261103a"></script>
+  <script src="assets/js/aurora-timeline.js?v=20261113a"></script>
 </body>
 </html>

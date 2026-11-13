@@ -13,7 +13,8 @@
  * again every REFRESH and new frames join.
  *
  * Each frame is drawn down to SIZE px square and handed to the view through take(),
- * with a slot in its texture array; the full-size image is dropped. No GL here, so the
+ * with a slot of its own; the full-size image is dropped, but for the newest's, which
+ * the view keeps to show live at NOAA's own size. No GL here, so the
  * choosing and the lookup can be tested alone (tests/aurora/sun.test.js).
  *
  * Geometry, from the frames themselves: Sun-centred, 2.5 arcsec a pixel, so the Sun's
@@ -28,7 +29,7 @@
   var LIST_URL = BASE + '/products/animations/suvi-primary-171.json';
   var CHANNEL = 171; // Angstroms
   var SIZE = 512; // px, each frame as kept
-  var SLOTS = 96; // the texture array's depth: a day at 20 minutes is 73, with room for refreshes
+  var SLOTS = 96; // frames kept at once: a day at 20 minutes is 73, with room for refreshes
   var STEPS = [HOUR, 20 * MIN]; // the passes after the newest
   var SLACK = 2 * MIN; // a frame this near a step's mark will do
   var REFRESH = 10 * MIN;
@@ -184,10 +185,11 @@
         bySlot[slot] = f;
         state.frames.push(f);
         state.frames.sort(function (a, b) { return a.t - b.t; });
-        pending.push({ slot: slot, source: c, t: e.t });
+        // The newest also goes up at full size: live, the view shows it sharp.
+        var list = state.list, newest = list.length && e.t === list[list.length - 1].t;
+        pending.push({ slot: slot, source: c, t: e.t, full: newest ? img : null });
         emit();
       }
-      img.src = '';
       pump();
     };
     img.onerror = function () {

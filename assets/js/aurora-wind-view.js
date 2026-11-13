@@ -486,6 +486,16 @@
     nearA = far * (1 - model) * scene.dim;
     l1A = smooth(L1_IN[0], L1_IN[1], px) * (1 - smooth(L1_OUT[0], L1_OUT[1], px)) * scene.dim;
     helioA = (1 - smooth(Math.log(HELIO_PX_AU[0]), Math.log(HELIO_PX_AU[1]), lau)) * scene.dim;
+    // Toward the Sun (scene.sunward) the scale grows as it does toward the Earth, but
+    // nothing of the Earth's should show there: the model's streaks stay on, and the
+    // model itself goes as its inner edge, 0.1 AU out, passes the screen's.
+    var sw = scene.sunward || 0;
+    if (sw > 0) {
+      var away = 1 - smooth(0, 0.05, sw);
+      magA *= away; labelA *= away; nearA *= away; l1A *= away;
+      model = Math.max(model, 1 - away);
+      helioA = (1 - smooth(0.55, 0.9, sw)) * scene.dim;
+    }
     helioStreakA = helioA * model;
   }
 
@@ -971,7 +981,7 @@
   function draw(scene) {
     weigh(scene);
     // Scrolled up at all: the run's picture will be wanted.
-    if (scene.view === 'wind' || scene.view === 'l1' || scene.view === 'system') { Wind.want(); }
+    if (scene.view === 'wind' || scene.view === 'l1' || scene.view === 'system' || scene.view === 'sun') { Wind.want(); }
     var dt = reducedMotion ? 0 : scene.dt;
     if (magA > 0.004 || nearA > 0.004 || l1A > 0.004) { conditions(scene); }
     if (helioA > 0.004 && scene.tilt > 0.01) { drawHelio(scene, dt); }
@@ -1172,6 +1182,7 @@
     ctx.textAlign = 'left';
   }
 
+  var SUN_AU = 0.00465; // the Sun's radius
   var NAMES = { mercury: 'MERCURY', venus: 'VENUS', earth: 'EARTH', mars: 'MARS' };
   var bodies = null, bodiesAt = 0;
 
@@ -1205,13 +1216,15 @@
     if (a < 0.03) { return; }
 
     // The Sun: far too small to see at this scale (a pixel or two), so a mark, and a
-    // glow that fills the hole the model leaves round it, inside 0.1 AU.
+    // glow that fills the hole the model leaves round it, inside 0.1 AU. Both give way
+    // as GOES's picture of it (aurora-sun-view.js), drawn to scale, grows past a few px.
     var hole = 0.1 * pxAu;
-    if (sunX > -hole - 20 && sunX < scene.w + hole + 20) {
+    var mark = a * (1 - smooth(3, 10, SUN_AU * pxAu));
+    if (mark > 0.01 && sunX > -hole - 20 && sunX < scene.w + hole + 20) {
       var glow = Math.max(16, hole * 1.15);
       var g = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, glow);
-      g.addColorStop(0, rgba(ink, 0.6 * a));
-      g.addColorStop(0.35, rgba(ink, 0.16 * a));
+      g.addColorStop(0, rgba(ink, 0.6 * mark));
+      g.addColorStop(0.35, rgba(ink, 0.16 * mark));
       g.addColorStop(1, rgba(ink, 0));
       ctx.fillStyle = g;
       ctx.save();
@@ -1220,13 +1233,13 @@
       ctx.translate(-sunX, -sunY);
       ctx.beginPath(); ctx.arc(sunX, sunY, glow, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
-      ctx.fillStyle = rgba(ink, a);
+      ctx.fillStyle = rgba(ink, mark);
       ctx.beginPath(); ctx.arc(sunX, sunY, hole > 20 ? 4.5 : 3.5, 0, Math.PI * 2); ctx.fill();
       if (scene.fontsReady) {
         ctx.textAlign = 'center';
         var sy = sunY + Math.max(14, hole * Math.max(st, 0.35) + 11);
         placed.push({ x0: sunX - 16, x1: sunX + 16, y0: sy - 8, y1: sy + 8 });
-        label(ctx, scene, 'SUN', sunX, sy, 0.95 * a, 600);
+        label(ctx, scene, 'SUN', sunX, sy, 0.95 * mark, 600);
         ctx.textAlign = 'left';
       }
     }

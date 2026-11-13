@@ -128,6 +128,7 @@
    * The two views from space are framed by the Sun and the screen (spaceAim, viewAt).
    */
   var VIEWS = {
+    sun: { dim: 1 },
     system: { dim: 1 },
     l1: { dim: 1 },
     wind: { dim: 1 },
@@ -153,6 +154,13 @@
   var SUN_X_PORTRAIT = 0.27, SUN_EARTH_X_PORTRAIT = 0.77;
   var SUN_REACH_AU = 1.45;
   var SUN_EARTH_ROOM = 96;
+
+  // The sun view is the Sun as GOES images it, its disc SUN_FILL of the room the panels
+  // leave in radius (no more than SUN_FILL_W of the width), at the room's middle.
+  // The Sun's radius is SUN_RE Earth radii. Between it and the system view the camera
+  // holds the Sun still on screen as the scale grows (see aim and stepCamera).
+  var SUN_RE = 109.08;
+  var SUN_FILL = 0.31, SUN_FILL_W = 0.36;
 
   // The L1 view looks down on the ecliptic with L1, where the wind is measured, L1_RE
   // sunward of the Earth: the Earth at L1_EARTH_X of the width and L1 L1_GAP of the
@@ -1237,7 +1245,8 @@
   // ls is the logarithm of size: the views span four decades of it, so it is what eases.
   // tilt is how far the camera has risen over the ecliptic, 0 side-on to 1 from its north.
   var cam = { lat: VIEWS.north.lat, lon: VIEWS.north.lon, roll: 0, cx: 0.5, cy: 1, ls: Math.log(VIEWS.north.size), size: VIEWS.north.size, dim: 1, tilt: 0 };
-  var target = { lat: cam.lat, lon: cam.lon, roll: 0, cx: cam.cx, cy: cam.cy, ls: cam.ls, dim: cam.dim, tilt: 0 };
+  var target = { lat: cam.lat, lon: cam.lon, roll: 0, cx: cam.cx, cy: cam.cy, ls: cam.ls, dim: cam.dim, tilt: 0,
+    anchor: false, sx: 0 }; // anchor: held on the Sun at sx (see aim)
   var KEYS = ['lat', 'lon', 'roll', 'cx', 'cy', 'ls', 'dim', 'tilt'];
   var spin = 0, spinVel = 0; // degrees, degrees per second
   var resetFrom = null, resetT = 0;
@@ -1332,6 +1341,14 @@
       mid = (clearTop + (clearBottom > clearTop ? clearBottom : h)) / 2;
       return { lat: aim.lat, lon: aim.lon, roll: aim.roll, cx: ex, cy: mid / h,
         size: (upright ? L1_GAP_PORTRAIT : L1_GAP) * w / L1_RE / frame(), dim: v.dim, tilt: 1 };
+    }
+    if (id === 'sun') {
+      aim = spaceAim();
+      var low = clearBottom > clearTop ? clearBottom : h;
+      var rPx = Math.min((low - clearTop) * SUN_FILL, w * SUN_FILL_W);
+      var pxSun = rPx / SUN_RE;
+      return { lat: aim.lat, lon: aim.lon, roll: aim.roll, cx: (w / 2 + earthAu * pxSun * AU_RE) / w,
+        cy: (clearTop + low) / 2 / h, size: pxSun / frame(), dim: v.dim, tilt: 1 };
     }
     if (id === 'system') {
       aim = spaceAim();
@@ -1449,7 +1466,7 @@
     }
     var lo = Math.min(from, to), hi = Math.max(from, to), weight = hi - lo;
     // The steps from space count extra, nearer the camera's own pace there.
-    ['system', 'l1'].forEach(function (id) {
+    ['sun', 'system', 'l1'].forEach(function (id) {
       var k0 = ids.indexOf(id);
       if (k0 >= 0) { weight += (GLIDE_SPACE - 1) * Math.max(0, Math.min(hi, k0 + 1) - Math.max(lo, k0)); }
     });
@@ -1491,6 +1508,7 @@
     if (i < 0) { return PACE; }
     if (ids[i] === 'l1' && ids[i + 1] === 'wind') { return PACE_RISE; }
     if (ids[i] === 'system' && ids[i + 1] === 'l1') { return PACE_ZOOM; }
+    if (ids[i] === 'sun' && ids[i + 1] === 'system') { return PACE_ZOOM; }
     return PACE;
   }
 
@@ -1526,6 +1544,23 @@
     target.ls = Math.log(a.size) + (Math.log(b.size) - Math.log(a.size)) * zt;
     target.dim = a.dim + (b.dim - a.dim) * t;
     target.tilt = a.tilt + (b.tilt - a.tilt) * tt;
+    // Between the sun and system views the Sun, not the Earth, keeps its line on screen:
+    // its x moves evenly as the scale grows, and the Earth's (cx) follows from both.
+    target.anchor = ids[i0] === 'sun' && ids[i1] === 'system';
+    if (target.anchor) {
+      target.sx = sunXOf(a.cx, a.size) + (sunXOf(b.cx, b.size) - sunXOf(a.cx, a.size)) * t;
+      target.cx = cxForSun(target.sx, target.ls);
+    }
+  }
+
+  // The Sun's x on screen, as a fraction of the width, for a framing (cx, size); and
+  // the cx that puts it at sx at the scale e^ls. It is earthAu to the Earth's left.
+  function sunXOf(cx, size) {
+    return cx - earthAu * size * frame() * AU_RE / w;
+  }
+
+  function cxForSun(sx, ls) {
+    return sx + earthAu * Math.exp(ls) * frame() * AU_RE / w;
   }
 
   /*
@@ -1586,9 +1621,16 @@
     cam.lat += (target.lat - cam.lat) * k;
     cam.lon = wrap180(cam.lon + wrap180(target.lon - cam.lon) * k);
     cam.roll = wrap180(cam.roll + wrap180(target.roll - cam.roll) * k);
-    cam.cx += (target.cx - cam.cx) * k;
+    // Anchored on the Sun (see aim), its x eases and cx follows from it and the scale,
+    // or the two easing apart would swing the Sun across the screen.
+    var sx = sunXOf(cam.cx, Math.exp(cam.ls));
     cam.cy += (target.cy - cam.cy) * k;
     cam.ls += (target.ls - cam.ls) * k;
+    if (target.anchor) {
+      cam.cx = cxForSun(sx + (target.sx - sx) * k, cam.ls);
+    } else {
+      cam.cx += (target.cx - cam.cx) * k;
+    }
     cam.dim += (target.dim - cam.dim) * k;
     cam.tilt += (target.tilt - cam.tilt) * k;
     // The easing never quite arrives, so it lands once it is within a hair: a still
@@ -1619,6 +1661,7 @@
     pxPerAu: 1,
     earthAu: 1, // the Earth's distance from the Sun
     tilt: 0, // 0 side-on in the ecliptic, 1 from its north
+    sunward: 0, // 0 at the system view, 1 at the sun view
     progress: 0, // position among the views, in page order
     view: 'north', // the nearest view's id
     dim: 1,
@@ -1695,6 +1738,10 @@
     scene.pxPerAu = radiusPx * AU_RE;
     scene.earthAu = earthAu;
     scene.tilt = cam.tilt;
+    // How far the camera is from the system view toward the Sun, 0 to 1: the layers at
+    // the Earth are keyed to the scale, and must not show round the Sun at the same one.
+    var sys = ids.indexOf('system');
+    scene.sunward = sys > 0 ? Math.max(0, Math.min(1, sys - (reducedMotion ? Math.round(progress) : shownAt))) : 0;
     scene.progress = progress;
     scene.view = ids[Math.round(progress)];
     scene.dim = cam.dim;
