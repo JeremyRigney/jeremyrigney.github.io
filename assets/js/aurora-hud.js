@@ -236,7 +236,7 @@
     var note = document.querySelector('.legend-model');
     if (note) { note.hidden = !(f0 && f0.modelMix > 0); }
     var v = view();
-    if (Wind && (v === 'wind' || v === 'l1' || v === 'sun')) {
+    if (Wind && (v === 'wind' || v === 'l1' || v === 'system')) {
       renderSpaceTimes(v);
       return;
     }
@@ -552,7 +552,7 @@
   function renderWindLegend() {
     var V = window.AuroraWindView, G = window.AuroraGlobe;
     if (!V) { return; }
-    var sun = view() === 'sun';
+    var sun = view() === 'system';
     text('wind-legend-of', sun ? 'by NOAA’s WSA-Enlil' : 'measured at L1');
     if (sun) {
       text('wind-legend-note', 'The model’s radial speed in the plane of the Earth’s orbit. The streaks move at that speed where they are, '

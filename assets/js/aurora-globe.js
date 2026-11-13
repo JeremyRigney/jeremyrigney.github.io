@@ -128,7 +128,7 @@
    * The two views from space are framed by the Sun and the screen (spaceAim, viewAt).
    */
   var VIEWS = {
-    sun: { dim: 1 },
+    system: { dim: 1 },
     l1: { dim: 1 },
     wind: { dim: 1 },
     north: { lat: 34, lon: -8, cx: 0.5, cy: 1.04, size: 0.855, dim: 1 },
@@ -144,7 +144,7 @@
   // On a landscape screen the Earth stands just left of the middle, so the wind coming
   // in and the shock it meets have the left half and the tail the right.
   var WIND_EARTH_X = 0.47;
-  // The sun view fills the screen with the model. The Sun stands left of centre and the
+  // The system view fills the screen with the model. The Sun stands left of centre and the
   // Earth right of it, at these fractions of the width, so the wind crosses the screen
   // the way it does in the wind view; that sets the scale. On a short, wide window the
   // scale is raised until SUN_REACH_AU, which is inside the model, still covers the room
@@ -1308,7 +1308,7 @@
   // limb sits below the top capsule by the name's height, in the south the disc's foot
   // sits above the dock by the depth of the name hanging under it. The views from space
   // are sized to the screen: the wind view to a span of Earth radii with the Earth left
-  // of centre and its tail running right, the sun view to put the Sun and the Earth
+  // of centre and its tail running right, the system view to put the Sun and the Earth
   // either side of the middle with the model all round them. lat/lon, and the drivers'
   // framing, are VIEWS' own.
   var PORTRAIT_SIZE = 0.95;
@@ -1333,7 +1333,7 @@
       return { lat: aim.lat, lon: aim.lon, roll: aim.roll, cx: ex, cy: mid / h,
         size: (upright ? L1_GAP_PORTRAIT : L1_GAP) * w / L1_RE / frame(), dim: v.dim, tilt: 1 };
     }
-    if (id === 'sun') {
+    if (id === 'system') {
       aim = spaceAim();
       var tall = portrait();
       var sunX = w * (tall ? SUN_X_PORTRAIT : SUN_X);
@@ -1449,7 +1449,7 @@
     }
     var lo = Math.min(from, to), hi = Math.max(from, to), weight = hi - lo;
     // The steps from space count extra, nearer the camera's own pace there.
-    ['sun', 'l1'].forEach(function (id) {
+    ['system', 'l1'].forEach(function (id) {
       var k0 = ids.indexOf(id);
       if (k0 >= 0) { weight += (GLIDE_SPACE - 1) * Math.max(0, Math.min(hi, k0 + 1) - Math.max(lo, k0)); }
     });
@@ -1490,7 +1490,7 @@
     var i = Math.min(ids.length - 2, Math.floor(at));
     if (i < 0) { return PACE; }
     if (ids[i] === 'l1' && ids[i + 1] === 'wind') { return PACE_RISE; }
-    if (ids[i] === 'sun' && ids[i + 1] === 'l1') { return PACE_ZOOM; }
+    if (ids[i] === 'system' && ids[i + 1] === 'l1') { return PACE_ZOOM; }
     return PACE;
   }
 
@@ -1516,7 +1516,7 @@
     var a = viewAt(i0), b = viewAt(i1);
     // The zoom out to the Sun eases (ZOOM_EASE); the rise keeps to RISE_SPAN.
     var zt = t, tt = t;
-    if (ids[i0] === 'sun' && ids[i1] === 'l1') { zt = Math.pow(t, ZOOM_EASE); }
+    if (ids[i0] === 'system' && ids[i1] === 'l1') { zt = Math.pow(t, ZOOM_EASE); }
     if (ids[i0] === 'l1' && ids[i1] === 'wind') { tt = smooth(RISE_SPAN[0], RISE_SPAN[1], t); }
     target.lat = a.lat + (b.lat - a.lat) * t;
     target.lon = a.lon + wrap180(b.lon - a.lon) * t;
@@ -1647,7 +1647,7 @@
     basis[0] = cr * e[0] + sr * n[0]; basis[1] = cr * e[1] + sr * n[1]; basis[2] = cr * e[2] + sr * n[2];
     basis[3] = cr * n[0] - sr * e[0]; basis[4] = cr * n[1] - sr * e[1]; basis[5] = cr * n[2] - sr * e[2];
     basis[6] = cl * co; basis[7] = cl * so; basis[8] = sl;
-    // The rise over the ecliptic, between the wind and the sun views: a real turn of
+    // The rise over the ecliptic, between the wind and the L1 views: a real turn of
     // the camera about the Sun-Earth line (the screen's level, there), from the dusk
     // side up to the ecliptic's north, so that the Earth, its magnetosphere and the wind
     // round it turn with the model's plane as it opens. That plane is drawn flat, seen

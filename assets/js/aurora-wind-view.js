@@ -971,7 +971,7 @@
   function draw(scene) {
     weigh(scene);
     // Scrolled up at all: the run's picture will be wanted.
-    if (scene.view === 'wind' || scene.view === 'l1' || scene.view === 'sun') { Wind.want(); }
+    if (scene.view === 'wind' || scene.view === 'l1' || scene.view === 'system') { Wind.want(); }
     var dt = reducedMotion ? 0 : scene.dt;
     if (magA > 0.004 || nearA > 0.004 || l1A > 0.004) { conditions(scene); }
     if (helioA > 0.004 && scene.tilt > 0.01) { drawHelio(scene, dt); }
@@ -1045,7 +1045,7 @@
   /*
    * The Moon's orbit, round the Earth in the ecliptic (it is tilted from it by five
    * degrees), and the Moon on it. Side-on it is a line through the Earth, so it shows
-   * only as the camera rises between the wind and the sun views, opening as it does,
+   * only as the camera rises between the wind and the L1 views, opening as it does,
    * so the rise reads as a turn and not a change of picture; it goes when it is small.
    */
   var MOON_ORBIT_RE = 60.3;

@@ -19,11 +19,13 @@ G.window = G;
 
 var MODULES = [
   'assets/js/aurora-geo.js',
-  'assets/js/aurora-wind.js'
+  'assets/js/aurora-wind.js',
+  'assets/js/aurora-sun.js'
 ];
 
 var SUITES = [
-  'tests/aurora/wind.test.js'
+  'tests/aurora/wind.test.js',
+  'tests/aurora/sun.test.js'
 ];
 
 var TESTS = [];

@@ -699,7 +699,7 @@ button {
   font-weight: 500;
 }
 
-body:is([data-view="south"], [data-view="wind"], [data-view="l1"], [data-view="sun"]) .top-time .cloud {
+body:is([data-view="south"], [data-view="wind"], [data-view="l1"], [data-view="system"]) .top-time .cloud {
   display: none;
 }
 
@@ -891,13 +891,13 @@ body:is([data-view="south"], [data-view="wind"], [data-view="l1"], [data-view="s
   display: none;
 }
 
-body:is([data-view="south"], [data-view="wind"], [data-view="l1"], [data-view="sun"]) .top-place {
+body:is([data-view="south"], [data-view="wind"], [data-view="l1"], [data-view="system"]) .top-place {
   display: none;
 }
 
 body[data-view="south"] .top-oval,
 body:is([data-view="wind"], [data-view="l1"]) .top-wind,
-body[data-view="sun"] .top-sun {
+body[data-view="system"] .top-sun {
   display: flex;
 }
 
@@ -907,7 +907,7 @@ body[data-view="sun"] .top-sun {
   transition: opacity 400ms var(--ease), visibility 400ms;
 }
 
-body:is([data-view="sun"], [data-view="l1"], [data-view="wind"]) .layer-toggle {
+body:is([data-view="system"], [data-view="l1"], [data-view="wind"]) .layer-toggle {
   visibility: hidden;
   opacity: 0;
 }
@@ -1284,7 +1284,7 @@ body[data-view="drivers"] :is(.topdock, .top-time, .top-seg) {
 
 body[data-view="north"] .up-hint[data-go="wind"],
 body[data-view="wind"] .up-hint[data-go="l1"],
-body[data-view="l1"] .up-hint[data-go="sun"] {
+body[data-view="l1"] .up-hint[data-go="system"] {
   visibility: visible;
   opacity: 1;
 }
@@ -1310,9 +1310,9 @@ body[data-view="l1"] .up-hint[data-go="sun"] {
 }
 
 /* Without the stage there is nothing to see from space. */
-.no-webgl :is(.view-sun, .view-l1, .view-wind),
+.no-webgl :is(.view-system, .view-l1, .view-wind),
 .no-webgl .up-hint,
-.no-webgl .view-index a:is([data-view="sun"], [data-view="l1"], [data-view="wind"]) {
+.no-webgl .view-index a:is([data-view="system"], [data-view="l1"], [data-view="wind"]) {
   display: none;
 }
 
@@ -1951,11 +1951,11 @@ body[data-view="drivers"] .dock > * {
   display: none;
 }
 
-body:is([data-view="sun"], [data-view="l1"], [data-view="wind"]) .legend-wind {
+body:is([data-view="system"], [data-view="l1"], [data-view="wind"]) .legend-wind {
   display: block;
 }
 
-body:is([data-view="sun"], [data-view="l1"], [data-view="wind"]) .legend > :is(.legend-seen, .legend-prob, .legend-model) {
+body:is([data-view="system"], [data-view="l1"], [data-view="wind"]) .legend > :is(.legend-seen, .legend-prob, .legend-model) {
   display: none;
 }
 
