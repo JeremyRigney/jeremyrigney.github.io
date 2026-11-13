@@ -236,7 +236,7 @@
     var note = document.querySelector('.legend-model');
     if (note) { note.hidden = !(f0 && f0.modelMix > 0); }
     var v = view();
-    if (Wind && (v === 'wind' || v === 'sun')) {
+    if (Wind && (v === 'wind' || v === 'l1' || v === 'sun')) {
       renderSpaceTimes(v);
       return;
     }
@@ -521,7 +521,7 @@
       html('times', tag + main + '<span class="times-rel">' + escapeHtml(rel) + '</span>'
         + '<span class="times-src">' + escapeHtml(src) + '</span>');
     }
-    if (v === 'wind') {
+    if (v === 'wind' || v === 'l1') {
       var up = upstream();
       if (!up) {
         html('times', '<span class="stale-note">' + (live ? 'Waiting for the wind at L1…' : 'Nothing for this time.') + '</span>');

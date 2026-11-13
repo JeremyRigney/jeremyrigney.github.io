@@ -84,7 +84,7 @@
   // above, the model's below.
   var STREAKS_PX_AU = [900, 2500];
   // L1, 235 Earth radii sunward: named while it is on screen and clear of the Earth.
-  var L1_IN = [0.12, 0.3], L1_OUT = [2.2, 4.5];
+  var L1_IN = [0.12, 0.3], L1_OUT = [5, 9]; // drawn whenever it is on screen near the Earth
 
   var FIELD_ALPHA = 0.92; // the colour field's opacity over the ground
   var RING_ALPHA = 0.17;
@@ -971,7 +971,7 @@
   function draw(scene) {
     weigh(scene);
     // Scrolled up at all: the run's picture will be wanted.
-    if (scene.view === 'wind' || scene.view === 'sun') { Wind.want(); }
+    if (scene.view === 'wind' || scene.view === 'l1' || scene.view === 'sun') { Wind.want(); }
     var dt = reducedMotion ? 0 : scene.dt;
     if (magA > 0.004 || nearA > 0.004 || l1A > 0.004) { conditions(scene); }
     if (helioA > 0.004 && scene.tilt > 0.01) { drawHelio(scene, dt); }

@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/aurora.css?v=20261112a" />
+  <link rel="stylesheet" href="assets/css/aurora.css?v=20261113a" />
 
   <!-- Cookie consent: sets the Consent Mode defaults, so it must come before the Google tag -->
   <link rel="stylesheet" href="assets/css/consent.css?v=20261008" />
@@ -44,8 +44,8 @@
     the camera (aurora-globe.js). The page opens on the north, with Ireland in frame;
     below it the camera tilts to the south, then dims the globe behind the charts; above
     it the camera pulls back to the Earth in the solar wind, then rises over the
-    ecliptic (the Moon's orbit opening round the Earth) and pulls back to the Sun
-    (aurora-wind-view.js). A sideways drag spins the globe; vertical drags still scroll. In the wind view a
+    ecliptic (the Moon's orbit opening round the Earth) to L1, then pulls back to the
+    Sun (aurora-wind-view.js). A sideways drag spins the globe; vertical drags still scroll. In the wind view a
     drag swings the camera a few degrees instead, a mouse moving over it leans it, and
     it sways a little on its own. The wind's speed is in a warm ramp there and a blue
     one from the Sun.
@@ -143,6 +143,7 @@
           <div><dt>Mach</dt><dd><span data-bind="up-mach">&ndash;</span></dd></div>
         </dl>
         <p class="card-meta" data-bind="up-source">&nbsp;</p>
+        <p class="card-note"><b>L1</b>, one view up, is the point 1.5&nbsp;million&nbsp;km toward the Sun where its pull and the Earth&rsquo;s balance, so a spacecraft can sit there in the wind. What it measures reaches the Earth 30&ndash;90 minutes later, and that is the wind shown here. From above, the dashed ring is the Moon&rsquo;s orbit, for scale.</p>
         <p class="card-note">The <b>magnetopause</b> is where the Earth&rsquo;s field holds the wind off, and the <b>bow shock</b> where the wind, faster than any wave in it, is first slowed. Both are drawn to scale from that wind: the magnetopause by Shue et&nbsp;al. (1998), from its pressure and B<sub>z</sub>; the shock&rsquo;s distance by Farris and Russell (1994), from its Mach number. The distances above are along the line to the Sun, in Earth radii.</p>
         <p class="card-note">The glow between the two is the <b>sheath</b>, where the slowed wind piles up: brighter where it is denser, and brighter overall as the wind&rsquo;s pressure rises. The field lines and the flow round them are sketches, drawn in the round: move the pointer over the view and it leans toward it; drag to swing it further and see them as a cage.</p>
         <p class="card-note">The <b>field lines</b> are a sketch: a dipole at today&rsquo;s tilt, squeezed and stretched to fit inside that magnetopause. The <b>streaks</b> are a sketch of the flow, slowing at the shock and parting round the Earth; their speed and number follow the measured speed and density.</p>
@@ -169,13 +170,15 @@
       </div>
     </section>
 
-    <!-- The way up, from the two views with something above them. -->
+    <!-- The way up, from the views with something above them. -->
     <a class="chip up-hint" href="#wind" data-go="wind">The solar wind</a>
+    <a class="chip up-hint" href="#l1" data-go="l1">Out to L1</a>
     <a class="chip up-hint" href="#sun" data-go="sun">Out to the Sun</a>
 
     <div class="header-controls">
       <nav class="seg view-index" aria-label="Views">
         <a href="#sun" data-view="sun">Sun</a>
+        <a href="#l1" data-view="l1">L1</a>
         <a href="#wind" data-view="wind">Wind</a>
         <a href="#north" data-view="north">North</a>
         <a href="#south" data-view="south">South</a>
@@ -190,13 +193,18 @@
 
   <main class="views" id="views">
     <!--
-      Two views from space, above the one the page opens on: scrolling up from the
-      north pulls the camera back to the Earth in the solar wind, then to the Sun.
-      Both are drawn on the stage (aurora-wind-view.js); their readouts are in the
-      top capsule.
+      Three views from space, above the one the page opens on: scrolling up from the
+      north pulls the camera back to the Earth in the solar wind, then rises over the
+      ecliptic to L1, where the wind is measured, then pulls back to the Sun. All are
+      drawn on the stage (aurora-wind-view.js); their readouts are in the top capsule,
+      L1 sharing the wind view's.
     -->
     <section class="view view-sun" id="sun" aria-labelledby="sun-title">
       <h2 class="visually-hidden" id="sun-title">The solar wind, from the Sun out past the Earth</h2>
+    </section>
+
+    <section class="view view-l1" id="l1" aria-labelledby="l1-title">
+      <h2 class="visually-hidden" id="l1-title">L1, where the solar wind is measured on its way to the Earth</h2>
     </section>
 
     <section class="view view-wind" id="wind" aria-labelledby="wind-title">
@@ -372,12 +380,12 @@
   </noscript>
 
   <script src="assets/js/aurora-geo.js?v=20261111a"></script>
-  <script src="assets/js/aurora-globe.js?v=20261113b"></script>
+  <script src="assets/js/aurora-globe.js?v=20261113c"></script>
   <script src="assets/js/aurora-data.js?v=20261111a"></script>
   <script src="assets/js/aurora-model.js?v=20261028d"></script>
   <script src="assets/js/aurora-wind.js?v=20261112c"></script>
-  <script src="assets/js/aurora-wind-view.js?v=20261112d"></script>
-  <script src="assets/js/aurora-hud.js?v=20261112a"></script>
+  <script src="assets/js/aurora-wind-view.js?v=20261113a"></script>
+  <script src="assets/js/aurora-hud.js?v=20261113a"></script>
   <script src="assets/js/aurora-charts.js?v=20261103e"></script>
   <script src="assets/js/aurora-timeline.js?v=20261103a"></script>
 </body>

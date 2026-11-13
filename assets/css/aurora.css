@@ -699,7 +699,7 @@ button {
   font-weight: 500;
 }
 
-body:is([data-view="south"], [data-view="wind"], [data-view="sun"]) .top-time .cloud {
+body:is([data-view="south"], [data-view="wind"], [data-view="l1"], [data-view="sun"]) .top-time .cloud {
   display: none;
 }
 
@@ -891,12 +891,12 @@ body:is([data-view="south"], [data-view="wind"], [data-view="sun"]) .top-time .c
   display: none;
 }
 
-body:is([data-view="south"], [data-view="wind"], [data-view="sun"]) .top-place {
+body:is([data-view="south"], [data-view="wind"], [data-view="l1"], [data-view="sun"]) .top-place {
   display: none;
 }
 
 body[data-view="south"] .top-oval,
-body[data-view="wind"] .top-wind,
+body:is([data-view="wind"], [data-view="l1"]) .top-wind,
 body[data-view="sun"] .top-sun {
   display: flex;
 }
@@ -907,7 +907,7 @@ body[data-view="sun"] .top-sun {
   transition: opacity 400ms var(--ease), visibility 400ms;
 }
 
-body:is([data-view="sun"], [data-view="wind"]) .layer-toggle {
+body:is([data-view="sun"], [data-view="l1"], [data-view="wind"]) .layer-toggle {
   visibility: hidden;
   opacity: 0;
 }
@@ -1265,7 +1265,7 @@ body[data-view="drivers"] :is(.topdock, .top-time, .top-seg) {
   display: none;
 }
 
-/* The way up, from the two views with something above them: on a wide screen in the
+/* The way up, from the views with something above them: on a wide screen in the
    open middle of the switches' row, otherwise under the capsule. It belongs to the
    header, so it stands still while the views scroll, and each shows in its own view. */
 .up-hint {
@@ -1283,7 +1283,8 @@ body[data-view="drivers"] :is(.topdock, .top-time, .top-seg) {
 }
 
 body[data-view="north"] .up-hint[data-go="wind"],
-body[data-view="wind"] .up-hint[data-go="sun"] {
+body[data-view="wind"] .up-hint[data-go="l1"],
+body[data-view="l1"] .up-hint[data-go="sun"] {
   visibility: visible;
   opacity: 1;
 }
@@ -1309,9 +1310,9 @@ body[data-view="wind"] .up-hint[data-go="sun"] {
 }
 
 /* Without the stage there is nothing to see from space. */
-.no-webgl :is(.view-sun, .view-wind),
+.no-webgl :is(.view-sun, .view-l1, .view-wind),
 .no-webgl .up-hint,
-.no-webgl .view-index a:is([data-view="sun"], [data-view="wind"]) {
+.no-webgl .view-index a:is([data-view="sun"], [data-view="l1"], [data-view="wind"]) {
   display: none;
 }
 
@@ -1950,11 +1951,11 @@ body[data-view="drivers"] .dock > * {
   display: none;
 }
 
-body:is([data-view="sun"], [data-view="wind"]) .legend-wind {
+body:is([data-view="sun"], [data-view="l1"], [data-view="wind"]) .legend-wind {
   display: block;
 }
 
-body:is([data-view="sun"], [data-view="wind"]) .legend > :is(.legend-seen, .legend-prob, .legend-model) {
+body:is([data-view="sun"], [data-view="l1"], [data-view="wind"]) .legend > :is(.legend-seen, .legend-prob, .legend-model) {
   display: none;
 }
 
@@ -1966,7 +1967,7 @@ body:is([data-view="sun"], [data-view="wind"]) .legend > :is(.legend-seen, .lege
     var(--wind-4) 60%, var(--wind-5) 80%, var(--wind-6) 100%);
 }
 
-body[data-view="wind"] .legend-bar-wind {
+body:is([data-view="wind"], [data-view="l1"]) .legend-bar-wind {
   background: linear-gradient(90deg, var(--gust-1) 0%, var(--gust-2) 20%, var(--gust-3) 40%,
     var(--gust-4) 60%, var(--gust-5) 80%, var(--gust-6) 100%);
 }

@@ -59,7 +59,7 @@
   // A jump to another view glides there: this long, plus this much for each view it
   // passes (the Sun to the wind counting extra, for the three decades of zoom), capped.
   var GLIDE_MS = [450, 650, 5200];
-  var GLIDE_SUN_WIND = 5; // nearer the camera's own pace there (PACE_RISE, PACE_ZOOM)
+  var GLIDE_SPACE = 3; // each step between the sun, L1 and wind views
 
   var LINE_PX = 1; // coastlines, CSS px
 
@@ -129,6 +129,7 @@
    */
   var VIEWS = {
     sun: { dim: 1 },
+    l1: { dim: 1 },
     wind: { dim: 1 },
     north: { lat: 34, lon: -8, cx: 0.5, cy: 1.04, size: 0.855, dim: 1 },
     south: { lat: -34, lon: 150, cx: 0.5, cy: -0.04, size: 0.855, dim: 1 },
@@ -153,30 +154,27 @@
   var SUN_REACH_AU = 1.45;
   var SUN_EARTH_ROOM = 96;
 
-  // Leaving the wind view for the sun, in two moves. First the camera rises over the
-  // ecliptic, from side-on to its north, while it is still close enough for the
-  // magnetosphere and the Moon's orbit to turn in front of it: over the stretch of the
-  // way from the sun view to the wind view (0 to 1) in TILT_SPAN, pulling back only
-  // RISE_ZOOM of the zoom's span of decades. Then, looking straight down, it pulls back
-  // to the Sun, fast at first and settling: most of that scroll is spent on the last
+  // The L1 view looks down on the ecliptic with L1, where the wind is measured, L1_RE
+  // sunward of the Earth: the Earth at L1_EARTH_X of the width and L1 L1_GAP of the
+  // width to its left (or the portrait pair), at the wind view's height.
+  var L1_RE = 236;
+  var L1_EARTH_X = 0.7, L1_GAP = 0.42;
+  var L1_EARTH_X_PORTRAIT = 0.78, L1_GAP_PORTRAIT = 0.44;
+
+  // From the wind view up to L1 the camera rises over the ecliptic, from side-on to
+  // its north, across RISE_SPAN of the way from the L1 view to the wind view (0 to 1):
+  // the end near the wind, so the magnetosphere turns while it is large, and the
+  // Moon's orbit opens round it. From L1 to the sun it pulls back looking straight
+  // down, fast at first and settling: most of that scroll is spent on the last
   // decade, where the Sun comes into frame. ZOOM_EASE is the exponent of that ease.
-  var TILT_SPAN = [0.6, 0.97];
-  var RISE_ZOOM = 0.19;
+  var RISE_SPAN = [0.3, 0.95];
+  var ZOOM_EASE = 2.2;
   // However quickly the page is scrolled (a snap carries a whole view in a fraction of
   // a second), the camera keeps to these paces, in views a second: through the rise,
-  // slow enough to watch the Moon's orbit open and L1 swing under the Earth; through
-  // the zoom to the Sun a little quicker; elsewhere about as fast as a snap.
-  // On the way out, after the rise, the zoom all but stops with L1 (L1_RE sunward of
-  // the Earth) L1_HOLD of the screen's width to its left: over HOLD_SPAN of the way
-  // (aim's eased terms, as TILT_SPAN) it pulls back only HOLD_DRIFT more of its span,
-  // at PACE_HOLD. A slower pace alone was not enough: L1 came in at the screen's edge
-  // and was swept in toward the Earth as the scale fell tenfold, never settling. It
-  // comes into that framing from the rise across APPROACH_SPAN, at PACE_APPROACH.
-  var L1_RE = 236, L1_HOLD = 0.3;
-  var HOLD_SPAN = [0.4, 0.5], HOLD_DRIFT = 0.025;
-  var PACE_RISE = 0.1, PACE_APPROACH = 0.15, PACE_HOLD = 0.03, PACE_ZOOM = 0.5, PACE = 4;
+  // slow enough to watch it turn; through the zoom to the Sun a little quicker;
+  // elsewhere about as fast as a snap.
+  var PACE_RISE = 0.3, PACE_ZOOM = 0.5, PACE = 4;
   var PACE_EASE = 4; // per second: how it slows into a view, and gathers speed
-  var ZOOM_EASE = 2.2;
 
   // The globe's fine lines (graticule, contours, coasts, labels) fade out between these
   // radii, in CSS px, and the globe itself between the last two.
@@ -1327,6 +1325,14 @@
       return { lat: aim.lat, lon: aim.lon, roll: aim.roll, cx: portrait() ? 0.56 : WIND_EARTH_X, cy: mid / h,
         size: pxRe / frame(), dim: v.dim, tilt: 0 };
     }
+    if (id === 'l1') {
+      aim = spaceAim();
+      var upright = portrait();
+      var ex = upright ? L1_EARTH_X_PORTRAIT : L1_EARTH_X;
+      mid = (clearTop + (clearBottom > clearTop ? clearBottom : h)) / 2;
+      return { lat: aim.lat, lon: aim.lon, roll: aim.roll, cx: ex, cy: mid / h,
+        size: (upright ? L1_GAP_PORTRAIT : L1_GAP) * w / L1_RE / frame(), dim: v.dim, tilt: 1 };
+    }
     if (id === 'sun') {
       aim = spaceAim();
       var tall = portrait();
@@ -1442,11 +1448,11 @@
       return;
     }
     var lo = Math.min(from, to), hi = Math.max(from, to), weight = hi - lo;
-    var sw = ids.indexOf('sun');
-    if (sw >= 0 && ids[sw + 1] === 'wind') {
-      // The part of the journey that crosses between the Sun and the wind counts extra.
-      weight += (GLIDE_SUN_WIND - 1) * Math.max(0, Math.min(hi, sw + 1) - Math.max(lo, sw));
-    }
+    // The steps from space count extra, nearer the camera's own pace there.
+    ['sun', 'l1'].forEach(function (id) {
+      var k0 = ids.indexOf(id);
+      if (k0 >= 0) { weight += (GLIDE_SPACE - 1) * Math.max(0, Math.min(hi, k0 + 1) - Math.max(lo, k0)); }
+    });
     var ms = Math.min(GLIDE_MS[2], GLIDE_MS[0] + GLIDE_MS[1] * weight);
     var t0 = performance.now();
     document.documentElement.style.scrollSnapType = 'none';
@@ -1478,17 +1484,14 @@
 
   // The framing that position asks for. Worked out every frame, not only on a scroll:
   // the views from space follow the Sun, which the time slider can move.
-  // The pace allowed at a position: slow between the sun and the wind views, slowest
-  // where the camera turns over the ecliptic (TILT_SPAN, in aim's eased terms).
+  // The pace allowed at a position: slow through the rise between the L1 and wind
+  // views, a little quicker through the zoom between the sun and L1 views.
   function paceAt(at) {
-    var s = ids.indexOf('sun');
-    if (s < 0 || at < s || at > s + 1 || ids[s + 1] !== 'wind') { return PACE; }
-    var e = easeInOut(at - s);
-    if (e >= TILT_SPAN[1]) { return PACE_ZOOM; }
-    if (e > TILT_SPAN[0] - 0.05) { return PACE_RISE; }
-    if (e > HOLD_SPAN[1]) { return PACE_APPROACH; }
-    if (e > HOLD_SPAN[0] - 0.02) { return PACE_HOLD; }
-    return PACE_ZOOM;
+    var i = Math.min(ids.length - 2, Math.floor(at));
+    if (i < 0) { return PACE; }
+    if (ids[i] === 'l1' && ids[i + 1] === 'wind') { return PACE_RISE; }
+    if (ids[i] === 'sun' && ids[i + 1] === 'l1') { return PACE_ZOOM; }
+    return PACE;
   }
 
   // shownAt after dt: toward progress, gathering speed and slowing into it, never
@@ -1511,22 +1514,10 @@
     var i1 = Math.min(ids.length - 1, i0 + 1);
     var t = easeInOut(at - i0);
     var a = viewAt(i0), b = viewAt(i1);
-    // Between the sun and the wind the zoom and the tilt keep their own pace: the rise
-    // first, then the zoom (see TILT_SPAN).
+    // The zoom out to the Sun eases (ZOOM_EASE); the rise keeps to RISE_SPAN.
     var zt = t, tt = t;
-    if (ids[i0] === 'sun' && ids[i1] === 'wind') {
-      var t1 = TILT_SPAN[0], z1 = 1 - RISE_ZOOM, h0 = HOLD_SPAN[0], h1 = HOLD_SPAN[1];
-      // The hold's zoom, from the scale that puts L1 at L1_HOLD of the width, kept
-      // between the rise's end and the sun view.
-      var la = Math.log(a.size), lb = Math.log(b.size);
-      var zh = (Math.log(L1_HOLD * w / L1_RE / frame()) - la) / (lb - la || 1);
-      zh = Math.max(0.1 + HOLD_DRIFT, Math.min(z1 - 0.02, zh));
-      if (t >= t1) { zt = z1 + RISE_ZOOM * (t - t1) / (1 - t1); }
-      else if (t >= h1) { zt = zh + (z1 - zh) * smooth(h1, t1, t); }
-      else if (t >= h0) { zt = zh - HOLD_DRIFT * (h1 - t) / (h1 - h0); }
-      else { zt = (zh - HOLD_DRIFT) * Math.pow(t / h0, ZOOM_EASE); }
-      tt = smooth(TILT_SPAN[0], TILT_SPAN[1], t);
-    }
+    if (ids[i0] === 'sun' && ids[i1] === 'l1') { zt = Math.pow(t, ZOOM_EASE); }
+    if (ids[i0] === 'l1' && ids[i1] === 'wind') { tt = smooth(RISE_SPAN[0], RISE_SPAN[1], t); }
     target.lat = a.lat + (b.lat - a.lat) * t;
     target.lon = a.lon + wrap180(b.lon - a.lon) * t;
     target.roll = a.roll + wrap180(b.roll - a.roll) * t;
