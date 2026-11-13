@@ -166,10 +166,15 @@
   // a second), the camera keeps to these paces, in views a second: through the rise,
   // slow enough to watch the Moon's orbit open and L1 swing under the Earth; through
   // the zoom to the Sun a little quicker; elsewhere about as fast as a snap.
-  // While L1 (L1_RE sunward of the Earth) is on screen, and drawn (at an Earth radius
-  // of at least L1_MIN_PX), the zoom slows to PACE_L1 so that it can be seen.
-  var PACE_RISE = 0.1, PACE_L1 = 0.04, PACE_ZOOM = 0.5, PACE = 4;
-  var L1_RE = 236, L1_MIN_PX = 0.3;
+  // On the way out, after the rise, the zoom all but stops with L1 (L1_RE sunward of
+  // the Earth) L1_HOLD of the screen's width to its left: over HOLD_SPAN of the way
+  // (aim's eased terms, as TILT_SPAN) it pulls back only HOLD_DRIFT more of its span,
+  // at PACE_HOLD. A slower pace alone was not enough: L1 came in at the screen's edge
+  // and was swept in toward the Earth as the scale fell tenfold, never settling. It
+  // comes into that framing from the rise across APPROACH_SPAN, at PACE_APPROACH.
+  var L1_RE = 236, L1_HOLD = 0.3;
+  var HOLD_SPAN = [0.4, 0.5], HOLD_DRIFT = 0.025;
+  var PACE_RISE = 0.1, PACE_APPROACH = 0.15, PACE_HOLD = 0.05, PACE_ZOOM = 0.5, PACE = 4;
   var PACE_EASE = 4; // per second: how it slows into a view, and gathers speed
   var ZOOM_EASE = 2.2;
 
@@ -1479,11 +1484,10 @@
     var s = ids.indexOf('sun');
     if (s < 0 || at < s || at > s + 1 || ids[s + 1] !== 'wind') { return PACE; }
     var e = easeInOut(at - s);
-    if (e > TILT_SPAN[0] - 0.05 && e < TILT_SPAN[1]) { return PACE_RISE; }
-    // L1 by the framing the camera is heading for (aim's, a frame behind): on screen
-    // to the Earth's left, and big enough to draw. The camera itself trails it.
-    var px = Math.exp(target.ls) * frame();
-    if (px >= L1_MIN_PX && target.cx * w - L1_RE * px > 24) { return PACE_L1; }
+    if (e >= TILT_SPAN[1]) { return PACE_ZOOM; }
+    if (e > TILT_SPAN[0] - 0.05) { return PACE_RISE; }
+    if (e > HOLD_SPAN[1]) { return PACE_APPROACH; }
+    if (e > HOLD_SPAN[0] - 0.02) { return PACE_HOLD; }
     return PACE_ZOOM;
   }
 
@@ -1511,8 +1515,16 @@
     // first, then the zoom (see TILT_SPAN).
     var zt = t, tt = t;
     if (ids[i0] === 'sun' && ids[i1] === 'wind') {
-      var t1 = TILT_SPAN[0], z1 = 1 - RISE_ZOOM;
-      zt = t >= t1 ? z1 + RISE_ZOOM * (t - t1) / (1 - t1) : z1 * Math.pow(t / t1, ZOOM_EASE);
+      var t1 = TILT_SPAN[0], z1 = 1 - RISE_ZOOM, h0 = HOLD_SPAN[0], h1 = HOLD_SPAN[1];
+      // The hold's zoom, from the scale that puts L1 at L1_HOLD of the width, kept
+      // between the rise's end and the sun view.
+      var la = Math.log(a.size), lb = Math.log(b.size);
+      var zh = (Math.log(L1_HOLD * w / L1_RE / frame()) - la) / (lb - la || 1);
+      zh = Math.max(0.1 + HOLD_DRIFT, Math.min(z1 - 0.02, zh));
+      if (t >= t1) { zt = z1 + RISE_ZOOM * (t - t1) / (1 - t1); }
+      else if (t >= h1) { zt = zh + (z1 - zh) * smooth(h1, t1, t); }
+      else if (t >= h0) { zt = zh - HOLD_DRIFT * (h1 - t) / (h1 - h0); }
+      else { zt = (zh - HOLD_DRIFT) * Math.pow(t / h0, ZOOM_EASE); }
       tt = smooth(TILT_SPAN[0], TILT_SPAN[1], t);
     }
     target.lat = a.lat + (b.lat - a.lat) * t;
