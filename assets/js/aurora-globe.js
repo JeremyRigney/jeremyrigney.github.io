@@ -173,7 +173,7 @@
   // a second), the camera keeps to these paces, in views a second: through the rise,
   // slow enough to watch it turn; through the zoom to the Sun a little quicker;
   // elsewhere about as fast as a snap.
-  var PACE_RISE = 0.3, PACE_ZOOM = 0.5, PACE = 4;
+  var PACE_RISE = 0.4, PACE_ZOOM = 0.5, PACE = 4;
   var PACE_EASE = 4; // per second: how it slows into a view, and gathers speed
 
   // The globe's fine lines (graticule, contours, coasts, labels) fade out between these

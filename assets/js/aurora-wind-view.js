@@ -1184,9 +1184,10 @@
     ctx.lineWidth = 1;
     placed = [];
 
-    // The Earth, once the globe itself is too small to draw. Named first: of all the
-    // names here it is the one that must not give way.
-    var small = (1 - smooth(1.0, 2.5, scene.pxPerRe)) * scene.dim;
+    // The Earth, once the globe itself is too small to read (a few px across, as in
+    // the L1 view on a wide screen). Named first: of all the names here it is the one
+    // that must not give way.
+    var small = (1 - smooth(2.6, 4.5, scene.pxPerRe)) * scene.dim;
     if (small > 0.02) {
       var ex = Math.round(scene.earthX) + 0.5, ey = Math.round(scene.earthY) + 0.5;
       ctx.lineWidth = 3.5;
