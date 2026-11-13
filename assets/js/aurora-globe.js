@@ -174,7 +174,7 @@
   // comes into that framing from the rise across APPROACH_SPAN, at PACE_APPROACH.
   var L1_RE = 236, L1_HOLD = 0.3;
   var HOLD_SPAN = [0.4, 0.5], HOLD_DRIFT = 0.025;
-  var PACE_RISE = 0.1, PACE_APPROACH = 0.15, PACE_HOLD = 0.05, PACE_ZOOM = 0.5, PACE = 4;
+  var PACE_RISE = 0.1, PACE_APPROACH = 0.15, PACE_HOLD = 0.03, PACE_ZOOM = 0.5, PACE = 4;
   var PACE_EASE = 4; // per second: how it slows into a view, and gathers speed
   var ZOOM_EASE = 2.2;
 
