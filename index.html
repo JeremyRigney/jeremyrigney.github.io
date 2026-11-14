@@ -232,7 +232,7 @@
 			second file depends on the first's custom properties.
 		-->
 		<link rel="stylesheet" href="assets/css/coal.css?v=20261008b" />
-		<link rel="stylesheet" href="assets/css/home-coal.css?v=20261008" />
+		<link rel="stylesheet" href="assets/css/home-coal.css?v=20261114" />
 
 		<!--
 			Without JavaScript nothing ever adds .is-in, so every .reveal would sit at
@@ -297,6 +297,7 @@
 				<a href="#work">Work</a>
 				<a href="#education">Education</a>
 				<a href="speaking">Speaking</a>
+				<a href="aurora">Space weather</a>
 				<a href="dashboard">Dashboard</a>
 				<a href="eclipse">Eclipse</a>
 				<a href="galaxy">Galaxy</a>
@@ -342,9 +343,9 @@
 
 				<div class="wrap">
 					<div class="reveal">
-						<a class="announce" href="eclipse">
-							<span class="announce-tag">Recap</span>
-							<span class="announce-text">Ireland&rsquo;s 12 August eclipse, as it happened</span>
+						<a class="announce" href="aurora">
+							<span class="announce-tag">Live</span>
+							<span class="announce-text">Space weather nowcasting: tonight&rsquo;s aurora, from the Sun to the Earth</span>
 							<span class="announce-arrow" aria-hidden="true">&rarr;</span>
 						</a>
 					</div>
@@ -360,8 +361,8 @@
 						<p class="opening-sub">Senior Data Scientist &middot; AI R&amp;D &middot; Astrophysicist</p>
 						<p class="opening-lead">I build data pipelines and models that turn complex, large-scale datasets into clear decisions, drawing on a PhD spent observing the stars with some of the world&rsquo;s most advanced telescopes.</p>
 						<div class="opening-actions">
-							<a class="cta cta-lead" href="cv">View CV</a>
-							<a class="cta" href="dashboard">Explore the dashboard</a>
+							<a class="cta cta-lead" href="aurora">See the aurora</a>
+							<a class="cta" href="cv">View CV</a>
 						</div>
 					</div>
 				</div>
@@ -378,9 +379,14 @@
 								<span class="readout-label">Based</span>
 							</div>
 							<div class="readout">
-								<span class="readout-value">7</span>
+								<span class="readout-value">8</span>
 								<span class="readout-label">Live projects here</span>
 							</div>
+							<!-- Live: the planetary K index now, from NOAA, filled in by the script at the foot. -->
+							<a class="readout readout-live" href="aurora">
+								<span class="readout-value" id="kp-now">&ndash;</span>
+								<span class="readout-label">Kp now &middot; Nowcast <span aria-hidden="true">&rarr;</span></span>
+							</a>
 						</div>
 						<p class="scroll-hint">
 							<span>Scroll</span>
@@ -448,9 +454,22 @@
 
 					<ul class="index-list reveal">
 						<li>
-							<a class="index-row" href="f1-wall">
+							<a class="index-row" href="aurora">
 								<span class="index-meta">
 									<span class="index-num">01</span>
+									<span class="index-tag">Live &middot; Interactive</span>
+								</span>
+								<span class="index-body">
+									<span class="index-name">Space weather nowcasting</span>
+									<span class="index-note">Tonight&rsquo;s aurora as NOAA&rsquo;s model sees it, on a globe you can turn, and the solar wind behind it: from the Sun as GOES-19 sees it, past L1, to the Earth&rsquo;s magnetosphere.</span>
+								</span>
+								<span class="index-go" aria-hidden="true">&rarr;</span>
+							</a>
+						</li>
+						<li>
+							<a class="index-row" href="f1-wall">
+								<span class="index-meta">
+									<span class="index-num">02</span>
 									<span class="index-tag">Motorsport &middot; Live</span>
 								</span>
 								<span class="index-body">
@@ -463,7 +482,7 @@
 						<li>
 							<a class="index-row" href="f1">
 								<span class="index-meta">
-									<span class="index-num">02</span>
+									<span class="index-num">03</span>
 									<span class="index-tag">Motorsport</span>
 								</span>
 								<span class="index-body">
@@ -476,7 +495,7 @@
 						<li>
 							<a class="index-row" href="eclipse">
 								<span class="index-meta">
-									<span class="index-num">03</span>
+									<span class="index-num">04</span>
 									<span class="index-tag">Astronomy</span>
 								</span>
 								<span class="index-body">
@@ -489,7 +508,7 @@
 						<li>
 							<a class="index-row" href="galaxy">
 								<span class="index-meta">
-									<span class="index-num">04</span>
+									<span class="index-num">05</span>
 									<span class="index-tag">Astronomy &middot; Interactive</span>
 								</span>
 								<span class="index-body">
@@ -502,7 +521,7 @@
 						<li>
 							<a class="index-row" href="dashboard">
 								<span class="index-meta">
-									<span class="index-num">05</span>
+									<span class="index-num">06</span>
 									<span class="index-tag">Live &middot; Data</span>
 								</span>
 								<span class="index-body">
@@ -515,7 +534,7 @@
 						<li>
 							<a class="index-row" href="cv">
 								<span class="index-meta">
-									<span class="index-num">06</span>
+									<span class="index-num">07</span>
 									<span class="index-tag">Research</span>
 								</span>
 								<span class="index-body">
@@ -528,7 +547,7 @@
 						<li>
 							<a class="index-row" href="speaking">
 								<span class="index-meta">
-									<span class="index-num">07</span>
+									<span class="index-num">08</span>
 									<span class="index-tag">Outreach</span>
 								</span>
 								<span class="index-body">
@@ -541,7 +560,7 @@
 						<li>
 							<a class="index-row" href="https://github.com/jeremyrigney" target="_blank" rel="me noopener">
 								<span class="index-meta">
-									<span class="index-num">08</span>
+									<span class="index-num">09</span>
 									<span class="index-tag">Code</span>
 								</span>
 								<span class="index-body">
@@ -663,7 +682,7 @@
 		<footer class="site-footer">
 			<div class="wrap">
 				<p>&copy; <span id="year">2026</span> Jeremy Rigney</p>
-				<p><a href="cv">CV</a> &nbsp;&middot;&nbsp; <a href="dashboard">Dashboard</a> &nbsp;&middot;&nbsp; <a href="eclipse">Eclipse</a> &nbsp;&middot;&nbsp; <a href="f1">F1</a> &nbsp;&middot;&nbsp; <a href="galaxy">Galaxy</a> &nbsp;&middot;&nbsp; <a href="speaking">Speaking</a> &nbsp;&middot;&nbsp; <a href="/#contact">Contact</a> &nbsp;&middot;&nbsp; <a href="privacy">Privacy</a> &nbsp;&middot;&nbsp; <a href="#" data-consent-open>Cookie settings</a><span class="needs-js"> &nbsp;&middot;&nbsp; <a href="#" data-theme-toggle><span class="theme-label-light">Light</span><span class="theme-label-dark">Dark</span> mode</a></span></p>
+				<p><a href="aurora">Space weather</a> &nbsp;&middot;&nbsp; <a href="cv">CV</a> &nbsp;&middot;&nbsp; <a href="dashboard">Dashboard</a> &nbsp;&middot;&nbsp; <a href="eclipse">Eclipse</a> &nbsp;&middot;&nbsp; <a href="f1">F1</a> &nbsp;&middot;&nbsp; <a href="galaxy">Galaxy</a> &nbsp;&middot;&nbsp; <a href="speaking">Speaking</a> &nbsp;&middot;&nbsp; <a href="/#contact">Contact</a> &nbsp;&middot;&nbsp; <a href="privacy">Privacy</a> &nbsp;&middot;&nbsp; <a href="#" data-consent-open>Cookie settings</a><span class="needs-js"> &nbsp;&middot;&nbsp; <a href="#" data-theme-toggle><span class="theme-label-light">Light</span><span class="theme-label-dark">Dark</span> mode</a></span></p>
 			</div>
 		</footer>
 
@@ -671,5 +690,21 @@
 		<script src="assets/js/home-intro.js?v=20261001"></script>
 		<script src="assets/js/home-galaxy.js?v=20261008"></script>
 		<script src="assets/js/home-sky.js?v=20261008"></script>
+		<script>
+		/* The opening's live readout: NOAA's estimated planetary K index for the latest
+		   minute, to one decimal. A dash stays if the feed is slow or fails; no retries. */
+		(function () {
+			var el = document.getElementById('kp-now');
+			if (!el || !window.fetch) { return; }
+			fetch('https://services.swpc.noaa.gov/json/planetary_k_index_1m.json')
+				.then(function (r) { return r.ok ? r.json() : null; })
+				.then(function (rows) {
+					var last = rows && rows.length ? rows[rows.length - 1] : null;
+					var kp = last ? (typeof last.estimated_kp === 'number' ? last.estimated_kp : last.kp_index) : null;
+					if (typeof kp === 'number' && isFinite(kp)) { el.textContent = kp.toFixed(1); }
+				})
+				.catch(function () {});
+		})();
+		</script>
 	</body>
 </html>
