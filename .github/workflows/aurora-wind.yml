@@ -2,7 +2,7 @@ name: Aurora solar wind
 
 # Keeps jeremy.ie/aurora's solar wind current. NOAA writes a new WSA-Enlil run once a day,
 # about 01:25 UTC, and another whenever a forecaster models a CME; each is a 130 MB file.
-# tools/build-aurora-wind.py cuts the newest down to the two small files the page draws
+# tools/build-aurora-wind.py cuts the newest down to the three small files the page draws
 # (see its header), and this publishes them to the aurora-data branch: one commit, replaced
 # each time, so nothing here adds to main's history. The page reads them from
 # raw.githubusercontent.com.
@@ -48,6 +48,8 @@ jobs:
           git checkout -q FETCH_HEAD -- tools/build-aurora-wind.py
           if git fetch -q --depth 1 "$REMOTE" "$BRANCH" 2>/dev/null; then
             git show FETCH_HEAD:wind.json > ../published.json || rm -f ../published.json
+            # A run published without its density (as the first of format 3 was) is built again.
+            git cat-file -e FETCH_HEAD:wind-density.png 2>/dev/null || rm -f ../published.json
           fi
 
       - name: Install numpy, netCDF4 and pillow
@@ -64,7 +66,7 @@ jobs:
 
       - name: Publish
         run: |
-          if [ ! -s out/wind.json ] || [ ! -s out/wind.png ]; then
+          if [ ! -s out/wind.json ] || [ ! -s out/wind.png ] || [ ! -s out/wind-density.png ]; then
             echo "Nothing to publish."
             exit 0
           fi
@@ -75,7 +77,7 @@ jobs:
           workflow, which replaces this branch's single commit each time. Do not edit it by hand.
           TEXT
           git init -q -b "$BRANCH"
-          git add wind.json wind.png README.md
+          git add wind.json wind.png wind-density.png README.md
           git -c user.name="github-actions[bot]" \
               -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
               commit -q -m "WSA-Enlil: $(python3 -c "import json; s = json.load(open('wind.json'))['source']; print(s['file'], 'written', s['modified'])")"
