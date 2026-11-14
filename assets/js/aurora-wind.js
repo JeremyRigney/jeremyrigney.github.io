@@ -10,7 +10,9 @@
  *
  *   wind.json   the run, its frame times and axes, and the series at the Earth;
  *   wind.png    radial speed, a byte a value, a tile a frame: the cut through the
- *               Earth's latitude, which seen from the north is the pinwheel.
+ *               Earth's latitude, which seen from the north is the pinwheel;
+ *   wind-density.png  the density in the same cut, as at 1 AU (n r^2), on a log
+ *               scale (from version 3 of wind.json; without it, no density).
  *
  * The json is small and fetched at once, then every half hour. The png is fetched when
  * the page is idle, or sooner if the reader scrolls toward the views that draw it, and
@@ -393,6 +395,7 @@
     meta: null, // wind.json
     times: null, // frame times, ms
     ecl: null, // Uint8Array, [frame][r][lon]: speed at the Earth's latitude
+    dens: null, // the same for density at 1 AU (n r^2), once wind.json lists it (version 3)
     run: null, // the run the arrays came from (source.file + source.modified)
     atlasMeta: null, // and that run's wind.json, which the arrays are laid out by
     fetchedAt: 0,
@@ -407,7 +410,8 @@
   }
 
   function accept(meta) {
-    if (!meta || meta.version !== 2 || !meta.atlas || !meta.times) { throw new Error('wind.json: not a format this page knows'); }
+    // Version 3 added the density; 2 is still read, without it.
+    if (!meta || (meta.version !== 2 && meta.version !== 3) || !meta.atlas || !meta.times) { throw new Error('wind.json: not a format this page knows'); }
     state.meta = meta;
     state.times = meta.times.map(iso);
     var e = meta.earth;
@@ -444,7 +448,20 @@
   // The model's speed in the ecliptic at (r AU, longitude degrees) and a frame, km/s;
   // null outside the model.
   function speedAt(r, lon, f) {
-    var m = state.meta, a = state.ecl;
+    var b = sample(state.ecl, r, lon, f);
+    return b === null ? null : speedOf(b);
+  }
+
+  // Its density there, per cm^3 as at 1 AU (n r^2); null outside it or without one.
+  function densityAt(r, lon, f) {
+    var d = state.meta && state.meta.density;
+    var b = d ? sample(state.dens, r, lon, f) : null;
+    return b === null ? null : d.min * Math.exp(b / 255 * Math.log(d.max / d.min));
+  }
+
+  // A byte array laid out as the atlas, at (r, lon, frame), blended between its cells.
+  function sample(a, r, lon, f) {
+    var m = state.meta;
     if (!m || !a) { return null; }
     var nr = m.r.count, nl = m.lon.count;
     var fr = (r - m.r.first) / m.r.step;
@@ -463,7 +480,7 @@
       var bot = a[base + r1 * nl + l0] * (1 - wl) + a[base + r1 * nl + l1] * wl;
       return top * (1 - wr) + bot * wr;
     }
-    return speedOf(wk > 0 ? at(k0) * (1 - wk) + at(k1) * wk : at(k0));
+    return wk > 0 ? at(k0) * (1 - wk) + at(k1) * wk : at(k0);
   }
 
   // The model's series at the Earth at a time: { speed, density, temperature, b }, or null.
@@ -607,6 +624,7 @@
     accept: accept,
     frameAt: frameAt,
     speedAt: speedAt,
+    densityAt: densityAt,
     speedOf: speedOf,
     earthAt: earthAt,
     outlook: outlook,
@@ -704,15 +722,30 @@
     var key = runKey(meta);
     if (state.run === key || loadingRun === key) { return; }
     loadingRun = key;
-    fetch(BASE + meta.atlas.file + '?v=' + encodeURIComponent(meta.source.modified))
-      .then(function (r) {
-        if (!r.ok) { throw new Error(meta.atlas.file + ' ' + r.status); }
-        return r.blob();
+    function atlas(file) {
+      return fetch(BASE + file + '?v=' + encodeURIComponent(meta.source.modified))
+        .then(function (r) {
+          if (!r.ok) { throw new Error(file + ' ' + r.status); }
+          return r.blob();
+        })
+        .then(decode)
+        .then(function (img) {
+          var out = unpack(img, meta);
+          if (img.close) { img.close(); }
+          return out;
+        });
+    }
+    // The density is extra: without it the streaks go back to a fixed number.
+    var dens = meta.density && meta.density.file
+      ? atlas(meta.density.file).catch(function (err) {
+        if (window.console) { console.warn('aurora-wind:', err.message || err); }
+        return null;
       })
-      .then(decode)
-      .then(function (img) {
-        state.ecl = unpack(img, meta);
-        if (img.close) { img.close(); }
+      : Promise.resolve(null);
+    Promise.all([atlas(meta.atlas.file), dens])
+      .then(function (both) {
+        state.ecl = both[0];
+        state.dens = both[1];
         state.run = key;
         state.atlasMeta = meta;
         emit();

@@ -247,6 +247,22 @@ function tinyRun() {
   W.state.ecl = ecl;
 }
 
+test('the density reads back from its log-scaled bytes, blended between cells', function () {
+  tinyRun();
+  var m = W.state.meta;
+  m.density = { file: 'wind-density.png', min: 0.5, max: 200, scale: 'log', at: '1 AU' };
+  var n = W.state.ecl.length, d = new Uint8Array(n);
+  // Byte 128 everywhere but one cell: half way up the log scale is sqrt(0.5 * 200) = 10.
+  for (var i = 0; i < n; i++) { d[i] = 128; }
+  W.state.dens = d;
+  near(W.densityAt(0.75, -45, 0), 0.5 * Math.exp(128 / 255 * Math.log(400)), 1e-6, 'a cell');
+  ok(Math.abs(W.densityAt(0.75, -45, 0) - 10) < 0.2, 'about 10 per cm^3');
+  eq(W.densityAt(3, -45, 0), null, 'outside the model');
+  W.state.dens = null;
+  eq(W.densityAt(0.75, -45, 0), null, 'no density atlas, no density');
+  delete m.density;
+});
+
 test('a time is placed among the frames, and held at the ends', function () {
   tinyRun();
   var t0 = Date.parse('2026-11-11T00:00:00Z'), H = 3600000;

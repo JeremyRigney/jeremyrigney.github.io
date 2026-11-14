@@ -44,7 +44,11 @@ Written to --out:
                by 0.75 km/s from one radial cell to the next and by 0.3 km/s between
                a frame dropped and the blend of its neighbours, both under the 3 km/s
                a byte resolves.
-    wind.json  The run it came from, the frame times, the axes and the byte's scale,
+    wind-density.png
+               The density in the same layout: protons per cm^3, times r^2 (AU) so
+               that it reads as at 1 AU whatever the distance, a byte on a log scale
+               from density.min to density.max.
+    wind.json  The run it came from, the frame times, the axes and the bytes' scales,
                and the series at the Earth by the half hour.
 
 Which run: the newest CME run on NOMADS if there is one, otherwise the newest ambient
@@ -69,7 +73,7 @@ import subprocess
 import sys
 import tempfile
 
-VERSION = 2  # 1 carried the north-south cut beside each tile
+VERSION = 3  # 1 carried the north-south cut beside each tile; 2 had no density
 
 NOMADS = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/wsa_enlil/prod/"
 RUN_FILE = re.compile(r"wsa_enlil\.mrid(\d{8})\.suball\.nc$")
@@ -82,6 +86,7 @@ FRAME_STEP = 2  # hours
 ATLAS_COLS = 8
 SPEED_MIN = 200.0  # km/s, byte 0
 SPEED_MAX_FLOOR = 900.0  # byte 255, unless the run goes faster
+DENSITY_MIN, DENSITY_MAX = 0.5, 200.0  # per cm^3 scaled to 1 AU, bytes 0 and 255 on a log scale
 SERIES_STEP_MIN = 30
 HOLD_DAYS = 3.0
 
@@ -160,13 +165,17 @@ def reduce(path, source, out_dir):
     ds.set_auto_maskandscale(False)
     v = ds.variables
 
-    def cut(name):
-        """A packed cut as km/s."""
+    def unpack(name):
+        """A packed cut in the file's own units (SI)."""
         var = v[name]
         lo = float(var.getncattr(name[:4] + "_min"))
         hi = float(var.getncattr(name[:4] + "_max"))
         raw = var[:].astype(np.float32)
-        return ((raw + 32768.0) * ((hi - lo) / 65535.0) + lo) / 1e3
+        return (raw + 32768.0) * ((hi - lo) / 65535.0) + lo
+
+    def cut(name):
+        """A packed speed cut as km/s."""
+        return unpack(name) / 1e3
 
     ref = datetime.datetime.strptime(ds.getncattr("REFDATE_CAL"), "%Y-%m-%dT%H:%M:%S").replace(tzinfo=UTC)
     r = v["x_coord"][:].astype(np.float64) / AU_M
@@ -196,10 +205,24 @@ def reduce(path, source, out_dir):
     frames = frames.astype(np.uint8).transpose(0, 2, 1)
     n, th, tw = frames.shape
     rows = -(-n // ATLAS_COLS)
-    atlas = np.zeros((rows * th, ATLAS_COLS * tw), np.uint8)
-    for k in range(n):
-        y, x = (k // ATLAS_COLS) * th, (k % ATLAS_COLS) * tw
-        atlas[y:y + th, x:x + tw] = frames[k]
+
+    def tile(frames):
+        atlas = np.zeros((rows * th, ATLAS_COLS * tw), np.uint8)
+        for k in range(n):
+            y, x = (k // ATLAS_COLS) * th, (k % ATLAS_COLS) * tw
+            atlas[y:y + th, x:x + tw] = frames[k]
+        return atlas
+
+    atlas = tile(frames)
+
+    # The density likewise: mass density to protons per cm^3, as for the Earth series,
+    # then times r^2 so it reads as at 1 AU, binned, and a byte on a log scale.
+    dens = unpack("dd13_3d")[keep] / M_HYDROGEN / 1e6  # t, lon, r
+    dens1au = dens * (r[np.newaxis, np.newaxis, :] ** 2)
+    dbinned = dens1au.reshape(dens1au.shape[0], nlon, R_BINS, nr // R_BINS).mean(axis=3)
+    span = math.log(DENSITY_MAX / DENSITY_MIN)
+    dbytes = np.clip(np.rint(np.log(np.maximum(dbinned, 1e-6) / DENSITY_MIN) / span * 255.0), 0, 255)
+    datlas = tile(dbytes.astype(np.uint8).transpose(0, 2, 1))
 
     # The series at the Earth, by the half hour across the frames' span.
     et = v["Earth_TIME"][:].astype(np.float64)
@@ -241,6 +264,17 @@ def reduce(path, source, out_dir):
         raise SystemExit("the ecliptic cut at the Earth is %.0f km/s from the Earth series: "
                          "the file's layout is not what this script assumes" % worst)
 
+    # And the density, as a ratio: within 15% of the Earth series wherever it is checked.
+    earth_n = v["Earth_Density"][:].astype(np.float64) / M_HYDROGEN / 1e6
+    dworst = 0.0
+    for k in range(0, n, 12):
+        at = dens[k, i0, ir] * (1 - w) + dens[k, i0 + 1, ir] * w
+        said = float(np.interp(t[keep[k]], et, earth_n))
+        if said > 0:
+            dworst = max(dworst, abs(math.log(float(at) / said)))
+    if dworst > math.log(1.15):
+        raise SystemExit("the density cut at the Earth is %.0f%% from the Earth series" % ((math.exp(dworst) - 1) * 100))
+
     meta = {
         "version": VERSION,
         "built": iso(datetime.datetime.now(UTC)),
@@ -261,6 +295,8 @@ def reduce(path, source, out_dir):
               "step": round(float(r[nr // R_BINS] - r[0]), 6), "count": R_BINS},  # AU, bin centres
         "lon": {"first": round(float(lon[0]), 3), "step": round(float(lon[1] - lon[0]), 3), "count": nlon},
         "speed": {"min": SPEED_MIN, "max": speed_max},  # km/s at bytes 0 and 255
+        # per cm^3 at 1 AU (n r^2) at bytes 0 and 255, log between
+        "density": {"file": "wind-density.png", "min": DENSITY_MIN, "max": DENSITY_MAX, "scale": "log", "at": "1 AU"},
         "earth": earth,
         "stereo_a": {
             "r": round(float(np.median(v["STEREO_A_X1"][:])) / AU_M, 4),
@@ -271,6 +307,8 @@ def reduce(path, source, out_dir):
     os.makedirs(out_dir, exist_ok=True)
     png = os.path.join(out_dir, "wind.png")
     Image.fromarray(atlas, "L").save(png, "PNG", optimize=True)
+    dpng = os.path.join(out_dir, "wind-density.png")
+    Image.fromarray(datlas, "L").save(dpng, "PNG", optimize=True)
     with open(os.path.join(out_dir, "wind.json"), "w") as handle:
         json.dump(meta, handle, separators=(",", ":"))
         handle.write("\n")
@@ -280,6 +318,9 @@ def reduce(path, source, out_dir):
     print("speed %.0f to %.0f km/s in the cut, bytes span %.0f to %.0f" % (
         float(ecl.min()), top, SPEED_MIN, speed_max))
     print("cut at the Earth within %.1f km/s of the Earth series" % worst)
+    print("density at the Earth within %.1f%% of its series; %.1f to %.1f per cm^3 at 1 AU in the cut" % (
+        (math.exp(dworst) - 1) * 100, float(dens1au.min()), float(dens1au.max())))
+    print("wind-density.png %.0f KB" % (os.path.getsize(dpng) / 1e3))
     print("wind.png %dx%d, %.0f KB; wind.json %.0f KB" % (
         atlas.shape[1], atlas.shape[0], os.path.getsize(png) / 1e3,
         os.path.getsize(os.path.join(out_dir, "wind.json")) / 1e3))

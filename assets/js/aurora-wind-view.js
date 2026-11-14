@@ -130,7 +130,12 @@
   // The model's streaks.
   var HELIO_HOURS_PER_S = 10;
   var HELIO_TRAIL_S = 0.55;
-  var HELIO_COUNT = 7000, HELIO_COUNT_NARROW = 3000; // out to 4.1 AU, of which about 60% on screen
+  var HELIO_COUNT = 10000, HELIO_COUNT_NARROW = 4300; // out to 4.1 AU, of which about 60% on screen
+  // Their number follows the model's density: each has a fixed random share, and shows
+  // where that is under the density (per cm^3 as at 1 AU) over DENS_FULL, softly, and
+  // never under DENS_FLOOR, so thin wind is sparse rather than empty. An ordinary 5
+  // shows half of them. Without the model's density they all show.
+  var DENS_FULL = 10, DENS_FLOOR = 0.12, DENS_SOFT = 0.06;
   var HELIO_STREAK_ALPHA = 0.42;
   var KMS_TO_AU_PER_H = 3600 / 1.495978707e8;
 
@@ -685,11 +690,15 @@
       var vd = p.x * M.out[0] + p.y * M.out[1] + p.z * M.out[2];
       var scatter = p.lost || (scatterShare > 0 && Math.random() < scatterShare);
       if (scatter || f === null || vx > box.r || vx < box.l - m || vy > box.t || vy < box.b || Math.abs(vd) > box.d * 1.2 || p.age > p.life) {
-        // One that ran its life starts again anywhere; one the wind carried off, or into
-        // the magnetopause, comes in again on the sunward side.
+        // One that ran its life starts again anywhere, and so does one left inside the
+        // magnetopause: the flow goes round it, so only a change in the wind (the
+        // slider's time moving) puts one there, and all of those at once. Sent to the
+        // sunward side together they came in as a front. One the wind carried off
+        // comes in again on the sunward side. Both fade in.
         var ended = f !== null && p.age > p.life;
-        spawnNear(p, box, M, scatter || zooming || ended);
-        if (ended || !(scatter || zooming)) { p.age = 0; }
+        var inside = f === null && !p.lost;
+        spawnNear(p, box, M, scatter || zooming || ended || inside);
+        if (ended || inside || !(scatter || zooming)) { p.age = 0; }
         f = flowAt(p);
         p.lost = f === null;
         if (f === null) { continue; }
@@ -849,6 +858,8 @@
     p.r = anywhere ? rIn + Math.random() * (rFar - rIn) : rIn + Math.random() * 0.012;
     p.age = anywhere ? 1 : 0;
     p.v = 0;
+    p.n = 0;
+    p.share = Math.random();
     return p;
   }
 
@@ -888,17 +899,26 @@
         v = p.v > 0 ? p.v : Wind.speedAt(rOut, p.a, k);
       }
       if (v === null) {
-        spawnHelio(p, rIn, rMax, false);
+        // Past rMax it starts again at the Sun; with no speed from the model where it
+        // is (which a change of frame can bring to many at once), anywhere.
+        spawnHelio(p, rIn, rMax, p.r <= rMax);
+        if (p.r > rIn + 0.02) { p.age = 0; }
         v = Wind.speedAt(p.r, p.a, k);
         if (v === null) { continue; }
       }
       p.v = v;
+      // The density where it is, or past the edge what it left with.
+      if (p.r <= rOut) {
+        var n = Wind.densityAt(p.r, p.a, k);
+        p.n = n === null ? 0 : n;
+      }
+      var showing = p.n > 0 ? smooth(p.share - DENS_SOFT, p.share + DENS_SOFT, Math.max(DENS_FLOOR, Math.min(1, p.n / DENS_FULL))) : 1;
       var step = v * KMS_TO_AU_PER_H;
       p.r += step * hours;
       p.age += dt;
       var ca = Math.cos(p.a * DEG), sa = Math.sin(p.a * DEG);
       var hx = sunX + p.r * ca * pxAu, hy = sunY - p.r * sa * st * pxAu;
-      if (hx < -NEAR_MARGIN || hx > scene.w + NEAR_MARGIN || hy < -NEAR_MARGIN || hy > scene.h + NEAR_MARGIN) { continue; }
+      if (showing < 0.01 || hx < -NEAR_MARGIN || hx > scene.w + NEAR_MARGIN || hy < -NEAR_MARGIN || hy > scene.h + NEAR_MARGIN) { continue; }
       var rt = Math.max(rIn, p.r - step * HELIO_HOURS_PER_S * HELIO_TRAIL_S);
       var o = count * SEG;
       d[o] = (sunX + rt * ca * pxAu) * s;
@@ -909,7 +929,7 @@
       d[o + 5] = 0;
       d[o + 6] = 0;
       // In over the first quarter AU, where they are packed closest, and out with the field.
-      d[o + 7] = Math.min(1, p.age / 0.5) * smooth(rIn, rIn + 0.25, p.r) * (1 - smooth(rOut, rFar, p.r)) * HELIO_STREAK_ALPHA;
+      d[o + 7] = showing * Math.min(1, p.age / 0.5) * smooth(rIn, rIn + 0.25, p.r) * (1 - smooth(rOut, rFar, p.r)) * HELIO_STREAK_ALPHA;
       d[o + 8] = v;
       count++;
     }

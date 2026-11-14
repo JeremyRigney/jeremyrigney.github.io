@@ -1246,7 +1246,7 @@
   // tilt is how far the camera has risen over the ecliptic, 0 side-on to 1 from its north.
   var cam = { lat: VIEWS.north.lat, lon: VIEWS.north.lon, roll: 0, cx: 0.5, cy: 1, ls: Math.log(VIEWS.north.size), size: VIEWS.north.size, dim: 1, tilt: 0 };
   var target = { lat: cam.lat, lon: cam.lon, roll: 0, cx: cam.cx, cy: cam.cy, ls: cam.ls, dim: cam.dim, tilt: 0,
-    anchor: false, sx: 0 }; // anchor: held on the Sun at sx (see aim)
+    anchor: false, sx: 0, space: 0 }; // anchor: held on the Sun at sx; space: see followSun
   var KEYS = ['lat', 'lon', 'roll', 'cx', 'cy', 'ls', 'dim', 'tilt'];
   var spin = 0, spinVel = 0; // degrees, degrees per second
   var resetFrom = null, resetT = 0;
@@ -1526,6 +1526,24 @@
     shownAt = next;
   }
 
+  /*
+   * The views from space are aimed by the Sun, whose direction the clock turns once a
+   * day in the globe's frame. When the clock moves (Live, a click on the slider, Play)
+   * the camera moves with the Sun at once, by its share of the views from space
+   * (target.space), rather than easing round: eased, a jump of half a day swung the
+   * whole view through half a turn, where only the Earth should turn beneath it.
+   */
+  function followSun(was, now) {
+    var share = target.space || 0;
+    var dlat = now.lat - was.lat, dlon = wrap180(now.lon - was.lon), droll = wrap180(now.roll - was.roll);
+    if (share <= 0 || (Math.abs(dlat) < 1e-9 && Math.abs(dlon) < 1e-9 && Math.abs(droll) < 1e-9)) { return; }
+    cam.lat += dlat * share;
+    cam.lon = wrap180(cam.lon + dlon * share);
+    cam.roll = wrap180(cam.roll + droll * share);
+  }
+
+  var SPACE = { sun: true, system: true, l1: true, wind: true };
+
   function aim() {
     var at = reducedMotion ? Math.round(progress) : shownAt;
     var i0 = Math.min(ids.length - 1, Math.floor(at));
@@ -1536,6 +1554,8 @@
     var zt = t, tt = t;
     if (ids[i0] === 'system' && ids[i1] === 'l1') { zt = Math.pow(t, ZOOM_EASE); }
     if (ids[i0] === 'l1' && ids[i1] === 'wind') { tt = smooth(RISE_SPAN[0], RISE_SPAN[1], t); }
+    // How much of the aim is the Sun's (see followSun).
+    target.space = (SPACE[ids[i0]] ? 1 - t : 0) + (SPACE[ids[i1]] ? t : 0);
     target.lat = a.lat + (b.lat - a.lat) * t;
     target.lon = a.lon + wrap180(b.lon - a.lon) * t;
     target.roll = a.roll + wrap180(b.roll - a.roll) * t;
@@ -2273,6 +2293,7 @@
     // The Sun at the time being shown: the slider's, or now.
     var M = window.AuroraModel;
     drawnViewTime = M ? M.viewTime : null;
+    var aimWas = spaceAim();
     if (M && M.viewTime !== null) {
       sunFor(new Date(M.viewTime));
       sunAt = 0;
@@ -2280,6 +2301,7 @@
       sunFor(new Date());
       sunAt = now;
     }
+    followSun(aimWas, spaceAim());
     scene.time = drawnViewTime === null ? Date.now() : drawnViewTime;
     scene.live = drawnViewTime === null;
     scene.dt = dt;

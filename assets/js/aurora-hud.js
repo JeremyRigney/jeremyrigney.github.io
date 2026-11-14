@@ -594,8 +594,10 @@
     var sun = view() === 'system';
     text('wind-legend-of', sun ? 'by NOAA’s WSA-Enlil' : 'measured at L1');
     if (sun) {
+      var dens = Wind && Wind.state.dens;
       text('wind-legend-note', 'The model’s radial speed in the plane of the Earth’s orbit. The streaks move at that speed where they are, '
-        + V.HELIO_HOURS_PER_S + ' hours of travel a second.');
+        + V.HELIO_HOURS_PER_S + ' hours of travel a second'
+        + (dens ? ', and their number follows the model’s density: crowded where the wind is dense, sparse where it is thin.' : '.'));
     } else {
       var px = G && G.pxPerReAt ? G.pxPerReAt('wind') : 0;
       var times = px > 0 ? Math.round(V.speedup(px) / 10) * 10 : 0;
