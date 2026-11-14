@@ -2398,7 +2398,8 @@
       }
       if (dragAxis !== 'w') { return; }
       wobble.yaw = Math.max(-WOBBLE_MAX, Math.min(WOBBLE_MAX, wobble.yaw + dx * WOBBLE_PER_PX));
-      if (wobbleMouse) { wobble.pitch = Math.max(-WOBBLE_MAX, Math.min(WOBBLE_MAX, wobble.pitch + dy * WOBBLE_PER_PX)); }
+      // Up and down is inverted against the pointer's travel (pitch falls as it moves down).
+      if (wobbleMouse) { wobble.pitch = Math.max(-WOBBLE_MAX, Math.min(WOBBLE_MAX, wobble.pitch - dy * WOBBLE_PER_PX)); }
       dragX = e.clientX;
       dragY = e.clientY;
       e.preventDefault();
