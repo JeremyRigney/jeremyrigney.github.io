@@ -72,6 +72,31 @@
   --prob-5: #d79be0;
   --prob-6: #ffc3dc;
 
+  /* The solar wind's speed, at 300, 400, 500, 600, 700 and 800 km/s
+     (aurora-wind-view.js blends between them): one hue, darker for slow, near white
+     for fast, and the one colour family nothing else here uses. Lightness rises
+     evenly. The slow end sits close to the ground (1.25:1) on purpose: the field
+     fills the screen, so there is no edge for it to be told from, and slow wind is
+     meant to recede so that a fast stream stands out of the dark. An earlier ramp
+     that cleared the ground at 2.2:1 made the whole screen one bright blue. */
+  --wind-1: #16264d;
+  --wind-2: #1e418a;
+  --wind-3: #2c68cc;
+  --wind-4: #5b9aec;
+  --wind-5: #a5ccf8;
+  --wind-6: #eaf4fe;
+
+  /* The same speeds at the Earth, where the wind is streaks of light on the dark and
+     not a field: slow is a warm white, the commonest wind and so the plain one, and a
+     fast stream heats through gold to red. Amber here is also the city lights' and
+     orange the 3-sigma mark's, but neither is on the screen in this view. */
+  --gust-1: #fbf3e4;
+  --gust-2: #fbe2a6;
+  --gust-3: #f8c062;
+  --gust-4: #f4933c;
+  --gust-5: #ea6232;
+  --gust-6: #d83a3c;
+
   /* The globe (aurora-globe.js): the space behind it, top to bottom of the
      screen, the haze above the limb, the earth by night and in full sun, its
      coasts, the place marker, and the night side's lights. */
@@ -674,7 +699,7 @@ button {
   font-weight: 500;
 }
 
-body[data-view="1"] .top-time .cloud {
+body:is([data-view="south"], [data-view="wind"], [data-view="l1"], [data-view="system"], [data-view="sun"]) .top-time .cloud {
   display: none;
 }
 
@@ -808,8 +833,16 @@ body[data-view="1"] .top-time .cloud {
   margin: 0 0 var(--s-2);
 }
 
+.top-more .top-figures + .top-figures {
+  margin-top: var(--s-4);
+}
+
 .top-more .top-figures dt {
   font-size: var(--fs-sm);
+}
+
+.top-figures .unit sub {
+  font-size: 0.8em;
 }
 
 .top-more .top-figures dd {
@@ -850,17 +883,41 @@ body[data-view="1"] .top-time .cloud {
   }
 }
 
-/* North shows the place, south the southern oval, the drivers neither. */
-.top-oval {
+/* North shows the place, south the southern oval, each view from space its own
+   wind, the drivers none of them. */
+.top-oval,
+.top-wind,
+.top-sun,
+.top-goes {
   display: none;
 }
 
-body[data-view="1"] .top-place {
+body:is([data-view="south"], [data-view="wind"], [data-view="l1"], [data-view="system"], [data-view="sun"]) .top-place {
   display: none;
 }
 
-body[data-view="1"] .top-oval {
+body[data-view="south"] .top-oval,
+body:is([data-view="wind"], [data-view="l1"]) .top-wind,
+body[data-view="system"] .top-sun,
+body[data-view="sun"] .top-goes {
   display: flex;
+}
+
+/* The layer switch is the globe's: from space there is nothing for it to switch. It
+   keeps its place, so the views' switch beside it doesn't move. */
+.layer-toggle {
+  transition: opacity 400ms var(--ease), visibility 400ms;
+}
+
+body:is([data-view="sun"], [data-view="system"], [data-view="l1"], [data-view="wind"]) .layer-toggle {
+  visibility: hidden;
+  opacity: 0;
+}
+
+/* It stands before the views' switch, so that one keeps the row's end whether or not
+   this one is showing. */
+.layer-toggle {
+  order: -1;
 }
 
 .topdock,
@@ -869,7 +926,7 @@ body[data-view="1"] .top-oval {
   transition: opacity 400ms var(--ease), visibility 400ms;
 }
 
-body[data-view="2"] :is(.topdock, .top-time, .top-seg) {
+body[data-view="drivers"] :is(.topdock, .top-time, .top-seg) {
   visibility: hidden;
   opacity: 0;
 }
@@ -895,9 +952,11 @@ body[data-view="2"] :is(.topdock, .top-time, .top-seg) {
     align-self: center;
   }
 
+  /* Five views and the layer switch are wider than the pill under them, so the row
+     keeps its right edge and runs on to the left, over the open middle. */
   .header-controls {
-    justify-self: stretch;
-    justify-content: space-between;
+    grid-column: 2 / -1;
+    justify-self: end;
   }
 
   .topdock {
@@ -1205,6 +1264,58 @@ body[data-view="2"] :is(.topdock, .top-time, .top-seg) {
 }
 
 .place-status:empty {
+  display: none;
+}
+
+/* The way up, from the views with something above them: on a wide screen in the
+   open middle of the switches' row, otherwise under the capsule. It belongs to the
+   header, so it stands still while the views scroll, and each shows in its own view. */
+.up-hint {
+  position: fixed;
+  z-index: 19;
+  left: 50%;
+  top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + var(--s-2));
+  translate: -50% 0;
+  background: var(--card);
+  text-decoration: none;
+  color: var(--ink-soft);
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 400ms var(--ease), visibility 400ms, color 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+body[data-view="north"] .up-hint[data-go="wind"],
+body[data-view="wind"] .up-hint[data-go="l1"],
+body[data-view="l1"] .up-hint[data-go="system"],
+body[data-view="system"] .up-hint[data-go="sun"] {
+  visibility: visible;
+  opacity: 1;
+}
+
+.up-hint:hover {
+  color: var(--ink);
+}
+
+.up-hint::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-top: 0.2rem;
+  border-top: 1.5px solid currentColor;
+  border-left: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+
+@media (min-width: 1241px) {
+  .up-hint {
+    top: calc(var(--s-3) + env(safe-area-inset-top, 0px) + 0.3125rem);
+  }
+}
+
+/* Without the stage there is nothing to see from space. */
+.no-webgl :is(.view-sun, .view-system, .view-l1, .view-wind),
+.no-webgl .up-hint,
+.no-webgl .view-index a:is([data-view="sun"], [data-view="system"], [data-view="l1"], [data-view="wind"]) {
   display: none;
 }
 
@@ -1535,11 +1646,11 @@ body[data-view="2"] :is(.topdock, .top-time, .top-seg) {
   pointer-events: auto;
 }
 
-body[data-view="2"] .dock {
+body[data-view="drivers"] .dock {
   opacity: 0;
 }
 
-body[data-view="2"] .dock > * {
+body[data-view="drivers"] .dock > * {
   pointer-events: none;
 }
 
@@ -1837,6 +1948,62 @@ body[data-view="2"] .dock > * {
   position: static;
 }
 
+/* From space the legend is the wind's speed: the ramp the streaks and the model's
+   field are drawn in, a colour on each hundred km/s and blended between. */
+.legend-wind {
+  display: none;
+}
+
+body:is([data-view="system"], [data-view="l1"], [data-view="wind"]) .legend-wind {
+  display: block;
+}
+
+/* The Sun's picture is NOAA's, in its colours: the legend says whose, and no more. */
+.legend-goes {
+  display: none;
+}
+
+body[data-view="sun"] .legend-goes {
+  display: block;
+}
+
+body[data-view="sun"] .legend > :is(.legend-seen, .legend-prob, .legend-model, .dock-more) {
+  display: none;
+}
+
+body:is([data-view="system"], [data-view="l1"], [data-view="wind"]) .legend > :is(.legend-seen, .legend-prob, .legend-model) {
+  display: none;
+}
+
+.legend-bar-wind {
+  height: 8px;
+  margin-top: var(--s-2);
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--wind-1) 0%, var(--wind-2) 20%, var(--wind-3) 40%,
+    var(--wind-4) 60%, var(--wind-5) 80%, var(--wind-6) 100%);
+}
+
+body:is([data-view="wind"], [data-view="l1"]) .legend-bar-wind {
+  background: linear-gradient(90deg, var(--gust-1) 0%, var(--gust-2) 20%, var(--gust-3) 40%,
+    var(--gust-4) 60%, var(--gust-5) 80%, var(--gust-6) 100%);
+}
+
+/* Each number stands on its colour: the ends flush, the rest centred on their fifths. */
+.legend-ticks-wind {
+  display: flex;
+  justify-content: space-between;
+}
+
+.legend-ticks-wind span {
+  position: static;
+  display: flex;
+  justify-content: center;
+  width: 0;
+}
+
+.legend-ticks-wind span:first-child { justify-content: flex-start; }
+.legend-ticks-wind span:last-child { justify-content: flex-end; }
+
 /* Shown whenever the globe is on the model rather than NOAA's live grid. */
 .legend-model {
   margin: var(--s-3) 0 0;
@@ -2034,6 +2201,26 @@ body[data-view="2"] .dock > * {
 
 @media (max-width: 720px) {
   .view-index { display: none; }
+}
+
+/* Between there and about 1000 px, five views beside the layer switch leave the
+   wordmark's row short of room: the byline goes under the wordmark, as it does on a
+   phone, and the layer switch drops its gain. */
+@media (min-width: 721px) and (max-width: 1000px) {
+  .layer-gain {
+    display: none;
+  }
+
+  .brand {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.125rem;
+  }
+
+  .brand-by {
+    font-size: var(--fs-xs);
+    line-height: 1.2;
+  }
 }
 
 /* Too narrow for the slider between the two cards: they sit side by side above it. */

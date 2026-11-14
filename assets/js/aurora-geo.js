@@ -10,6 +10,8 @@
  *                    (good to a few hundredths of a degree this century, far finer
  *                    than a terminator line needs).
  *   sunAltitude()    The Sun's altitude from a place, for "is it dark there?".
+ *   eclipticPole()   North of the ecliptic and, with sunDistance(), where the Earth is
+ *                    in its orbit: what the views from space are framed by.
  *   MAG / toMag()    A centred dipole from IGRF-14 at 2025.0: g10, g11, h11 put the
  *                    geomagnetic north pole at 80.79°N 72.76°W. The aurora's arcs run
  *                    along magnetic latitude, so the shader builds them in these
@@ -102,6 +104,32 @@
     return 90 - angle(latDeg, lonDeg, s.lat, s.lon) / DEG;
   }
 
+  // Days from J2000.0 (2000 January 1, 12:00 UT).
+  function j2000(date) {
+    return date.getTime() / 86400000 - 10957.5;
+  }
+
+  // Greenwich mean sidereal time, degrees: how far the Earth has turned against the stars.
+  function gmst(date) {
+    var g = (280.46061837 + 360.98564736629 * j2000(date)) % 360;
+    return g < 0 ? g + 360 : g;
+  }
+
+  // North of the ecliptic, in globe coordinates. In the sky it sits at right ascension
+  // 18 h, 90 degrees less the obliquity up; the globe turns under it once a sidereal day.
+  // With sun() it frames the views from space: the Sun lies in the ecliptic, so the two
+  // are at right angles (to a few hundredths of a degree, both being low-precision).
+  function eclipticPole(date) {
+    var obliquity = 23.439291 - 0.0130042 * j2000(date) / 36525;
+    return unit(90 - obliquity, 270 - gmst(date));
+  }
+
+  // The Earth's distance from the Sun, AU.
+  function sunDistance(date) {
+    var g = (357.52911 + 0.98560028 * j2000(date)) * DEG;
+    return 1.00014 - 0.01671 * Math.cos(g) - 0.00014 * Math.cos(2 * g);
+  }
+
   // The sky by the Sun's altitude, the way an aurora watcher would put it.
   function sky(altDeg) {
     if (altDeg > -0.833) { return { key: 'day', label: 'Daylight' }; }
@@ -181,6 +209,10 @@
     compass: compass,
     sun: sun,
     sunAltitude: sunAltitude,
+    j2000: j2000,
+    gmst: gmst,
+    eclipticPole: eclipticPole,
+    sunDistance: sunDistance,
     sky: sky,
     MAG: MAG,
     toMag: toMag,

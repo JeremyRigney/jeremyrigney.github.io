@@ -17,6 +17,11 @@
  *
  * The verdict asks for everything an aurora watcher would: a dark sky, OVATION putting
  * aurora in view, enough Kp for the place (Data.kpNeeded) and no blanket of cloud.
+ *
+ * The two views from space have a segment each in the top capsule, written from
+ * aurora-wind.js: the wind arriving at the Earth and what it is doing to the
+ * magnetosphere, and what NOAA's model has coming over the next three days. In those
+ * views the time beside them says what that wind's time is and where it comes from.
  */
 (function () {
   'use strict';
@@ -230,6 +235,15 @@
     var f0 = shownFrame();
     var note = document.querySelector('.legend-model');
     if (note) { note.hidden = !(f0 && f0.modelMix > 0); }
+    var v = view();
+    if (v === 'sun') {
+      renderGoesTime();
+      return;
+    }
+    if (Wind && (v === 'wind' || v === 'l1' || v === 'system')) {
+      renderSpaceTimes(v);
+      return;
+    }
     var ov = Data.state.ovation;
     if (!ov) {
       html('times', Data.state.failed.ovation
@@ -397,6 +411,201 @@
     stale('cloud', Data.isStale('weather'));
   }
 
+  /* ---------- The views from space ---------- */
+
+  var Wind = window.AuroraWind;
+
+  function view() {
+    return document.body.getAttribute('data-view') || 'north';
+  }
+
+  // The time the page shows: the slider's, or now.
+  function shownTime() {
+    var M = window.AuroraModel;
+    return M && M.viewTime !== null ? M.viewTime : Date.now();
+  }
+
+  function isLive() {
+    var M = window.AuroraModel;
+    return !M || M.viewTime === null;
+  }
+
+  function lowerFirst(s) {
+    return s.charAt(0).toLowerCase() + s.slice(1);
+  }
+
+  // The wind reaching the Earth at the time shown: L1's, carried forward, or the model's.
+  function upstream() {
+    return Wind.upstream(shownTime(), { wind: Data.state.wind, mag: Data.state.mag });
+  }
+
+  function speedWord(v) {
+    return v < 350 ? 'Slow' : v < 500 ? 'Moderate' : v < 650 ? 'Fast' : 'Very fast';
+  }
+
+  // What the wind is doing, as the place's verdict says what the sky is. Bz decides it:
+  // south, the wind's energy gets in; north, even a fast wind mostly blows by.
+  function windVerdict(up, at) {
+    if (!up) { return at ? 'Nothing measured or modelled for this time.' : 'Waiting for the wind at L1…'; }
+    var w = speedWord(up.v) + ' wind';
+    var line;
+    if (up.source === 'model') { line = w + ', by NOAA’s model. Bz can’t be forecast.'; }
+    else if (up.bz === null) { line = w + '. Bz isn’t reporting.'; }
+    else if (up.bz <= -5) { line = w + ' and Bz well south: the aurora is being fed.'; }
+    else if (up.bz <= -1.5) { line = w + ', Bz south: some of its energy is getting in.'; }
+    else if (up.v >= 500) { line = w + ', but Bz is north: little of it gets in.'; }
+    else { line = w + ', Bz north: quiet.'; }
+    return at ? 'At ' + when(at) + ': ' + lowerFirst(line) : line;
+  }
+
+  function renderWind() {
+    if (!Wind) { return; }
+    var live = isLive();
+    var up = upstream();
+    var b = Wind.boundaries(up);
+    text('wind-verdict', windVerdict(up, live ? null : new Date(shownTime())));
+    text('up-speed', up ? Math.round(up.v) : '–');
+    text('up-density', up ? up.n.toFixed(1) : '–');
+    text('up-pressure', up ? up.pd.toFixed(1) : '–');
+    text('mp-standoff', up ? b.r0.toFixed(1) : '–');
+    text('bs-standoff', up ? b.bs0.toFixed(1) : '–');
+    text('up-mach', up ? b.mach.toFixed(1) : '–');
+    text('up-source', !up ? 'Neither L1 nor NOAA’s model has this time.'
+      : up.source === 'l1'
+        ? 'Measured at L1 at ' + clock(new Date(up.seen)) + ', ' + Math.round(up.lagMin) + ' minutes before it arrives. Bz '
+          + (up.bz === null ? 'isn’t reporting, and is taken as zero.' : signed(up.bz, 1) + ' nT.')
+        : 'From NOAA’s WSA-Enlil model at the Earth: L1 hasn’t seen this wind yet. Bz is taken as zero.');
+    var old = live && (!up || up.source !== 'l1') ? false : live && Data.isStale('wind');
+    ['wind-verdict', 'up-speed', 'up-density', 'up-pressure', 'mp-standoff', 'bs-standoff', 'up-mach'].forEach(function (n) { stale(n, old); });
+  }
+
+  // What the model has coming at the Earth, from its outlook over the next three days.
+  function sunVerdict(o, meta, at) {
+    if (!meta) { return Wind.state.failed ? 'NOAA’s model didn’t load. Retrying.' : 'Waiting for NOAA’s model…'; }
+    if (!o) { return 'NOAA’s run doesn’t reach this time.'; }
+    var line;
+    if (o.trend === 'rising') {
+      line = 'Faster wind arrives ' + when(new Date(o.onset)) + ', up to ' + Math.round(o.peak.speed) + ' km/s.';
+    } else if (o.trend === 'easing') {
+      line = 'Easing to ' + Math.round(o.low.speed) + ' km/s by ' + when(new Date(o.low.time)) + '.';
+    } else {
+      // As far ahead as the run goes, which near its end is less than three days.
+      var span = o.hours >= 66 ? 'for three days' : o.hours >= 40 ? 'for two days' : o.hours >= 18 ? 'for a day' : 'to the end of this run';
+      line = 'Steady near ' + Math.round(o.now) + ' km/s ' + span + '.';
+    }
+    return at ? 'From ' + when(at) + ': ' + lowerFirst(line) : line;
+  }
+
+  function renderSun() {
+    if (!Wind) { return; }
+    var m = Wind.state.meta;
+    var t = shownTime();
+    var o = m ? Wind.outlook(t) : null;
+    text('sun-verdict', sunVerdict(o, m, isLive() ? null : new Date(t)));
+    text('sun-now', o ? Math.round(o.now) : '–');
+    text('sun-peak', o ? Math.round(o.peak.speed) : '–');
+    text('sun-low', o ? Math.round(o.low.speed) : '–');
+    if (m) {
+      html('sun-run', 'The run of ' + escapeHtml(when(new Date(m.source.ref))) + ', out ' + escapeHtml(when(new Date(m.source.modified)))
+        + '. WSA ' + escapeHtml(String(m.source.wsa).replace(/^A_V/, '')) + ', Enlil ' + escapeHtml(m.source.enlil) + '.'
+        + (Wind.stale() ? ' <span class="stale-note">No newer run has come since.</span>' : ''));
+      text('sun-cme', m.source.cme
+        ? 'This run was made for a coronal mass ejection, so that is in the picture.'
+        : 'This is the daily run of the background wind. A coronal mass ejection only appears here once NOAA’s forecasters have run the model for it.');
+    }
+    var old = !m || Wind.stale();
+    ['sun-verdict', 'sun-now', 'sun-peak', 'sun-low'].forEach(function (n) { stale(n, !!m && old); });
+  }
+
+  // The time beside those segments: whose wind this is, and for when.
+  function renderSpaceTimes(v) {
+    var t = shownTime(), live = isLive(), at = new Date(t);
+    var main = '<span class="times-main"><b>' + clockHtml(live ? clock(at) : when(at)) + '</b></span>';
+    function line(tag, rel, src) {
+      html('times', tag + main + '<span class="times-rel">' + escapeHtml(rel) + '</span>'
+        + '<span class="times-src">' + escapeHtml(src) + '</span>');
+    }
+    if (v === 'wind' || v === 'l1') {
+      var up = upstream();
+      if (!up) {
+        html('times', '<span class="stale-note">' + (live ? 'Waiting for the wind at L1…' : 'Nothing for this time.') + '</span>');
+        return;
+      }
+      if (up.source === 'model') {
+        line('<span class="tag tag-model">Modelled</span>', live ? 'arriving now' : relative(at), 'WSA-Enlil at the Earth');
+        stale('times', Wind.stale());
+      } else {
+        line(live ? '<span class="tag">Live</span>' : '<span class="tag tag-model">Measured</span>',
+          live ? 'arriving now' : relative(at), 'passed L1 at ' + clock(new Date(up.seen)));
+        stale('times', live && Data.isStale('wind'));
+      }
+      return;
+    }
+    var m = Wind.state.meta;
+    if (!m) {
+      html('times', '<span class="stale-note">' + (Wind.state.failed ? 'NOAA’s model didn’t load. Retrying.' : 'Waiting for NOAA’s model…') + '</span>');
+      return;
+    }
+    var fr = Wind.frameAt(t);
+    line('<span class="tag tag-model">Model</span>', live ? 'now' : relative(at),
+      fr && fr.covered ? 'WSA-Enlil run of ' + when(new Date(m.source.ref)) : 'beyond this WSA-Enlil run');
+    stale('times', Wind.stale());
+  }
+
+  // The Sun view: the time shown, and which of NOAA's pictures stands for it.
+  function renderGoesTime() {
+    var S = window.AuroraSun;
+    var t = shownTime(), live = isLive(), at = new Date(t);
+    var l = S ? S.lookup(t) : null;
+    var src = l ? (l.latest ? 'latest picture, ' : 'picture of ') + clock(new Date(l.a.t))
+      : S && S.state.failed ? 'NOAA’s pictures didn’t load' : 'loading NOAA’s pictures…';
+    html('times', '<span class="tag">GOES-19</span><span class="times-main"><b>' + clockHtml(live ? clock(at) : when(at)) + '</b></span>'
+      + '<span class="times-rel">' + escapeHtml(live ? 'now' : relative(at)) + '</span>'
+      + '<span class="times-src">' + escapeHtml(src) + '</span>');
+    stale('times', !!(S && S.state.failed));
+  }
+
+  // Its card: what the picture shows now, and how much of the day is in.
+  function renderGoes() {
+    var S = window.AuroraSun;
+    if (!S) { return; }
+    var st = S.state, n = st.frames.length, t = shownTime();
+    var l = S.lookup(t);
+    var verdict;
+    if (!n) {
+      verdict = st.failed ? 'NOAA’s pictures didn’t load. Retrying.' : 'Loading NOAA’s pictures…';
+    } else if (l.latest && t - l.a.t > 30 * 60000) {
+      verdict = 'No picture this far ahead: the latest, from ' + when(new Date(l.a.t)) + '.';
+    } else if (l.earliest) {
+      verdict = 'Before NOAA’s day of pictures: the earliest, from ' + when(new Date(l.a.t)) + '.';
+    } else {
+      verdict = 'The corona at 171 Å, about 600,000 K, at ' + when(new Date(l.a.t)) + '.';
+    }
+    text('goes-verdict', verdict);
+    var left = S.loading();
+    text('goes-frames', n ? n + ' of NOAA’s ' + st.list.length + ' pictures for the day loaded'
+      + (left ? ', ' + left + ' more on the way.' : '.') : ' ');
+  }
+
+  // The legend from space: what the colours are of, and what the streaks are.
+  function renderWindLegend() {
+    var V = window.AuroraWindView, G = window.AuroraGlobe;
+    if (!V) { return; }
+    var sun = view() === 'system';
+    text('wind-legend-of', sun ? 'by NOAA’s WSA-Enlil' : 'measured at L1');
+    if (sun) {
+      var dens = Wind && Wind.state.dens;
+      text('wind-legend-note', 'The model’s radial speed in the plane of the Earth’s orbit. The streaks move at that speed where they are, '
+        + V.HELIO_HOURS_PER_S + ' hours of travel a second'
+        + (dens ? ', and their number follows the model’s density: crowded where the wind is dense, sparse where it is thin.' : '.'));
+    } else {
+      var px = G && G.pxPerReAt ? G.pxPerReAt('wind') : 0;
+      var times = px > 0 ? Math.round(V.speedup(px) / 10) * 10 : 0;
+      text('wind-legend-note', 'The streaks are the wind measured at L1, carried to the Earth: their colour and speed follow its speed (a warm white when slow, through gold to red when fast), their number its density.'
+        + (times ? ' They run about ' + times + ' times faster than life.' : ''));
+    }
+  }
+
   // The amplification is the globe's constant; the page only ever repeats it. The
   // bar runs 0.1 to ~32 kR on a log scale, in the colours the globe draws them.
   var legendBuilt = false;
@@ -428,6 +637,10 @@
     renderGauges();
     renderPlace();
     renderLegend();
+    renderWind();
+    renderSun();
+    renderGoes();
+    renderWindLegend();
   }
 
   /* ---------- The layer switch ---------- */
@@ -616,6 +829,19 @@
   }
   document.addEventListener('aurora:time', onTime);
   document.addEventListener('aurora:model', renderAll);
+  document.addEventListener('aurora:view', renderAll);
+  document.addEventListener('aurora:wind', renderAll);
+  document.addEventListener('aurora:sun', onTime); // a frame in: as often as the slider's
+
+  // The chips that lead to another view scroll there, smoothly where motion is welcome.
+  Array.prototype.forEach.call(document.querySelectorAll('[data-go]'), function (a) {
+    a.addEventListener('click', function (e) {
+      var G = window.AuroraGlobe;
+      if (!G || !G.go) { return; } // the link's own anchor still works
+      e.preventDefault();
+      G.go(a.getAttribute('data-go'));
+    });
+  });
 
   setLayer(location.hash === '#probability' ? 'probability' : 'seen', true);
   usePlace(recall() || DEFAULT_PLACE);

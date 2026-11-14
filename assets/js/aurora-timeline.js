@@ -17,7 +17,8 @@
  * Live is the default and the place the thumb rests. Dragging within SNAP of now
  * lets go back to live; "Live" does the same from anywhere. Play runs at PLAY_RATE,
  * the pace of MagIE's 72-hour video in 24 seconds, and stops at the end; under
- * reduced motion it steps a slot at a time instead of gliding.
+ * reduced motion it steps a slot at a time instead of gliding. In the Sun view, which
+ * has only the past day's pictures, it plays that day up to now and returns to live.
  */
 (function () {
   'use strict';
@@ -325,6 +326,9 @@
   /* ---------- Play ---------- */
 
   var playing = false, lastFrame = 0, stepAcc = 0;
+  // In the Sun view there are only the past day's pictures: Play from live goes back a
+  // day and runs to now, then returns to live, rather than on into the forecast.
+  var playEnd = null; // null: the track's end
 
   function showPlay() {
     playBtn.innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
@@ -336,8 +340,17 @@
     if (playing) { return; }
     range();
     var cur = Model.viewTime === null ? Date.now() : Model.viewTime;
-    if (cur >= t1 - MIN) { cur = Date.now(); }
-    Model.setTime(Math.max(cur, Date.now() + SNAP + MIN));
+    playEnd = null;
+    if (document.body.getAttribute('data-view') === 'sun' && cur < Date.now() - SNAP) {
+      playEnd = Date.now();
+      Model.setTime(cur);
+    } else if (document.body.getAttribute('data-view') === 'sun') {
+      playEnd = Date.now();
+      Model.setTime(Math.max(t0, Date.now() - BACK));
+    } else {
+      if (cur >= t1 - MIN) { cur = Date.now(); }
+      Model.setTime(Math.max(cur, Date.now() + SNAP + MIN));
+    }
     Model.load().catch(function () { /* stays live */ });
     playing = true;
     lastFrame = 0;
@@ -370,6 +383,12 @@
       next = cur + 3 * HOUR;
     } else {
       next = cur + PLAY_RATE * dt;
+    }
+    if (playEnd !== null && next >= playEnd) {
+      Model.setTime(null);
+      placeThumb();
+      pause();
+      return;
     }
     if (next >= t1) {
       Model.setTime(t1);

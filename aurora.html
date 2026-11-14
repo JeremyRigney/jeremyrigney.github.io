@@ -11,19 +11,19 @@
   <meta property="og:type" content="website"/>
   <meta property="og:url" content="https://jeremy.ie/aurora"/>
   <meta property="og:title" content="Aurora — the live aurora, on a globe"/>
-  <meta property="og:description" content="Tonight's aurora as NOAA's OVATION model sees it, drawn in its own colours over a globe, with the solar wind, Kp and Ireland's magnetometers alongside."/>
+  <meta property="og:description" content="Tonight's aurora as NOAA's OVATION model sees it, drawn in its own colours over a globe, and the solar wind that drives it, from the Sun to the Earth, with Kp and Ireland's magnetometers alongside."/>
   <meta property="og:image" content="https://jeremy.ie/images/derived/og-default-1200x630.jpg"/>
   <meta property="og:image:width" content="1200"/>
   <meta property="og:image:height" content="630"/>
   <meta property="og:image:alt" content="Jeremy Rigney, Senior Data Scientist and astrophysicist"/>
   <meta name="twitter:card" content="summary_large_image"/>
-  <meta name="description" content="Tonight's aurora as NOAA's OVATION model sees it, drawn in its own colours over a globe, with the solar wind, Kp and Ireland's magnetometers alongside." />
+  <meta name="description" content="Tonight's aurora as NOAA's OVATION model sees it, drawn in its own colours over a globe, and the solar wind that drives it, from the Sun to the Earth, with Kp and Ireland's magnetometers alongside." />
   <link rel="icon" href="assets/favicon-aurora.svg" type="image/svg+xml" />
   <meta name="theme-color" content="#131317" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/aurora.css?v=20261105b" />
+  <link rel="stylesheet" href="assets/css/aurora.css?v=20261113c" />
 
   <!-- Cookie consent: sets the Consent Mode defaults, so it must come before the Google tag -->
   <link rel="stylesheet" href="assets/css/consent.css?v=20261008" />
@@ -40,14 +40,22 @@
 </head>
 <body>
   <!--
-    The globe is one fixed stage behind three scrolling views. Scroll position drives
-    the camera (aurora-globe.js): 01 looks down on the north with Ireland in frame, 02
-    tilts to the south, 03 dims the globe behind the charts. A sideways drag spins the
-    globe; vertical drags still scroll.
+    The globe is one fixed stage behind seven scrolling views. Scroll position drives
+    the camera (aurora-globe.js). The page opens on the north, with Ireland in frame;
+    below it the camera tilts to the south, then dims the globe behind the charts; above
+    it the camera pulls back to the Earth in the solar wind, then rises over the
+    ecliptic (the Moon's orbit opening round the Earth) to L1, then pulls back to the
+    planets (aurora-wind-view.js), then zooms into the Sun as GOES-19 sees it
+    (aurora-sun-view.js). A sideways drag spins the globe; vertical drags still scroll. In the wind view a
+    drag swings the camera a few degrees instead, a mouse moving over it leans it, and
+    it sways a little on its own. The wind's speed is in a warm ramp there and a blue
+    one from the Sun.
 
     Data comes straight from NOAA SWPC, which allows cross-origin reads, and from
     MagIE's magnetometers through the site's Cloud Run relay, because MagIE does not
-    (aurora-data.js). Cloud is Open-Meteo's. Everything the readouts say is worked out
+    (aurora-data.js). The solar wind from the Sun is NOAA's WSA-Enlil model, reduced
+    by a scheduled workflow and read from this repository's aurora-data branch
+    (aurora-wind.js). Cloud is Open-Meteo's. Everything the readouts say is worked out
     in the browser; a location from "Use my location" leaves it only rounded to half a
     degree, for the cloud.
 
@@ -55,7 +63,7 @@
     card doesn't need to say at first (aurora-hud.js).
   -->
   <div class="stage" id="stage">
-    <canvas id="aurora-gl" role="img" aria-label="A globe with the current aurora drawn over it from NOAA's OVATION model. Scroll to move from the northern to the southern hemisphere; drag sideways to spin it."></canvas>
+    <canvas id="aurora-gl" role="img" aria-label="A globe with the current aurora drawn over it from NOAA's OVATION model. Scroll down to move from the northern to the southern hemisphere, or up to pull back to the Earth in the solar wind and then to the Sun; drag sideways to spin the globe, or, at the Earth in the solar wind, to swing the view a little."></canvas>
     <canvas id="aurora-overlay" aria-hidden="true"></canvas>
   </div>
 
@@ -118,11 +126,81 @@
       </div>
     </section>
 
+    <section class="top-seg top-wind" aria-labelledby="wind-seg-title">
+      <div class="top-seg-head">
+        <h2 class="top-label" id="wind-seg-title">The solar wind at the Earth</h2>
+        <p class="place-verdict" data-bind="wind-verdict" aria-live="polite">&nbsp;</p>
+      </div>
+      <button type="button" class="more" aria-expanded="false" aria-controls="wind-seg-more"><span class="visually-hidden">The wind at the Earth: the figures, and how this view is drawn</span></button>
+      <div class="card-more top-more" id="wind-seg-more" hidden>
+        <dl class="top-figures">
+          <div><dt>Speed</dt><dd><span data-bind="up-speed">&ndash;</span><span class="unit">km/s</span></dd></div>
+          <div><dt>Density</dt><dd><span data-bind="up-density">&ndash;</span><span class="unit">/cm&sup3;</span></dd></div>
+          <div><dt>Pressure</dt><dd><span data-bind="up-pressure">&ndash;</span><span class="unit">nPa</span></dd></div>
+        </dl>
+        <dl class="top-figures">
+          <div><dt>Magnetopause</dt><dd><span data-bind="mp-standoff">&ndash;</span><span class="unit">R<sub>E</sub></span></dd></div>
+          <div><dt>Bow shock</dt><dd><span data-bind="bs-standoff">&ndash;</span><span class="unit">R<sub>E</sub></span></dd></div>
+          <div><dt>Mach</dt><dd><span data-bind="up-mach">&ndash;</span></dd></div>
+        </dl>
+        <p class="card-meta" data-bind="up-source">&nbsp;</p>
+        <p class="card-note"><b>L1</b>, one view up, is the point 1.5&nbsp;million&nbsp;km toward the Sun where its pull and the Earth&rsquo;s balance, so a spacecraft can sit there in the wind. What it measures reaches the Earth 30&ndash;90 minutes later, and that is the wind shown here. From above, the dashed ring is the Moon&rsquo;s orbit, for scale.</p>
+        <p class="card-note">The <b>magnetopause</b> is where the Earth&rsquo;s field holds the wind off, and the <b>bow shock</b> where the wind, faster than any wave in it, is first slowed. Both are drawn to scale from that wind: the magnetopause by Shue et&nbsp;al. (1998), from its pressure and B<sub>z</sub>; the shock&rsquo;s distance by Farris and Russell (1994), from its Mach number. The distances above are along the line to the Sun, in Earth radii.</p>
+        <p class="card-note">The glow between the two is the <b>sheath</b>, where the slowed wind piles up: brighter where it is denser, and brighter overall as the wind&rsquo;s pressure rises. The field lines and the flow round them are sketches, drawn in the round: move the pointer over the view and it leans toward it; drag to swing it further and see them as a cage.</p>
+        <p class="card-note">The <b>field lines</b> are a sketch: a dipole at today&rsquo;s tilt, squeezed and stretched to fit inside that magnetopause. The <b>streaks</b> are a sketch of the flow, slowing at the shock and parting round the Earth; their speed and number follow the measured speed and density.</p>
+      </div>
+    </section>
+
+    <section class="top-seg top-sun" aria-labelledby="sun-seg-title">
+      <div class="top-seg-head">
+        <h2 class="top-label" id="sun-seg-title">The solar wind, by NOAA&rsquo;s model</h2>
+        <p class="place-verdict" data-bind="sun-verdict" aria-live="polite">&nbsp;</p>
+      </div>
+      <button type="button" class="more" aria-expanded="false" aria-controls="sun-seg-more"><span class="visually-hidden">The model: its figures at the Earth, and what is drawn</span></button>
+      <div class="card-more top-more" id="sun-seg-more" hidden>
+        <dl class="top-figures">
+          <div><dt>At the Earth</dt><dd><span data-bind="sun-now">&ndash;</span><span class="unit">km/s</span></dd></div>
+          <div><dt>Highest ahead</dt><dd><span data-bind="sun-peak">&ndash;</span><span class="unit">km/s</span></dd></div>
+          <div><dt>Lowest ahead</dt><dd><span data-bind="sun-low">&ndash;</span><span class="unit">km/s</span></dd></div>
+        </dl>
+        <p class="card-meta" data-bind="sun-run">&nbsp;</p>
+        <p class="card-note"><b>WSA-Enlil</b> is the model NOAA&rsquo;s forecasters use: it takes the Sun&rsquo;s magnetic field as mapped that day and carries the wind out past Mars. Drawn here is its radial speed in the plane of the Earth&rsquo;s orbit, seen from the north, as colour; the streaks move at that speed, and their number follows its density (scaled to 1&nbsp;AU, so that what thins with distance alone does not show). The frame keeps the Earth still, so the Sun&rsquo;s 27-day rotation sweeps the spiral past it.</p>
+        <p class="card-note">The model runs from 0.1 to 1.7&nbsp;AU, and the <b>dashed ring</b> is where it ends. Past that the picture is not NOAA&rsquo;s: each stream is carried on along its spiral at the speed it left with, and fades out, because that gets less true with distance.</p>
+        <p class="card-note" data-bind="sun-cme"></p>
+        <p class="card-note">&ldquo;Ahead&rdquo; is the next three days, or as far as this run goes. The time slider runs the model from a day back to three days on. The Sun and planets are marks, not to scale: at this size the Sun would be a pixel across.</p>
+      </div>
+    </section>
+
+    <section class="top-seg top-goes" aria-labelledby="goes-seg-title">
+      <div class="top-seg-head">
+        <h2 class="top-label" id="goes-seg-title">The Sun, from GOES-19</h2>
+        <p class="place-verdict" data-bind="goes-verdict" aria-live="polite">&nbsp;</p>
+      </div>
+      <button type="button" class="more" aria-expanded="false" aria-controls="goes-seg-more"><span class="visually-hidden">The Sun: what this picture is, and how it is played back</span></button>
+      <div class="card-more top-more" id="goes-seg-more" hidden>
+        <p class="card-note"><b>SUVI</b>, the Solar Ultraviolet Imager on NOAA&rsquo;s GOES-19, photographs the Sun every few minutes in extreme ultraviolet. At <b>171&nbsp;&Aring;</b> the light is from iron at about 600,000&nbsp;K: it traces the corona&rsquo;s loops, brightest where the field arches over active regions.</p>
+        <p class="card-note">Dark gaps are <b>coronal holes</b>, where the field opens out into space and the fast solar wind streams away. Wind from one facing the Earth tends to reach it two to four days later: in the system view below, as a fast stream in NOAA&rsquo;s model.</p>
+        <p class="card-note">The picture is NOAA&rsquo;s own, face on with solar north up, as GOES sees it from the Earth; the camera does not turn to look along that line. It is to scale with the views below it.</p>
+        <p class="card-note">The time slider plays back NOAA&rsquo;s last 24 hours, loaded from NOAA as they are wanted: a frame an hour first, then one every 20 minutes on a wide screen. Ahead of now the latest picture stays up.</p>
+        <p class="card-meta" data-bind="goes-frames">&nbsp;</p>
+      </div>
+    </section>
+
+    <!-- The way up, from the views with something above them. -->
+    <a class="chip up-hint" href="#wind" data-go="wind">The solar wind</a>
+    <a class="chip up-hint" href="#l1" data-go="l1">Out to L1</a>
+    <a class="chip up-hint" href="#system" data-go="system">Out to the planets</a>
+    <a class="chip up-hint" href="#sun" data-go="sun">Into the Sun</a>
+
     <div class="header-controls">
       <nav class="seg view-index" aria-label="Views">
-        <a href="#north" data-view="0">North</a>
-        <a href="#south" data-view="1">South</a>
-        <a href="#drivers" data-view="2">Drivers</a>
+        <a href="#sun" data-view="sun">Sun</a>
+        <a href="#system" data-view="system">System</a>
+        <a href="#l1" data-view="l1">L1</a>
+        <a href="#wind" data-view="wind">Wind</a>
+        <a href="#north" data-view="north">North</a>
+        <a href="#south" data-view="south">South</a>
+        <a href="#drivers" data-view="drivers">Drivers</a>
       </nav>
       <div class="seg layer-toggle" id="layer-toggle" role="radiogroup" aria-label="What the globe shows">
         <button type="button" role="radio" aria-checked="true" data-layer="seen">Seen <span class="layer-gain" id="layer-gain">&times;20,000</span></button>
@@ -132,6 +210,30 @@
   </header>
 
   <main class="views" id="views">
+    <!--
+      Four views from space, above the one the page opens on: scrolling up from the
+      north pulls the camera back to the Earth in the solar wind, then rises over the
+      ecliptic to L1, where the wind is measured, then pulls back to the planets, then
+      zooms into the Sun as GOES-19 sees it. All are drawn on the stage
+      (aurora-wind-view.js, aurora-sun-view.js); their readouts are in the top capsule,
+      L1 sharing the wind view's.
+    -->
+    <section class="view view-sun" id="sun" aria-labelledby="sun-title">
+      <h2 class="visually-hidden" id="sun-title">The Sun, as GOES-19 sees it, over the last 24 hours</h2>
+    </section>
+
+    <section class="view view-system" id="system" aria-labelledby="system-title">
+      <h2 class="visually-hidden" id="system-title">The solar wind, from the Sun out past the Earth</h2>
+    </section>
+
+    <section class="view view-l1" id="l1" aria-labelledby="l1-title">
+      <h2 class="visually-hidden" id="l1-title">L1, where the solar wind is measured on its way to the Earth</h2>
+    </section>
+
+    <section class="view view-wind" id="wind" aria-labelledby="wind-title">
+      <h2 class="visually-hidden" id="wind-title">The solar wind arriving at the Earth</h2>
+    </section>
+
     <section class="view view-north" id="north" aria-labelledby="north-title">
       <h1 class="visually-hidden" id="north-title">Aurora Borealis</h1>
     </section>
@@ -207,6 +309,7 @@
           </div>
           <div class="card-more" id="about-more" hidden>
             <p class="card-note">Aurora from NOAA SWPC&rsquo;s OVATION model, 30&ndash;90 minutes ahead. Solar wind from the L1 monitors; Kp, scales and alerts from SWPC. Magnetometers from <a href="https://www.magie.ie" target="_blank" rel="noopener">MagIE</a> (DIAS, Met &Eacute;ireann and Geological Survey Ireland).</p>
+            <p class="card-note">The solar wind from the Sun is NOAA SWPC&rsquo;s <a href="https://www.swpc.noaa.gov/products/wsa-enlil-solar-wind-prediction" target="_blank" rel="noopener">WSA-Enlil</a> run, reduced for this page whenever a new one is out. Around the Earth, the magnetopause is Shue et&nbsp;al. (1998) and the bow shock&rsquo;s distance Farris and Russell (1994), from the wind measured at L1; the field lines and the flow round them are sketches. Planets from JPL&rsquo;s approximate elements.</p>
             <p class="card-note">Away from live, the time slider shows OVATION-Prime 2010 driven by NOAA&rsquo;s observed and forecast Kp, as MagIE&rsquo;s forecast animation is. Each Kp stands in for the median solar-wind coupling seen at that Kp in NASA&rsquo;s OMNI record, 2012&ndash;2025, and the model is matched to NOAA&rsquo;s hemispheric power near the present. It runs small for storms above about Kp&nbsp;6, and a Kp forecast more than a day out is itself uncertain. Magnetic coordinates are AACGM-v2.</p>
           </div>
         </section>
@@ -262,7 +365,7 @@
     </div>
 
     <aside class="card legend" id="legend" aria-label="Legend">
-      <button type="button" class="more dock-more" aria-expanded="false" aria-controls="legend-note-seen legend-note-prob"><span class="visually-hidden">About the colours</span></button>
+      <button type="button" class="more dock-more" aria-expanded="false" aria-controls="legend-note-seen legend-note-prob legend-note-wind"><span class="visually-hidden">About the colours</span></button>
       <div class="legend-seen">
         <p class="card-title">Brightness</p>
         <p class="card-meta">kR at 557.7&nbsp;nm, drawn &times;<span data-bind="gain-text">20,000</span></p>
@@ -276,6 +379,17 @@
         <div class="legend-steps" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
         <div class="legend-ticks legend-ticks-steps" aria-hidden="true"><span>5</span><span>10</span><span>30</span><span>50</span><span>70</span><span>90</span></div>
         <p class="card-more card-note" id="legend-note-prob" hidden>The chance that aurora is visible straight up, assuming a clear, dark sky.</p>
+      </div>
+      <div class="legend-goes">
+        <p class="card-title">The Sun at 171&nbsp;&Aring;</p>
+        <p class="card-meta">GOES-19 SUVI, in NOAA&rsquo;s colours</p>
+      </div>
+      <div class="legend-wind">
+        <p class="card-title">Wind speed</p>
+        <p class="card-meta">km/s, <span data-bind="wind-legend-of">measured at L1</span></p>
+        <div class="legend-bar legend-bar-wind" aria-hidden="true"></div>
+        <div class="legend-ticks legend-ticks-wind" aria-hidden="true"><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span></div>
+        <p class="card-more card-note" id="legend-note-wind" hidden data-bind="wind-legend-note"></p>
       </div>
       <p class="legend-model" hidden>Modelled for this time: OVATION-Prime driven by Kp, not NOAA&rsquo;s live grid.</p>
     </aside>
@@ -292,12 +406,16 @@
     </div>
   </noscript>
 
-  <script src="assets/js/aurora-geo.js?v=20261028b"></script>
-  <script src="assets/js/aurora-globe.js?v=20261104m"></script>
-  <script src="assets/js/aurora-data.js?v=20261104a"></script>
+  <script src="assets/js/aurora-geo.js?v=20261111a"></script>
+  <script src="assets/js/aurora-globe.js?v=20261114b"></script>
+  <script src="assets/js/aurora-data.js?v=20261111a"></script>
   <script src="assets/js/aurora-model.js?v=20261028d"></script>
-  <script src="assets/js/aurora-hud.js?v=20261104x"></script>
+  <script src="assets/js/aurora-wind.js?v=20261114a"></script>
+  <script src="assets/js/aurora-wind-view.js?v=20261114a"></script>
+  <script src="assets/js/aurora-sun.js?v=20261113b"></script>
+  <script src="assets/js/aurora-sun-view.js?v=20261113a"></script>
+  <script src="assets/js/aurora-hud.js?v=20261114a"></script>
   <script src="assets/js/aurora-charts.js?v=20261103e"></script>
-  <script src="assets/js/aurora-timeline.js?v=20261103a"></script>
+  <script src="assets/js/aurora-timeline.js?v=20261113a"></script>
 </body>
 </html>
