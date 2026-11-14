@@ -18,6 +18,11 @@
   <priority>0.80</priority>
 </url>
 <url>
+  <loc>https://jeremy.ie/aurora</loc>
+  <lastmod>2026-11-14T00:00:00+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
   <loc>https://jeremy.ie/galaxy</loc>
   <lastmod>2026-10-01T00:00:00+00:00</lastmod>
   <priority>0.80</priority>

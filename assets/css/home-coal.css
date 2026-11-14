@@ -908,3 +908,19 @@ html.intro.intro-out .galaxy-hud {
     margin-bottom: 0.4rem;
   }
 }
+
+/* The opening rail's live readout (Kp now) is a link to /aurora: it reads as the other
+   readouts, its label brightening on hover and focus to say it goes somewhere. */
+.readout-live {
+  color: inherit;
+  text-decoration: none;
+}
+
+.readout-live .readout-label {
+  transition: color 160ms ease;
+}
+
+.readout-live:hover .readout-label,
+.readout-live:focus-visible .readout-label {
+  color: var(--chalk);
+}
