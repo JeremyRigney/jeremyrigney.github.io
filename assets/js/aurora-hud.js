@@ -833,6 +833,28 @@
   document.addEventListener('aurora:wind', renderAll);
   document.addEventListener('aurora:sun', onTime); // a frame in: as often as the slider's
 
+  // On a wide screen the way-up chips stand in the header row, between the brand and
+  // the switches. That gap is off-centre and, with seven views in the index, narrower
+  // than some chips at some widths: each is centred in it, or put under the row when
+  // it would not fit with room to spare. Measured, since the gap is the fonts' doing.
+  var HINT_ROOM = 16; // px either side
+  var hints = Array.prototype.slice.call(document.querySelectorAll('.up-hint'));
+  function placeHints() {
+    var brand = document.querySelector('.site-header .brand');
+    var ctl = document.querySelector('.site-header .header-controls');
+    if (!brand || !ctl) { return; }
+    var l = brand.getBoundingClientRect().right, r = ctl.getBoundingClientRect().left;
+    hints.forEach(function (a) {
+      var w = a.offsetWidth;
+      a.classList.add('is-placed');
+      a.style.setProperty('--hint-x', Math.round((l + r) / 2) + 'px');
+      a.classList.toggle('is-below', r - l < w + 2 * HINT_ROOM);
+    });
+  }
+  placeHints();
+  window.addEventListener('resize', placeHints);
+  if (document.fonts && document.fonts.ready) { document.fonts.ready.then(placeHints); }
+
   // The chips that lead to another view scroll there, smoothly where motion is welcome.
   Array.prototype.forEach.call(document.querySelectorAll('[data-go]'), function (a) {
     a.addEventListener('click', function (e) {
