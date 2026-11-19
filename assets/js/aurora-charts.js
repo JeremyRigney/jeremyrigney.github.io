@@ -690,7 +690,7 @@
     if (!m) {
       return {
         message: Data.state.failed.magie
-          ? 'Ireland’s magnetometers come through this site’s own relay, which isn’t answering. Retrying.'
+          ? 'The MagIE relay isn’t responding. Retrying.'
           : 'Waiting for MagIE…'
       };
     }

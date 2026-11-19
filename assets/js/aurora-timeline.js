@@ -336,17 +336,52 @@
     playBtn.setAttribute('aria-label', playing ? 'Pause' : 'Play through time');
   }
 
+  /*
+   * The Sun view plays NOAA's frames, which load as they are wanted: like a video, it
+   * waits for them rather than show a frame from hours away. From live it stays live
+   * until the day's first hour is in (pendingStart), then sets off; on the way it holds
+   * wherever the next hour's frames are still coming. Each feed loads from the
+   * playhead on (AuroraSun.from).
+   */
+  var pendingStart = null, buffering = false;
+
+  function sunView() {
+    return document.body.getAttribute('data-view') === 'sun';
+  }
+
+  function sunFeeds() {
+    var out = [];
+    if (window.AuroraSun && window.AuroraSun.covered) { out.push(window.AuroraSun); }
+    if (window.AuroraCorona && window.AuroraCorona.covered && document.body.getAttribute('data-sun') === 'corona') {
+      out.push(window.AuroraCorona);
+    }
+    return out;
+  }
+
+  function sunReady(t) {
+    return sunFeeds().every(function (F) { return F.covered(t); });
+  }
+
+  function setBuffering(on) {
+    if (on === buffering) { return; }
+    buffering = on;
+    if (on) { playBtn.setAttribute('aria-busy', 'true'); } else { playBtn.removeAttribute('aria-busy'); }
+    document.dispatchEvent(new CustomEvent('aurora:buffering', { detail: { on: on } }));
+  }
+
   function play() {
     if (playing) { return; }
     range();
     var cur = Model.viewTime === null ? Date.now() : Model.viewTime;
     playEnd = null;
-    if (document.body.getAttribute('data-view') === 'sun' && cur < Date.now() - SNAP) {
+    pendingStart = null;
+    if (sunView() && cur < Date.now() - SNAP) {
       playEnd = Date.now();
       Model.setTime(cur);
-    } else if (document.body.getAttribute('data-view') === 'sun') {
+    } else if (sunView()) {
       playEnd = Date.now();
-      Model.setTime(Math.max(t0, Date.now() - BACK));
+      pendingStart = Math.max(t0, Date.now() - BACK);
+      sunFeeds().forEach(function (F) { F.from(pendingStart); });
     } else {
       if (cur >= t1 - MIN) { cur = Date.now(); }
       Model.setTime(Math.max(cur, Date.now() + SNAP + MIN));
@@ -362,6 +397,11 @@
   function pause() {
     if (!playing) { return; }
     playing = false;
+    if (pendingStart !== null) {
+      pendingStart = null;
+      sunFeeds().forEach(function (F) { F.from(Model.viewTime); });
+    }
+    setBuffering(false);
     showPlay();
   }
 
@@ -373,6 +413,15 @@
     if (!playing) { return; }
     var dt = lastFrame ? Math.min(0.1, (now - lastFrame) / 1000) : 0;
     lastFrame = now;
+    if (pendingStart !== null) {
+      if (!sunReady(pendingStart)) { setBuffering(true); requestAnimationFrame(advance); return; }
+      Model.setTime(pendingStart);
+      pendingStart = null;
+      setBuffering(false);
+      placeThumb();
+      requestAnimationFrame(advance);
+      return;
+    }
     var cur = Model.viewTime === null ? Date.now() : Model.viewTime;
     var next;
     if (reducedMotion) {
@@ -396,6 +445,12 @@
       pause();
       return;
     }
+    if (sunView() && !sunReady(next)) {
+      setBuffering(true);
+      requestAnimationFrame(advance);
+      return;
+    }
+    setBuffering(false);
     Model.setTime(next);
     placeThumb();
     requestAnimationFrame(advance);

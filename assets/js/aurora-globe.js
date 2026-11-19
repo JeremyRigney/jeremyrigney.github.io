@@ -1302,18 +1302,25 @@
   // parts into pills at the sides, of the switches over the open middle) and the head
   // of the dock, all fixed. Read every frame (a few rects), since the capsule can grow
   // as its text arrives; when they move the views are framed again.
-  var clearTop = 0, clearBottom = 0;
+  // In the north, the way up (aurora-hud.js) stands between the panels and the
+  // hemisphere's name, so the name leaves it room (hintRoom, its height).
+  var clearTop = 0, clearBottom = 0, hintRoom = 0, hintHalf = 0;
 
   function readClearance() {
     var top = document.querySelector('.topdock');
     var controls = document.querySelector('.header-controls');
     var dock = document.querySelector('.dock');
+    var hint = document.querySelector('.up-hint[data-go="wind"]');
     var t = top && top.getClientRects().length ? top.getBoundingClientRect().bottom
       : controls ? controls.getBoundingClientRect().bottom : 0;
     var b = dock ? dock.getBoundingClientRect().top : h;
-    if (t === clearTop && b === clearBottom) { return false; }
+    var hr = hint && hint.getClientRects().length ? hint.getBoundingClientRect() : null;
+    var r = hr ? hr.height : 0, half = hr ? hr.width / 2 : 0;
+    if (t === clearTop && b === clearBottom && r === hintRoom && half === hintHalf) { return false; }
     clearTop = t;
     clearBottom = b;
+    hintRoom = r;
+    hintHalf = half;
     return true;
   }
 
@@ -1342,7 +1349,9 @@
   // either side of the middle with the model all round them. lat/lon, and the drivers'
   // framing, are VIEWS' own.
   var PORTRAIT_SIZE = 0.95;
-  var NAME_ROOM = 12; // px between the panels and the name
+  var NAME_ROOM = 12; // px between the panels (or the way up) and the name
+  var HINT_GAP = 4; // px between the panels and the way up, as aurora-hud.js places it
+  var NAME_CAP = 0.72, NAME_XH = 0.51; // Figtree's cap and x-heights, of the type size
 
   function viewAt(i) {
     var id = ids[i];
@@ -1394,8 +1403,12 @@
     var size = portrait() ? PORTRAIT_SIZE : v.size;
     var r = size * frame();
     var fs = NAME_SCALE * r;
+    // The way up stands over the middle of "Borealis", whose two letters there are
+    // lowercase: no wider than they are, it comes down into the sky over them.
+    var free = hintHalf < 0.5 * fs ? (NAME_CAP - NAME_XH) * fs : 0;
+    var lift = hintRoom ? Math.max(0, HINT_GAP + hintRoom - free) : 0;
     var cy = id === 'north'
-      ? (clearTop + NAME_ROOM + (0.72 - NAME_SINK) * fs + r) / h
+      ? (clearTop + lift + NAME_ROOM + (NAME_CAP - NAME_SINK) * fs + r) / h
       : (clearBottom - NAME_ROOM - NAME_HANG * fs - r) / h;
     return { lat: v.lat, lon: v.lon, roll: 0, cx: 0.5, cy: cy, size: size, dim: v.dim, tilt: 0, turn: 0 };
   }

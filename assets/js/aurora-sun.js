@@ -176,7 +176,11 @@
       wanted: false
     };
     var bySlot = []; // slot -> frame, or undefined while free
-    var loading = {}; // url -> true while out
+    var loading = {}; // url -> its list entry while out
+    var coarse = {}; // url -> true for the first pass's frames (an hour apart)
+    // The time being looked at, away from live: frames load from there on, so a
+    // replay finds them ready, and those before it after. Null when live.
+    var cursor = null;
     var queue = []; // urls still to load, in order
     var pending = []; // { slot, source, t, full } for the view to upload
     var fill = false;
@@ -208,9 +212,47 @@
       state.frames.slice().forEach(function (f) { if (!keep[f.url]) { drop(f); } });
       var have = {};
       state.frames.forEach(function (f) { have[f.url] = true; });
+      coarse = {};
+      every(times, cfg.steps[0]).forEach(function (i) { coarse[state.list[i].url] = true; });
       queue = order(times, { fill: fill && !narrow(), steps: cfg.steps }).map(function (i) { return state.list[i]; })
         .filter(function (e) { return !have[e.url] && !loading[e.url]; });
+      if (cursor !== null) {
+        // From the cursor on: the hourly frames in time order, then the rest in
+        // between, then those before it, nearest first.
+        var from = cursor - cfg.steps[0];
+        var rank = function (e) { return (e.t < from ? 2 : 0) + (coarse[e.url] ? 0 : 1); };
+        queue.sort(function (a, b) {
+          var d = rank(a) - rank(b);
+          if (d) { return d; }
+          return a.t < from ? b.t - a.t : a.t - b.t;
+        });
+      }
       pump();
+    }
+
+    // Look from t (null for live) on: reorders what is still to load.
+    function setCursor(t) {
+      if (t === cursor) { return; }
+      if (t !== null && cursor !== null && Math.abs(t - cursor) < cfg.steps[0] / 2) { return; }
+      cursor = t;
+      if (state.list.length) { plan(); }
+    }
+
+    // Whether the frames for time t are as in as they will be at the hourly pass: no
+    // hourly frame within the hour of t is still on its way between the two shown for
+    // it. Playback waits on this rather than showing a frame from hours away.
+    function covered(t) {
+      if (!state.list.length) { return state.failed; }
+      var l = lookup(state.frames, t);
+      var lo = !l || l.earliest ? -Infinity : l.a.t;
+      var hi = !l || l.latest ? Infinity : l.b.t;
+      // Before NOAA's first frame or after its last, the one at that end is t's.
+      var tc = Math.min(Math.max(t, state.list[0].t), state.list[state.list.length - 1].t);
+      var G = cfg.steps[0];
+      function near(e) { return e && coarse[e.url] && e.t > lo && e.t < hi && Math.abs(e.t - tc) <= G; }
+      if (queue.some(near)) { return false; }
+      for (var u in loading) { if (near(loading[u])) { return false; } }
+      return true;
     }
 
     function pump() {
@@ -222,7 +264,7 @@
     }
 
     function loadFrame(e) {
-      loading[e.url] = true;
+      loading[e.url] = e;
       var img = new Image();
       img.crossOrigin = 'anonymous';
       img.decoding = 'async';
@@ -310,6 +352,8 @@
       lookup: function (t) { return lookup(state.frames, t); },
       want: want,
       take: take,
+      covered: covered,
+      setCursor: setCursor,
       loading: function () { return Object.keys(loading).length + queue.length; }
     };
   }
@@ -356,6 +400,8 @@
     radiusFrac: radiusFrac,
     want: suvi.want,
     take: suvi.take,
+    covered: suvi.covered,
+    from: suvi.setCursor,
     loading: suvi.loading
   };
 
@@ -368,6 +414,17 @@
     radiusFrac: coronaFrac,
     want: corona.want,
     take: corona.take,
+    covered: corona.covered,
+    from: corona.setCursor,
     loading: corona.loading
   };
+
+  // Away from live, both lists load from the time shown on.
+  if (typeof document !== 'undefined') {
+    document.addEventListener('aurora:time', function (e) {
+      var t = e.detail ? e.detail.time : null;
+      suvi.setCursor(t);
+      corona.setCursor(t);
+    });
+  }
 })();

@@ -1452,9 +1452,41 @@
       if (ring[1] > roomTop && ring[1] < roomFoot) { label(ctx, scene, '1 AU', ring[0], ring[1], 0.85 * a * open, 500); }
     }
 
+    // A scale in the corner by the dock, as the wind view has its ten Earth radii: 1 AU
+    // along the plane. Only once the plane is face on, where the lens keeps one scale
+    // across it; tilted on the way into the Sun, it fades.
+    var flat = a * open * smooth(0.95, 0.99, st);
+    var barRight = 0, barTop = scene.h;
+    if (flat > 0.03) {
+      var blen = Math.round(pxAu);
+      var bx = 18.5, by = Math.round((scene.clearBottom > 0 ? scene.clearBottom : scene.h) - 20) + 0.5;
+      var words1 = '1 AU \u00b7 ~150 MILLION KM';
+      setType(ctx, scene, 500);
+      var lw = ctx.measureText(words1).width;
+      // Beside the bar where it fits, else over its left end.
+      var beside = bx + blen + 8 + lw < scene.w - 12;
+      if (bx + blen < scene.w - 12) {
+        ctx.textAlign = 'left';
+        var rule = function (width, colour) {
+          ctx.lineWidth = width;
+          ctx.strokeStyle = colour;
+          ctx.beginPath();
+          ctx.moveTo(bx, by - 4); ctx.lineTo(bx, by); ctx.lineTo(bx + blen, by); ctx.lineTo(bx + blen, by - 4);
+          ctx.stroke();
+        };
+        rule(4, rgba(scene.colors.night, 0.72 * flat));
+        rule(1, rgba(ink, 0.8 * flat));
+        if (beside) { label(ctx, scene, words1, bx + blen + 8, by - 2, 0.85 * flat, 500); }
+        else { label(ctx, scene, words1, bx, by - 16, 0.85 * flat, 500); }
+        barRight = beside ? bx + blen + 8 + lw : Math.max(bx + blen, bx + lw);
+        barTop = beside ? by - 12 : by - 26;
+        ctx.lineWidth = 1;
+      }
+    }
+
     // The model's edge, named along its dashed ring at the first of these longitudes
-    // that is on screen and clear of the panels. Only once the plane is face on: the
-    // name is set along a circle.
+    // that is on screen and clear of the panels and the scale. Only once the plane is
+    // face on: the name is set along a circle.
     var m = Wind.state.atlasMeta;
     if (m && st > 0.97) {
       var rEdge = (m.r.first + (m.r.count - 0.5) * m.r.step) * pxAu;
@@ -1464,7 +1496,8 @@
       var half = ctx.measureText(words).width / 2 + 8;
       // Clear of the panels: on screen, below the pills' row at the sides, above the dock.
       var clear = function (x, y) {
-        return x > 24 && x < scene.w - 24 && y > Math.max(roomTop, 170) && y < roomFoot - 6;
+        return x > 24 && x < scene.w - 24 && y > Math.max(roomTop, 170) && y < roomFoot - 6
+          && !(x < barRight + 12 && y > barTop - 12);
       };
       for (var i = 0; i < at.length; i++) {
         var t = at[i] * DEG;
