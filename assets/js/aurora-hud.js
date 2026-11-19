@@ -958,18 +958,28 @@
     renderGoes();
   });
 
-  // The way up: grey text centred under the panels above (the capsule, or where it
-  // parts into pills, the switches), the same line the globe frames the north against.
-  // Every few seconds its arrow sends a copy of itself up, only while one is showing.
-  var HINT_GAP = 4; // px under the panels
+  // The way up: grey text with an arrow. Where the top is one capsule, centred under
+  // it, over the hemisphere's name (the globe leaves it room). Where the capsule parts
+  // into pills, at the left, in line with the time's text, a third of the way down:
+  // far enough below the time that its arrow points into the sky, not at the clock.
+  // Every few seconds its arrow sends a copy of itself up, only while showing.
+  var HINT_GAP = 4; // px under the capsule
+  var HINT_DROP = 64; // px at least, under the time's pill
   var RISE_EVERY = 4500, RISE_FOR = 1700; // ms
   var hints = Array.prototype.slice.call(document.querySelectorAll('.up-hint'));
   function placeHints() {
+    var root = document.documentElement.style;
     var top = document.querySelector('.topdock');
-    var ctl = document.querySelector('.site-header .header-controls');
-    var y = top && top.getClientRects().length ? top.getBoundingClientRect().bottom
-      : ctl ? ctl.getBoundingClientRect().bottom : 0;
-    document.documentElement.style.setProperty('--hint-y', Math.round(y + HINT_GAP) + 'px');
+    var time = document.querySelector('.site-header .top-time');
+    if (top && top.getClientRects().length) {
+      root.setProperty('--hint-y', Math.round(top.getBoundingClientRect().bottom + HINT_GAP) + 'px');
+      root.removeProperty('--hint-x');
+    } else if (time) {
+      var r = time.getBoundingClientRect();
+      var inset = parseFloat(getComputedStyle(time).paddingLeft) || 0;
+      root.setProperty('--hint-y', Math.round(Math.max(r.bottom + HINT_DROP, window.innerHeight / 3)) + 'px');
+      root.setProperty('--hint-x', Math.round(r.left + inset) + 'px');
+    }
   }
   placeHints();
   window.addEventListener('resize', placeHints);

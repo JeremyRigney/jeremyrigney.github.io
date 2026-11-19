@@ -1302,8 +1302,9 @@
   // parts into pills at the sides, of the switches over the open middle) and the head
   // of the dock, all fixed. Read every frame (a few rects), since the capsule can grow
   // as its text arrives; when they move the views are framed again.
-  // In the north, the way up (aurora-hud.js) stands between the panels and the
-  // hemisphere's name, so the name leaves it room (hintRoom, its height).
+  // In the north, where the top is one capsule, the way up (aurora-hud.js) stands
+  // between it and the hemisphere's name, so the name leaves it room (hintRoom, its
+  // height). Where the capsule parts into pills it stands under the time's instead.
   var clearTop = 0, clearBottom = 0, hintRoom = 0, hintHalf = 0;
 
   function readClearance() {
@@ -1314,7 +1315,8 @@
     var t = top && top.getClientRects().length ? top.getBoundingClientRect().bottom
       : controls ? controls.getBoundingClientRect().bottom : 0;
     var b = dock ? dock.getBoundingClientRect().top : h;
-    var hr = hint && hint.getClientRects().length ? hint.getBoundingClientRect() : null;
+    var over = top && top.getClientRects().length;
+    var hr = over && hint && hint.getClientRects().length ? hint.getBoundingClientRect() : null;
     var r = hr ? hr.height : 0, half = hr ? hr.width / 2 : 0;
     if (t === clearTop && b === clearBottom && r === hintRoom && half === hintHalf) { return false; }
     clearTop = t;

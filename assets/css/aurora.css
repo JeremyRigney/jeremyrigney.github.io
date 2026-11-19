@@ -1405,15 +1405,16 @@ body[data-view="drivers"] :is(.topdock, .top-time, .top-seg) {
 }
 
 /* The way up, from the views with something above them: not a button but grey text
-   in the sky, centred over the globe under the switches, where in the north it stands
-   over the hemisphere's name (the globe leaves it room). A chevron over the words sends
+   in the sky. Under the one capsule it is centred, over the hemisphere's name in the
+   north (the globe leaves it room); where the capsule parts into pills, it sits at the
+   left, a third of the way down, clear of the time and the name. A chevron over the words sends
    a fainter copy of itself up every few seconds, while .is-rising is on
    (aurora-hud.js), to say the page goes on upward. aurora-hud.js sets --hint-y to
    the foot of the panels above. */
 .up-hint {
   position: fixed;
   z-index: 19;
-  left: 50%;
+  left: var(--hint-x, 50%);
   top: var(--hint-y, calc(var(--header-h) + env(safe-area-inset-top, 0px) + var(--s-2)));
   translate: -50% 0;
   display: flex;
@@ -1429,7 +1430,7 @@ body[data-view="drivers"] :is(.topdock, .top-time, .top-seg) {
   text-decoration: none;
   color: var(--ink-faint);
   /* A soft halo of the night, so it reads over the wind's streaks too. */
-  filter: drop-shadow(0 0 0.375rem var(--night)) drop-shadow(0 0 0.125rem var(--night));
+  filter: drop-shadow(0 0 0.5rem var(--night)) drop-shadow(0 0 0.1875rem var(--night));
   visibility: hidden;
   opacity: 0;
   transition: opacity 400ms var(--ease), visibility 400ms, color 160ms ease;
@@ -1443,10 +1444,13 @@ body[data-view="system"] .up-hint[data-go="sun"] {
   opacity: 1;
 }
 
-/* Over an open + panel it would sit on the panel, so it steps aside while one is. */
-body:has(.top-seg .more[aria-expanded="true"]) .up-hint {
-  visibility: hidden;
-  opacity: 0;
+/* Under the one capsule it would sit on an open + panel, so it steps aside while one
+   is. (Under the time's pill it is clear of them.) */
+@media (max-width: 1240px) {
+  body:has(.top-seg .more[aria-expanded="true"]) .up-hint {
+    visibility: hidden;
+    opacity: 0;
+  }
 }
 
 .up-hint::before,
@@ -1495,11 +1499,24 @@ body:has(.top-seg .more[aria-expanded="true"]) .up-hint {
   }
 }
 
-/* Before aurora-hud.js has measured: under the switches' row, where the capsule has
-   parted into pills. */
+/* Where the capsule has parted into pills: at the left, in line with the time's text,
+   a third of the way down (aurora-hud.js), set from its left edge with the arrow over
+   the start of the words. The fallbacks hold until it has measured. */
 @media (min-width: 1241px) {
   .up-hint {
-    top: var(--hint-y, calc(var(--s-3) + env(safe-area-inset-top, 0px) + 2.625rem + var(--s-1)));
+    left: var(--hint-x, calc(var(--gutter) + 1.75rem));
+    top: var(--hint-y, 33svh);
+    translate: none;
+    align-items: flex-start;
+  }
+
+  .up-hint::before,
+  .up-hint::after {
+    margin-left: 0.3rem;
+  }
+
+  .up-hint::after {
+    left: 0;
   }
 }
 
