@@ -10,14 +10,15 @@
  *
  * The picture is face-on, solar north up, as GOES sees it from the Earth, and the camera
  * comes round to look at the Sun from the Earth's side on its way in (aurora-globe.js,
- * TURN_SPAN and DESCENT_SPAN). On the way the picture is laid on the half of the Sun
+ * helioBasis), through the lens the wind is drawn with. On the way the picture is laid on the half of the Sun
  * that faces the Earth, so it turns with the camera: from above, the half GOES sees is
  * the half toward the Earth, and the far half, which nobody on the Earth sees, glows
  * in the picture's own colour (its average over a few points on the disc), dimmer in
  * the middle and brighter toward the limb, as the corona is at 171 Angstroms, with no
  * detail it could not have. The corona round the limb shows only once the camera faces the Sun
  * from the Earth, since off the disc the picture is flat. It is masked round, out to
- * MASK solar radii, which also leaves out NOAA's caption.
+ * MASK solar radii, which also leaves out NOAA's caption; past that a soft halo in its
+ * colour, out to HALO solar radii, carries the corona on into the wind round it.
  */
 (function () {
   'use strict';
@@ -29,6 +30,7 @@
 
   var SUN_RE = 109.08; // the Sun's radius in Earth radii
   var MASK = [1.38, 1.52]; // solar radii: the picture fades out between these
+  var HALO = 7, HALO_GAIN = 0.2, HALO_FALL = 2.6; // the halo: out to, at the limb, falling as r^-this
   var SHOW_PX = [2, 9]; // and in as the Sun's radius on screen grows between these
   var WAITING = [0.30, 0.27, 0.24]; // a plain disc, until the first frame is in
   var UNSEEN = [0.62, 0.55]; // the far half: its glow at the middle, and how much more at the limb
@@ -36,6 +38,29 @@
   function smooth(e0, e1, x) {
     var t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
     return t * t * (3 - 2 * t);
+  }
+
+  // The fullscreen triangle, and the picture's colour (its average over five points on the
+  // disc), worked out once per corner rather than for every pixel the halo covers.
+  function sunVS(kit) {
+    return [
+      kit.HEADER,
+      'uniform sampler2D uA;',
+      'uniform sampler2D uB;',
+      'uniform float uMix;',
+      'uniform float uFrac;',
+      'flat out vec3 vTone;',
+      'vec3 picture(vec2 d) {',
+      '  vec2 uv = 0.5 + d * uFrac;',
+      '  return mix(textureLod(uA, uv, 0.0).rgb, textureLod(uB, uv, 0.0).rgb, uMix);',
+      '}',
+      'void main() {',
+      '  vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2);',
+      '  vTone = (picture(vec2(0.0)) + picture(vec2(0.45, 0.0)) + picture(vec2(-0.45, 0.0))',
+      '    + picture(vec2(0.0, 0.45)) + picture(vec2(0.0, -0.45))) * 0.2;',
+      '  gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);',
+      '}'
+    ].join('\n');
   }
 
   function sunFS(kit) {
@@ -57,26 +82,27 @@
       'uniform vec3 uUp;',
       'uniform vec3 uToward;',
       'uniform vec2 uMask;',
+      'uniform vec3 uHalo;', // reach (solar radii), strength at the limb, fall-off
       'uniform float uAlpha;',
+      'flat in vec3 vTone;', // the picture's colour (sunVS)
       'out vec4 outColor;',
-      // The picture's colour: the two frames, as shown, at the disc's middle and half
-      // way out four ways.
-      'vec3 picture(vec2 d) {',
-      '  vec2 uv = 0.5 + d * uFrac;',
-      '  return mix(texture(uA, uv).rgb, texture(uB, uv).rgb, uMix);',
-      '}',
       'void main() {',
       '  vec2 frag = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);',
       '  vec2 d = (frag - uSun) / uR;', // solar radii, y down as the picture's rows
       '  float r = length(d);',
-      '  if (r > uMask.y) { discard; }',
+      '  if (r > uHalo.x) { discard; }',
       '  vec3 c;',
       '  float a = (1.0 - smoothstep(uMask.x, uMask.y, r)) * uAlpha;',
       '  if (uMode > 0.5) {',
       '    float w = fwidth(r);',
       '    c = uWaiting;',
       '    a = (1.0 - smoothstep(1.0 - w, 1.0 + w, r)) * uAlpha;',
+      '  } else if (r > uMask.y) {',
+      // Past the picture's mask only the halo, in the picture's colour.
+      '    c = vTone * uHalo.y * pow(r, -uHalo.z) * (1.0 - smoothstep(uHalo.x * 0.6, uHalo.x, r));',
+      '    a = uAlpha;',
       '  } else {',
+      '    vec3 tone = vTone;',
       // On the disc: the point of the sphere under this pixel, and where GOES pictured
       // it, if it faces the Earth.
       '    vec3 p = d.x * uRight - d.y * uUp + sqrt(max(0.0, 1.0 - r * r)) * uToward;',
@@ -84,8 +110,6 @@
       '    vec3 disc = mix(texture(uA, uv).rgb, texture(uB, uv).rgb, uMix);',
       // Fully pictured up to GOES's own limb (p.x 0), so that face-on it is NOAA's picture
       // exactly; just past it, eased into the plain far side.
-      '    vec3 tone = (picture(vec2(0.0)) + picture(vec2(0.45, 0.0)) + picture(vec2(-0.45, 0.0))',
-      '      + picture(vec2(0.0, 0.45)) + picture(vec2(0.0, -0.45))) * 0.2;',
       '    float rim = 1.0 - sqrt(max(0.0, 1.0 - r * r));',
       '    vec3 far = tone * (uUnseen.x + uUnseen.y * rim * rim);',
       '    disc = mix(far, disc, smoothstep(-0.12, 0.0, p.x));',
@@ -94,6 +118,10 @@
       '    vec3 corona = mix(texture(uA, fuv).rgb, texture(uB, fuv).rgb, uMix) * smoothstep(0.96, 1.0, uToward.x);',
       '    float w = fwidth(r);',
       '    c = mix(corona, disc, 1.0 - smoothstep(1.0 - w, 1.0 + w, r));',
+      // Within the mask, the halo begins under the corona as it fades.
+      '    float halo = uHalo.y * pow(max(r, 1.0), -uHalo.z) * (1.0 - smoothstep(uHalo.x * 0.6, uHalo.x, r)) * smoothstep(1.0, 1.4, r);',
+      '    c = c * (1.0 - smoothstep(uMask.x, uMask.y, r)) + tone * halo;',
+      '    a = uAlpha;',
       '  }',
       // Added to what is under it: the picture's black sky leaves the page's own
       // dark showing, rather than a darker ring round the corona. The plain disc,
@@ -111,7 +139,7 @@
   function init(glIn, kitIn) {
     gl = glIn;
     kit = kitIn;
-    prog = kit.program(kit.FULLSCREEN_VS, sunFS(kit));
+    prog = kit.program(sunVS(kit), sunFS(kit));
     vao = gl.createVertexArray();
     // A context restored starts with no textures: until the next frames come in, the
     // plain disc stands in for the ones lost.
@@ -155,7 +183,7 @@
     upload();
     var alpha = smooth(SHOW_PX[0], SHOW_PX[1], rPx) * scene.dim;
     if (alpha < 0.004) { return; }
-    var reach = rPx * MASK[1];
+    var reach = rPx * HALO;
     if (sunX + reach < 0 || sunX - reach > scene.w || sunY + reach < 0 || sunY - reach > scene.h) { return; }
 
     var l = Sun.lookup(scene.time);
@@ -172,13 +200,11 @@
     gl.uniform2f(u.uMask, MASK[0], MASK[1]);
     gl.uniform3fv(u.uWaiting, WAITING);
     gl.uniform2fv(u.uUnseen, UNSEEN);
-    // The camera's axes in the ecliptic (as scene.ecl draws it): turned about the north
-    // by k, risen over the plane by e.
-    var k = scene.turn * Math.PI / 2, e = scene.tilt * Math.PI / 2;
-    var ck = Math.cos(k), sk = Math.sin(k), ce = Math.cos(e), se = Math.sin(e);
-    gl.uniform3f(u.uRight, ck, sk, 0);
-    gl.uniform3f(u.uUp, -se * sk, se * ck, ce);
-    gl.uniform3f(u.uToward, ce * sk, -ce * ck, se);
+    gl.uniform3f(u.uHalo, HALO, HALO_GAIN, HALO_FALL);
+    // The lens's axes in the ecliptic (scene.helio): the Sun is at its centre.
+    gl.uniform3fv(u.uRight, scene.helio.right);
+    gl.uniform3fv(u.uUp, scene.helio.up);
+    gl.uniform3fv(u.uToward, scene.helio.back);
     gl.uniform1f(u.uAlpha, alpha);
     var a = l && tex[l.a.slot], b = l && tex[l.b.slot];
     if (l && l.latest && full && fullT === l.a.t) { a = full; b = full; }

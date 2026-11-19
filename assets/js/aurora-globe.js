@@ -177,15 +177,18 @@
   // decade, where the Sun comes into frame. ZOOM_EASE is the exponent of that ease.
   var RISE_SPAN = [0.3, 0.95];
   var ZOOM_EASE = 2.2;
-  // From the system view into the sun view the camera comes down off the ecliptic's
-  // north to the Earth's side of it, so that it ends looking at the Sun along the
-  // Sun-Earth line, as GOES does: first it turns about the ecliptic's north, until the
-  // Earth lies below the Sun on screen (TURN_SPAN), then it tips down toward the Earth,
-  // until the plane is edge-on (DESCENT_SPAN). Both are spans of the way from the sun
-  // view (0) to the system view (1), and both fall while the model is still on screen,
-  // so the turn shows on it.
-  var TURN_SPAN = [0.55, 0.95];
-  var DESCENT_SPAN = [0.3, 0.72];
+  // From the system view into the sun view the camera comes round from the ecliptic's
+  // north to the Earth's side of the Sun, so that it ends looking at the Sun along the
+  // Sun-Earth line, as GOES does. It is one turn, at an even rate with the zoom (see
+  // helioBasis): the plane twists, tips and grows all at once.
+  //
+  // The heliosphere is seen through a real lens (helioOffset): the camera stands
+  // HELIO_DIST AU from the Sun, from far above at the system view's scale to close in at
+  // the sun view's, and its focal length makes up the scale. Looking straight down that
+  // changes nothing in the plane; as the camera comes round, the plane recedes to a
+  // horizon and the wind round it passes the lens, near streaks large and quick.
+  var HELIO_DIST = [3, 0.06]; // AU from the Sun
+  var HELIO_DIST_PX = [300, 50000]; // at these scales, CSS px an AU, and log-evenly between
   // However quickly the page is scrolled (a snap carries a whole view in a fraction of
   // a second), the camera keeps to these paces, in views a second: through the rise,
   // slow enough to watch it turn; through the zoom out to the planets a little quicker;
@@ -1360,8 +1363,8 @@
       var low = clearBottom > clearTop ? clearBottom : h;
       var rPx = Math.min((low - clearTop) * SUN_FILL, w * SUN_FILL_W);
       var pxSun = rPx / SUN_RE;
-      var sunView = { lat: aim.lat, lon: aim.lon, roll: aim.roll, size: pxSun / frame(), dim: v.dim, tilt: 0, turn: 1 };
-      var at = earthFor(0.5, (clearTop + low) / 2 / h, Math.log(sunView.size), 1, 0);
+      var sunView = { lat: aim.lat, lon: aim.lon, roll: aim.roll, size: pxSun / frame(), dim: v.dim, tilt: 1, turn: 1 };
+      var at = earthFor(0.5, (clearTop + low) / 2 / h, Math.log(sunView.size), 1, 1);
       sunView.cx = at.cx;
       sunView.cy = at.cy;
       return sunView;
@@ -1583,12 +1586,9 @@
     target.turn = a.turn + (b.turn - a.turn) * t;
     // Between the sun and system views the Sun, not the Earth, keeps its place on screen:
     // it moves evenly as the scale grows, and the Earth follows from it, the scale and
-    // the way the camera faces. Meanwhile the camera comes round to the Earth's side
-    // (TURN_SPAN) and down to the plane (DESCENT_SPAN).
+    // the way the camera faces. The turn keeps step with the zoom (see helioBasis).
     target.anchor = ids[i0] === 'sun' && ids[i1] === 'system';
     if (target.anchor) {
-      target.turn = 1 - smooth(TURN_SPAN[0], TURN_SPAN[1], t);
-      target.tilt = smooth(DESCENT_SPAN[0], DESCENT_SPAN[1], t);
       var sa = sunPlace(a.cx, a.cy, a.size, a.turn, a.tilt), sb = sunPlace(b.cx, b.cy, b.size, b.turn, b.tilt);
       target.sx = sa.x + (sb.x - sa.x) * t;
       target.sy = sa.y + (sb.y - sa.y) * t;
@@ -1599,30 +1599,62 @@
   }
 
   /*
-   * The ecliptic on screen. A point in it, x AU from the Sun toward the Earth and y AU
-   * at right angles (the way the planets go round), is drawn at
+   * The camera that looks at the Sun, in the ecliptic's own frame: x from the Sun toward
+   * the Earth, y the way the planets go round, z north; AU. Its axes are the screen's
+   * right, its up, and back toward the camera.
    *
-   *   (x cos k + y sin k,  sin(tilt 90) (x sin k - y cos k)) AU from the Sun, y down,
-   *
-   * with k the turn times 90 degrees: the plane turned about its north by k, then seen
-   * from above it by the tilt. At the system view (k 0, tilt 1) the Earth is right of
-   * the Sun; at the sun view (k 90, tilt 0) the plane is edge-on and the Earth in front.
+   * Risen by the tilt (0 side-on from the dusk side, 1 from the north: the rise between
+   * the wind and L1 views), then turned (0 to 1) about (1, 1, 1) by up to 120 degrees,
+   * which takes x to y, y to z and z to x: from overhead, with the Earth to the Sun's
+   * right, to the Earth's side, looking along the Sun-Earth line with the north up. It
+   * is the one turn that does it, so the plane twists, tips and swings at once, evenly.
    */
-  function eclOffset(xAu, yAu, pxAu, turn, tilt) {
-    var k = turn * Math.PI / 2, ck = Math.cos(k), sk = Math.sin(k), st = Math.sin(tilt * Math.PI / 2);
-    return [(xAu * ck + yAu * sk) * pxAu, st * (xAu * sk - yAu * ck) * pxAu];
+  var THIRD = 1 / 3, ROOT3 = Math.sqrt(3);
+
+  function helioBasis(turn, tilt) {
+    var e = tilt * Math.PI / 2, ce = Math.cos(e), se = Math.sin(e);
+    var b = [[1, 0, 0], [0, se, ce], [0, -ce, se]];
+    if (turn <= 0) { return b; }
+    var th = turn * 2 * Math.PI / 3, c = Math.cos(th), sn = Math.sin(th);
+    return b.map(function (v) {
+      var m = (v[0] + v[1] + v[2]) * THIRD * (1 - c);
+      return [v[0] * c + (v[2] - v[1]) / ROOT3 * sn + m,
+        v[1] * c + (v[0] - v[2]) / ROOT3 * sn + m,
+        v[2] * c + (v[1] - v[0]) / ROOT3 * sn + m];
+    });
+  }
+
+  // How far the camera stands from the Sun, at a scale (CSS px an AU at the Sun).
+  function helioDist(pxAu) {
+    var u = Math.log(pxAu / HELIO_DIST_PX[0]) / Math.log(HELIO_DIST_PX[1] / HELIO_DIST_PX[0]);
+    u = Math.max(0, Math.min(1, u));
+    return HELIO_DIST[0] * Math.pow(HELIO_DIST[1] / HELIO_DIST[0], u);
+  }
+
+  function dot3(a, b) {
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  }
+
+  // A point p (AU, the frame above) on screen, relative to the Sun: [x, y down, depth].
+  // The camera stands HELIO_DIST from the Sun, straight back along its axis, and the
+  // Sun is where the lens is centred, wherever it is on screen. A point at or behind the
+  // camera is held a little in front, for the Earth's sake: it is not drawn then.
+  function helioOffset(p, pxAu, basis) {
+    var d = helioDist(pxAu), f = pxAu * d;
+    var z = Math.max(d - dot3(p, basis[2]), 0.02 * d);
+    return [f * dot3(p, basis[0]) / z, -f * dot3(p, basis[1]) / z, z];
   }
 
   // The Sun's place on screen, as fractions of the width and height, for a framing that
   // puts the Earth at (cx, cy); and where that puts the Earth for the Sun at (sx, sy) at
   // the scale e^ls.
   function sunPlace(cx, cy, size, turn, tilt) {
-    var o = eclOffset(earthAu, 0, size * frame() * AU_RE, turn, tilt);
+    var o = helioOffset([earthAu, 0, 0], size * frame() * AU_RE, helioBasis(turn, tilt));
     return { x: cx - o[0] / w, y: cy - o[1] / h };
   }
 
   function earthFor(sx, sy, ls, turn, tilt) {
-    var o = eclOffset(earthAu, 0, Math.exp(ls) * frame() * AU_RE, turn, tilt);
+    var o = helioOffset([earthAu, 0, 0], Math.exp(ls) * frame() * AU_RE, helioBasis(turn, tilt));
     return { cx: sx + o[0] / w, cy: sy + o[1] / h };
   }
 
@@ -1727,13 +1759,19 @@
     pxPerAu: 1,
     earthAu: 1, // the Earth's distance from the Sun
     tilt: 0, // 0 side-on in the ecliptic, 1 from its north
-    turn: 0, // 0 from the dusk side, 1 from the Earth's side of the Sun (see eclOffset)
+    turn: 0, // 0 from overhead (or the dusk side), 1 from the Earth's side of the Sun
     sunX: 0, sunY: 0, // the Sun's centre on screen
-    // A point in the ecliptic, x AU from the Sun toward the Earth and y AU the way the
-    // planets go round, on screen: [x, y] in CSS px.
-    ecl: function (x, y) {
-      var o = eclOffset(x, y, scene.pxPerAu, scene.turn, scene.tilt);
-      return [scene.sunX + o[0], scene.sunY + o[1]];
+    // The camera that looks at the Sun (helioBasis, helioOffset): its right, up and back
+    // toward it in the ecliptic's frame (x toward the Earth, y the way the planets go
+    // round, z north), its distance from the Sun in AU, and its focal length in CSS px.
+    helio: { right: [1, 0, 0], up: [0, 1, 0], back: [0, 0, 1], dist: 1, focal: 1 },
+    // A point in that frame (AU from the Sun) on screen: [x, y, depth in AU], CSS px; null
+    // at or behind the camera.
+    project: function (x, y, z) {
+      var c = scene.helio, p = [x, y, z || 0];
+      var depth = c.dist - dot3(p, c.back);
+      if (depth <= 1e-6) { return null; }
+      return [scene.sunX + c.focal * dot3(p, c.right) / depth, scene.sunY - c.focal * dot3(p, c.up) / depth, depth];
     },
     sunward: 0, // 0 at the system view, 1 at the sun view
     progress: 0, // position among the views, in page order
@@ -1814,7 +1852,13 @@
     scene.earthAu = earthAu;
     scene.tilt = cam.tilt;
     scene.turn = cam.turn;
-    var so = eclOffset(earthAu, 0, scene.pxPerAu, cam.turn, cam.tilt);
+    var hb = helioBasis(cam.turn, cam.tilt);
+    scene.helio.right = hb[0];
+    scene.helio.up = hb[1];
+    scene.helio.back = hb[2];
+    scene.helio.dist = helioDist(scene.pxPerAu);
+    scene.helio.focal = scene.pxPerAu * scene.helio.dist;
+    var so = helioOffset([earthAu, 0, 0], scene.pxPerAu, hb);
     scene.sunX = centerX - so[0];
     scene.sunY = centerY - so[1];
     // How far the camera is from the system view toward the Sun, 0 to 1: the layers at

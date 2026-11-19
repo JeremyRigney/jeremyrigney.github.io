@@ -31,7 +31,10 @@
  *
  *   FROM THE SUN, once the Sun is in frame and the camera has risen over the ecliptic
  *   (scene.tilt). NOAA's WSA-Enlil run, radial speed as a colour field, sampled per
- *   pixel from a 3D texture (longitude, radius, frame). Between two frames it is read
+ *   pixel from a 3D texture (longitude, radius, frame), where that pixel's ray through
+ *   the lens the camera looks at the Sun with (scene.helio) meets the plane: as the
+ *   camera comes round to the Earth's side on the way into the Sun, the plane recedes
+ *   to a horizon and the streaks, in a slab about it and in to the Sun, stream past. Between two frames it is read
  *   where its wind was or will be, a parcel moving outward at its own speed, so a
  *   front glides instead of cross-fading. Rings at 0.5, 1 and 1.5 AU are drawn from
  *   screen-space derivatives, a pixel wide, as the globe's graticule is. Over it,
@@ -139,6 +142,30 @@
   var HELIO_STREAK_ALPHA = 0.42;
   var KMS_TO_AU_PER_H = 3600 / 1.495978707e8;
 
+  // The wind in depth, which the camera flies through on its way to the Sun. The model
+  // is a cut through the Earth's latitude: its streaks fill a slab SLAB_DEG either side
+  // of it, carrying the cut's speed, fewer the further out of it. Inside the model's inner
+  // edge (0.1 AU), down to the Sun, INNER_COUNT more carry the edge's speed in, in every
+  // direction, the wind slowing toward the Sun as (1 - R/r)^ACCEL from the edge's speed,
+  // as the real wind is accelerated out of the corona. Both are continuations, as the
+  // fade past the outer edge is: the + note says so, and the inner edge is dashed too.
+  var SLAB_DEG = 12;
+  var INNER_COUNT = 2600, INNER_COUNT_NARROW = 1300;
+  var INNER_REACH = [1.2, 1.7]; // times the inner edge: where they give way to the model's streaks
+  var INNER_ALPHA = 0.55;
+  var INNER_MIN_KMS = 40; // so they leave the surface at all
+  var ACCEL = 1.2;
+  var INNER_FIELD = 0.85; // the colour field's strength inside the inner edge
+  var SUN_R_AU = 0.00465;
+  // The model's time runs slower on screen as the camera closes in, so the wind keeps a
+  // pace the eye can follow: HELIO_HOURS_PER_S at HELIO_RATE_PX CSS px an AU, times
+  // (HELIO_RATE_PX / px an AU)^HELIO_RATE_K closer in.
+  var HELIO_RATE_PX = 300, HELIO_RATE_K = 0.55;
+  // Through the lens (scene.helio) a streak nearer than the Sun is wider and brighter by
+  // how much nearer, up to LENS_MAX; nearer than LENS_NEAR of the Sun's distance it fades
+  // out, before it fills the screen. Over the Sun's disc they give way to it.
+  var LENS_MAX = 3.5, LENS_NEAR = [0.05, 0.16];
+
   var LINE_PX = 1; // field lines and boundaries, CSS px
   var STREAK_PX = 1.25; // the wind's streaks
   var HELIO_STREAK_PX = 1;
@@ -190,9 +217,13 @@
       kit.HEADER,
       'uniform vec2 uRes;',
       'uniform vec2 uSun;', // the Sun on screen, device px from the top left
-      'uniform float uPxAu;', // device px in an AU
-      'uniform float uTilt;', // 0 side-on in the ecliptic, 1 from its north
-      'uniform vec2 uTurn;', // cos and sin of how far the plane is turned about its north (scene.ecl)
+      // The lens (scene.helio): its right, up and back in the ecliptic's frame, its
+      // distance from the Sun (AU) and its focal length (device px).
+      'uniform vec3 uCamR;',
+      'uniform vec3 uCamU;',
+      'uniform vec3 uCamB;',
+      'uniform float uCamD;',
+      'uniform float uFocal;',
       'uniform sampler3D uEcl;', // (longitude, radius, frame)
       'uniform vec3 uFrame;', // texture z of the frame before and of the frame after, and how far between
       'uniform float uShift;', // AU a parcel moves per km/s in the time between those two frames
@@ -238,15 +269,20 @@
 
       'void main() {',
       '  vec2 frag = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);',
-      '  vec2 s = (frag - uSun) / uPxAu;',
-      '  s.y = -s.y;', // AU, right and up the screen
-      // The ecliptic, seen from above it by st: edge-on it has no area and is not drawn.
-      // Undone, and turned back about its north, to x toward the Earth and y the way the
-      // planets go round (the inverse of scene.ecl).
-      '  float st = sin(uTilt * 1.5707963);',
-      '  float open = smoothstep(0.04, 0.5, st);',
-      '  float q = s.y / max(st, 1e-3);',
-      '  vec2 p = vec2(s.x * uTurn.x - q * uTurn.y, s.x * uTurn.y + q * uTurn.x);',
+      // The ray from the lens through this pixel, met with the ecliptic: x toward the
+      // Earth, y the way the planets go round, AU. Above the plane's horizon it misses.
+      // Where it grazes the plane the picture would alias, so it fades there, and edge-on
+      // the plane is not drawn at all.
+      '  vec2 o = frag - uSun;',
+      '  vec3 ray = o.x * uCamR - o.y * uCamU - uFocal * uCamB;',
+      '  vec3 eye = uCamD * uCamB;',
+      '  float hit = abs(ray.z) > 1e-6 ? -eye.z / ray.z : -1.0;',
+      '  float open = step(0.0, hit) * smoothstep(0.02, 0.22, abs(ray.z) / length(ray));',
+      // Nor where it meets the plane close to the lens: with the lens in the plane every
+      // ray would, and the whole screen would take the colour where it stands.
+      '  open *= smoothstep(0.08, 0.3, hit * length(ray) / uCamD);',
+      '  if (open <= 0.0) { outColor = vec4(0.0); return; }',
+      '  vec2 p = (eye + hit * ray).xy;',
       '  float r = length(p);',
       '  float wr = fwidth(r) + 1e-6;',
       '  float rIn = uR.x - 0.5 * uR.y, rOut = uR.x + (uR.z - 0.5) * uR.y;',
@@ -267,14 +303,21 @@
       '    a += uSpin * beyond / v0;',
       '  }',
       '  float v = speedAt(a, clamp(r, rIn, rOut));',
-      // Full strength inside the model, eased in at its inner edge (the Sun's glow
-      // stands in the hole) and fading out past its outer one.
-      '  float field = smoothstep(rIn - ' + SUN_SOFT_AU.toFixed(3) + ', rIn + 0.004, r) * (1.0 - smoothstep(rOut, uFadeTo, r));',
+      // Inside the model's inner edge the edge's wind is carried in, slower toward the
+      // Sun as it is accelerated out of the corona, a little weaker: a continuation.
+      '  if (r < rIn) {',
+      '    float k = clamp((1.0 - ' + SUN_R_AU.toFixed(5) + ' / max(r, ' + SUN_R_AU.toFixed(5) + ')) / (1.0 - ' + SUN_R_AU.toFixed(5) + ' / rIn), 0.0, 1.0);',
+      '    v *= pow(k, ' + ACCEL.toFixed(2) + ');',
+      '  }',
+      // Full strength inside the model, a little less in toward the Sun, and fading out
+      // past its outer edge.
+      '  float field = mix(' + INNER_FIELD.toFixed(2) + ', 1.0, smoothstep(rIn - ' + SUN_SOFT_AU.toFixed(3) + ', rIn + 0.004, r))',
+      '    * smoothstep(' + SUN_R_AU.toFixed(5) + ', ' + (SUN_R_AU * 3).toFixed(5) + ', r) * (1.0 - smoothstep(rOut, uFadeTo, r));',
       '  vec4 acc = over(vec4(0.0), rampAt(v), field * uData * ' + FIELD_ALPHA.toFixed(2) + ');',
       // The rings, with or without a run: each half AU inside the model, and its edge
       // dashed, since past it the picture is no longer NOAA's.
       '  float ring = max(max(hair(r - 0.5, wr), hair(r - 1.5, wr)) * 0.6, hair(r - 1.0, wr));',
-      '  float edge = hair(r - rOut, wr) * step(0.5, fract(lon / 2.0)) * ' + (EDGE_ALPHA / RING_ALPHA).toFixed(2) + ';',
+      '  float edge = max(hair(r - rOut, wr), hair(r - rIn, wr) * 0.7) * step(0.5, fract(lon / 2.0)) * ' + (EDGE_ALPHA / RING_ALPHA).toFixed(2) + ';',
       '  acc = over(acc, uInk, max(ring, edge) * ' + RING_ALPHA.toFixed(2) + ');',
       '  float veil = mix(' + VEIL_TOP_TO.toFixed(2) + ', 1.0, smoothstep(uVeil.x, uVeil.y, frag.y))',
       '    * mix(' + VEIL_FOOT_TO.toFixed(2) + ', 1.0, smoothstep(0.0, uVeil.z, uRes.y - frag.y));',
@@ -300,7 +343,9 @@
       'uniform vec3 uRowZ;', // toward the camera, in units
       'uniform vec2 uDepth;', // the depth over which the far side dims, and what it dims to
       'uniform float uLinePx;',
+      'uniform float uWidthZ;', // 1: aA.z is this segment's width, as a multiple of uLinePx
       'out float vD;',
+      'out float vW;',
       'out float vFade;',
       'out float vV;',
       'const vec2 CORNER[6] = vec2[6](vec2(0.0, -1.0), vec2(1.0, -1.0), vec2(0.0, 1.0),',
@@ -313,7 +358,8 @@
       '  float len = length(dir);',
       '  dir = len > 1e-4 ? dir / len : vec2(1.0, 0.0);',
       '  vec2 nrm = vec2(-dir.y, dir.x);',
-      '  float hw = uLinePx * 0.5 + 1.0;',
+      '  vW = uLinePx * mix(1.0, aA.z, uWidthZ);',
+      '  float hw = vW * 0.5 + 1.0;',
       '  vec2 s = mix(sa, sb, c.x) + nrm * c.y * hw;',
       '  vD = c.y * hw;',
       '  float depth = dot((aA + aB) * 0.5, uRowZ);',
@@ -328,9 +374,9 @@
     return [
       kit.HEADER,
       'in float vD;',
+      'in float vW;',
       'in float vFade;',
       'in float vV;',
-      'uniform float uLinePx;',
       'uniform vec3 uInk;',
       'uniform float uBySpeed;', // 0 ink, 1 the ramp at vV
       'uniform float uLift;', // how far the ramp's colour is taken toward the ink
@@ -340,8 +386,8 @@
       RAMP_GLSL,
       'out vec4 outColor;',
       'void main() {',
-      '  float crisp = clamp(uLinePx * 0.5 + 0.5 - abs(vD), 0.0, 1.0);',
-      '  float q = vD / (uLinePx * 0.3);',
+      '  float crisp = clamp(vW * 0.5 + 0.5 - abs(vD), 0.0, 1.0);',
+      '  float q = vD / (vW * 0.3);',
       '  float cov = mix(crisp, exp(-q * q), uSoft) * vFade * uAlpha;',
       '  cov *= smoothstep(uKeepOut.x, uKeepOut.y, uKeepOut.z - gl_FragCoord.y);',
       '  if (cov <= 0.002) { discard; }',
@@ -473,7 +519,7 @@
     texRun = null;
     blankTex = make3D(1, 1, 1, new Uint8Array([0]), gl.REPEAT);
     nearBuf = makeSegs(NEAR_MAX, gl.DYNAMIC_DRAW);
-    helioBuf = makeSegs(HELIO_COUNT, gl.DYNAMIC_DRAW);
+    helioBuf = makeSegs(HELIO_COUNT + INNER_COUNT, gl.DYNAMIC_DRAW);
     fieldBuf = makeSegs(11000, gl.DYNAMIC_DRAW);
     hoopBuf = makeSegs(400, gl.DYNAMIC_DRAW);
     fieldKey = '';
@@ -496,14 +542,14 @@
     l1A = smooth(L1_IN[0], L1_IN[1], px) * (1 - smooth(L1_OUT[0], L1_OUT[1], px)) * scene.dim;
     helioA = (1 - smooth(Math.log(HELIO_PX_AU[0]), Math.log(HELIO_PX_AU[1]), lau)) * scene.dim;
     // Toward the Sun (scene.sunward) the scale grows as it does toward the Earth, but
-    // nothing of the Earth's should show there: the model's streaks stay on, and the
-    // model itself goes as its inner edge, 0.1 AU out, passes the screen's.
+    // nothing of the Earth's should show there: the model and its streaks stay on, the
+    // inner edge carried on in to the Sun, and the plane goes as the lens comes edge-on.
     var sw = scene.sunward || 0;
     if (sw > 0) {
       var away = 1 - smooth(0, 0.05, sw);
       magA *= away; labelA *= away; nearA *= away; l1A *= away;
       model = Math.max(model, 1 - away);
-      helioA = (1 - smooth(0.55, 0.9, sw)) * scene.dim;
+      helioA = scene.dim;
     }
     helioStreakA = helioA * model;
   }
@@ -774,6 +820,7 @@
       gl.uniform2f(u.uDepth, 1, 1);
     }
     gl.uniform1f(u.uLinePx, o.px * s);
+    gl.uniform1f(u.uWidthZ, o.widthZ ? 1 : 0);
     gl.uniform3fv(u.uInk, ink);
     gl.uniform1f(u.uBySpeed, o.bySpeed ? 1 : 0);
     gl.uniform1f(u.uLift, o.lift || 0);
@@ -859,6 +906,7 @@
   // ranks, or, to fill the screen at once, anywhere out to where the field has faded.
   function spawnHelio(p, rIn, rFar, anywhere) {
     p.a = Math.random() * 360 - 180;
+    p.b = SLAB_DEG * (Math.random() + Math.random() - 1); // latitude: most near the plane
     p.r = anywhere ? rIn + Math.random() * (rFar - rIn) : rIn + Math.random() * 0.012;
     p.age = anywhere ? 1 : 0;
     p.v = 0;
@@ -875,24 +923,70 @@
     return rOut + Math.max(FADE_AU[0], Math.min(FADE_AU[1], far - rOut));
   }
 
+  // The model's time per second on screen at this scale (see HELIO_RATE_PX).
+  function helioRate(scene) {
+    return HELIO_HOURS_PER_S * Math.min(1, Math.pow(HELIO_RATE_PX / scene.pxPerAu, HELIO_RATE_K));
+  }
+
+  // A point r AU from the Sun at longitude a and latitude b (degrees) through the lens:
+  // { x, y } CSS px, near (how much nearer than the Sun, D / depth), or null when too
+  // near the lens or behind it.
+  function through(scene, r, a, b, out) {
+    var c = scene.helio, ca = Math.cos(a * DEG), sa = Math.sin(a * DEG), cb = Math.cos(b * DEG), sb = Math.sin(b * DEG);
+    var x = r * cb * ca, y = r * cb * sa, z = r * sb;
+    var depth = c.dist - (x * c.back[0] + y * c.back[1] + z * c.back[2]);
+    if (depth < LENS_NEAR[0] * c.dist) { return null; }
+    var k = c.focal / depth;
+    out.x = scene.sunX + (x * c.right[0] + y * c.right[1] + z * c.right[2]) * k;
+    out.y = scene.sunY - (x * c.up[0] + y * c.up[1] + z * c.up[2]) * k;
+    out.near = c.dist / depth;
+    return out;
+  }
+
+  var headAt = {}, tailAt = {};
+
+  // One streak into the buffer from tail to head (both through the lens), its width and
+  // brightness by how near it is, given way over the Sun's disc. False if off screen.
+  function putStreak(scene, alpha, v, sunPx) {
+    var s = scene.dpr, d = helioBuf.data;
+    if (helioBuf.count >= helioBuf.capacity) { return false; }
+    var hx = headAt.x, hy = headAt.y;
+    if (hx < -NEAR_MARGIN || hx > scene.w + NEAR_MARGIN || hy < -NEAR_MARGIN || hy > scene.h + NEAR_MARGIN) { return false; }
+    var near = headAt.near;
+    var lens = smooth(LENS_NEAR[0], LENS_NEAR[1], 1 / near) * Math.max(0.6, Math.min(1.6, 0.6 + 0.4 * near));
+    var sd = Math.sqrt((hx - scene.sunX) * (hx - scene.sunX) + (hy - scene.sunY) * (hy - scene.sunY));
+    var a = alpha * lens * smooth(0.95 * sunPx, 1.3 * sunPx, sd);
+    if (a < 0.004) { return false; }
+    var o = helioBuf.count * SEG;
+    d[o] = tailAt.x * s;
+    d[o + 1] = tailAt.y * s;
+    d[o + 2] = Math.max(0.7, Math.min(LENS_MAX, near));
+    d[o + 3] = hx * s;
+    d[o + 4] = hy * s;
+    d[o + 5] = 0;
+    d[o + 6] = 0;
+    d[o + 7] = a;
+    d[o + 8] = v;
+    helioBuf.count++;
+    return true;
+  }
+
   // rFar, where they have faded out, moves with the zoom, so it only fades them: they
   // run on to a fixed rMax before starting again at the Sun. Recycling at rFar sent
   // every one past it back to the Sun at once whenever the view changed, and they came
   // out again as a single ring.
-  function stepHelio(scene, dt, frame, sunX, sunY, rFar) {
+  function stepHelio(scene, dt, frame, rFar) {
     var m = Wind.state.atlasMeta;
-    var d = helioBuf.data, count = 0;
-    var s = scene.dpr, pxAu = scene.pxPerAu;
     var want = scene.w < 700 ? HELIO_COUNT_NARROW : HELIO_COUNT;
     var rIn = m.r.first - 0.5 * m.r.step, rOut = m.r.first + (m.r.count - 0.5) * m.r.step;
     var rMax = rOut + FADE_AU[1];
     while (helio.length < want) { helio.push(spawnHelio({}, rIn, rMax, true)); }
     helio.length = want;
+    helioBuf.count = 0;
+    var sunPx = SUN_R_AU * scene.pxPerAu;
 
-    // Where each is on screen: scene.ecl, spelt out, since there are thousands a frame.
-    var st = Math.sin(scene.tilt * Math.PI / 2);
-    var tk = scene.turn * Math.PI / 2, ck = Math.cos(tk) * pxAu, sk = Math.sin(tk) * pxAu;
-    var hours = HELIO_HOURS_PER_S * dt;
+    var hours = helioRate(scene) * dt;
+    var trail = helioRate(scene) * HELIO_TRAIL_S;
     var k = Math.round(frame);
     for (var i = 0; i < helio.length; i++) {
       var p = helio[i];
@@ -922,29 +1016,66 @@
       var step = v * KMS_TO_AU_PER_H;
       p.r += step * hours;
       p.age += dt;
-      var ca = Math.cos(p.a * DEG), sa = Math.sin(p.a * DEG);
-      var hx = sunX + p.r * (ca * ck + sa * sk), hy = sunY + p.r * st * (ca * sk - sa * ck);
-      if (showing < 0.01 || hx < -NEAR_MARGIN || hx > scene.w + NEAR_MARGIN || hy < -NEAR_MARGIN || hy > scene.h + NEAR_MARGIN) { continue; }
-      var rt = Math.max(rIn, p.r - step * HELIO_HOURS_PER_S * HELIO_TRAIL_S);
-      var o = count * SEG;
-      d[o] = (sunX + rt * (ca * ck + sa * sk)) * s;
-      d[o + 1] = (sunY + rt * st * (ca * sk - sa * ck)) * s;
-      d[o + 2] = 0;
-      d[o + 3] = hx * s;
-      d[o + 4] = hy * s;
-      d[o + 5] = 0;
-      d[o + 6] = 0;
-      // In over the first quarter AU, where they are packed closest, and out with the field.
-      d[o + 7] = showing * Math.min(1, p.age / 0.5) * smooth(rIn, rIn + 0.25, p.r) * (1 - smooth(rOut, rFar, p.r)) * HELIO_STREAK_ALPHA;
-      d[o + 8] = v;
-      count++;
+      if (showing < 0.01) { continue; }
+      if (!through(scene, p.r, p.a, p.b, headAt)) { continue; }
+      if (!through(scene, Math.max(rIn, p.r - step * trail), p.a, p.b, tailAt)) { continue; }
+      // In over the first quarter AU, where they are packed closest, and out with the field;
+      // the further out of the plane, the fewer.
+      putStreak(scene, showing * Math.min(1, p.age / 0.5) * smooth(rIn, rIn + 0.25, p.r) * (1 - smooth(rOut, rFar, p.r))
+        * (1 - 0.6 * Math.abs(p.b) / SLAB_DEG) * HELIO_STREAK_ALPHA, v, sunPx);
     }
-    helioBuf.count = count;
+    stepInner(scene, dt, k, rIn, sunPx);
     fillSegs(helioBuf);
+  }
+
+  /*
+   * Inside the model's inner edge: streaks in every direction from the Sun's surface out
+   * past the edge, at the edge's speed where they leave it (its longitude's), slower in
+   * toward the Sun (ACCEL). Spread evenly in the logarithm of their distance, so there
+   * are as many close in as the camera needs there; one that runs past the reach starts
+   * again anywhere in it.
+   */
+  var inner = [];
+
+  function spawnInner(p, rIn) {
+    var r0 = SUN_R_AU * 1.02, r1 = rIn * INNER_REACH[1];
+    p.r = r0 * Math.pow(r1 / r0, Math.random());
+    p.a = Math.random() * 360 - 180;
+    p.b = Math.asin(2 * Math.random() - 1) / DEG;
+    p.age = 0;
+    return p;
+  }
+
+  function stepInner(scene, dt, k, rIn, sunPx) {
+    var want = scene.w < 700 ? INNER_COUNT_NARROW : INNER_COUNT;
+    while (inner.length < want) { var q = spawnInner({}, rIn); q.age = 1; inner.push(q); }
+    inner.length = want;
+    var hours = helioRate(scene) * dt, trail = helioRate(scene) * HELIO_TRAIL_S;
+    var edge = Wind.state.atlasMeta.r.first;
+    var reach = rIn * INNER_REACH[1];
+    for (var i = 0; i < inner.length; i++) {
+      var p = inner[i];
+      if (p.r > reach) { spawnInner(p, rIn); }
+      var v = Wind.speedAt(Math.max(p.r, edge), p.a, k);
+      if (v === null) { continue; }
+      if (p.r < rIn) {
+        var f = Math.max(0, (1 - SUN_R_AU / p.r) / (1 - SUN_R_AU / rIn));
+        v = Math.max(INNER_MIN_KMS, v * Math.pow(f, ACCEL));
+      }
+      var step = v * KMS_TO_AU_PER_H;
+      p.r += step * hours;
+      p.age += dt;
+      if (!through(scene, p.r, p.a, p.b, headAt)) { continue; }
+      if (!through(scene, Math.max(SUN_R_AU, p.r - step * trail), p.a, p.b, tailAt)) { continue; }
+      putStreak(scene, Math.min(1, p.age / 0.4) * smooth(SUN_R_AU, SUN_R_AU * 1.4, p.r)
+        * (1 - smooth(rIn * INNER_REACH[0], reach, p.r)) * INNER_ALPHA, v, sunPx);
+    }
   }
 
   function drawHelio(scene, dt) {
     var sunX = scene.sunX, sunY = scene.sunY;
+    // With the lens edge-on to the plane the field cannot show: only its streaks.
+    var flat = Math.abs(scene.helio.back[2]) < 0.015;
     var s = scene.dpr;
     var m = Wind.state.atlasMeta;
     var has = Wind.ready() && eclTex && m;
@@ -956,9 +1087,12 @@
     var u = helioProg.u;
     gl.uniform2f(u.uRes, kit.canvas.width, kit.canvas.height);
     gl.uniform2f(u.uSun, sunX * s, sunY * s);
-    gl.uniform1f(u.uPxAu, scene.pxPerAu * s);
-    gl.uniform1f(u.uTilt, scene.tilt);
-    gl.uniform2f(u.uTurn, Math.cos(scene.turn * Math.PI / 2), Math.sin(scene.turn * Math.PI / 2));
+    var c = scene.helio;
+    gl.uniform3fv(u.uCamR, c.right);
+    gl.uniform3fv(u.uCamU, c.up);
+    gl.uniform3fv(u.uCamB, c.back);
+    gl.uniform1f(u.uCamD, c.dist);
+    gl.uniform1f(u.uFocal, c.focal * s);
     gl.uniform1f(u.uAlpha, helioA);
     gl.uniform3fv(u.uInk, ink);
     gl.uniform3fv(u.uRamp, ramp);
@@ -991,12 +1125,12 @@
     }
     gl.uniform1i(u.uEcl, 0);
     gl.bindVertexArray(emptyVao);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    if (!flat) { gl.drawArrays(gl.TRIANGLES, 0, 3); }
 
     if (has && fr && helioStreakA > 0.004) {
-      stepHelio(scene, dt, fr.f, sunX, sunY, rFar);
+      stepHelio(scene, dt, fr.f, rFar);
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      useSegs(scene, { alpha: helioStreakA, bySpeed: true, lift: 0.72, px: HELIO_STREAK_PX });
+      useSegs(scene, { alpha: helioStreakA, bySpeed: true, lift: 0.72, px: HELIO_STREAK_PX, widthZ: true });
       drawSegs(helioBuf);
     }
     gl.bindVertexArray(null);
@@ -1011,7 +1145,7 @@
     if (scene.view === 'wind' || scene.view === 'l1' || scene.view === 'system' || scene.view === 'sun') { Wind.want(); }
     var dt = reducedMotion ? 0 : scene.dt;
     if (magA > 0.004 || nearA > 0.004 || l1A > 0.004) { conditions(scene); }
-    if (helioA > 0.004 && scene.tilt > 0.01) { drawHelio(scene, dt); }
+    if (helioA > 0.004) { drawHelio(scene, dt); }
     // The glow, then the streaks, then the cage over both, so its lines stay crisp.
     var M = (nearA > 0.004 || magA > 0.004) ? axes(scene) : null;
     if (magA > 0.004) { drawSheath(scene, M); }
@@ -1019,8 +1153,9 @@
     if (magA > 0.004) { drawMag(scene, M); }
   }
 
-  function moving() {
-    return !reducedMotion && (nearA > 0.004 || helioStreakA > 0.004);
+  // At the sun view the wind leaving the Sun is gentle enough for the idle pace.
+  function moving(scene) {
+    return !reducedMotion && (nearA > 0.004 || (helioStreakA > 0.004 && (scene.sunward || 0) < 0.98));
   }
 
   /* ---------- Labels, on the 2D canvas ---------- */
@@ -1092,6 +1227,7 @@
     var st = Math.sin(scene.tilt * Math.PI / 2);
     var rPx = MOON_ORBIT_RE * scene.pxPerRe, big = Math.max(scene.w, scene.h);
     var a = smooth(0.05, 0.3, st) * smooth(14, 40, rPx) * (1 - smooth(1.5 * big, 3 * big, rPx)) * scene.dim;
+    a *= 1 - smooth(0, 0.05, scene.sunward || 0); // nothing of the Earth's toward the Sun
     if (a < 0.02) { return; }
     var M = axes(scene);
     ctx.save();
@@ -1216,7 +1352,7 @@
   function overlayHelio(ctx, scene) {
     var pxAu = scene.pxPerAu;
     var sunX = scene.sunX, sunY = scene.sunY;
-    var st = Math.sin(scene.tilt * Math.PI / 2);
+    var st = Math.max(0, scene.helio.back[2]); // how open the plane is to the lens: 1 from overhead
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
     ctx.lineWidth = 1;
@@ -1249,23 +1385,18 @@
     var hole = 0.1 * pxAu;
     var mark = a * (1 - smooth(3, 10, SUN_AU * pxAu));
     if (mark > 0.01 && sunX > -hole - 20 && sunX < scene.w + hole + 20) {
-      var glow = Math.max(16, hole * 1.15);
+      var glow = Math.max(16, hole * 0.45);
       var g = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, glow);
       g.addColorStop(0, rgba(ink, 0.6 * mark));
       g.addColorStop(0.35, rgba(ink, 0.16 * mark));
       g.addColorStop(1, rgba(ink, 0));
       ctx.fillStyle = g;
-      ctx.save();
-      ctx.translate(sunX, sunY);
-      ctx.scale(1, Math.max(st, 0.35)); // flattened with the plane while the camera is low
-      ctx.translate(-sunX, -sunY);
       ctx.beginPath(); ctx.arc(sunX, sunY, glow, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
       ctx.fillStyle = rgba(ink, mark);
       ctx.beginPath(); ctx.arc(sunX, sunY, hole > 20 ? 4.5 : 3.5, 0, Math.PI * 2); ctx.fill();
       if (scene.fontsReady) {
         ctx.textAlign = 'center';
-        var sy = sunY + Math.max(14, hole * Math.max(st, 0.35) + 11);
+        var sy = sunY + Math.max(14, glow * 0.6 + 11);
         placed.push({ x0: sunX - 16, x1: sunX + 16, y0: sy - 8, y1: sy + 8 });
         label(ctx, scene, 'SUN', sunX, sy, 0.95 * mark, 600);
         ctx.textAlign = 'left';
@@ -1281,7 +1412,9 @@
     // Outermost first: Mars has the most room, Mercury the least.
     bodies.slice().reverse().forEach(function (b) {
       if (b.name === 'earth') { return; }
-      var at = scene.ecl(b.r * Math.cos(b.lon * DEG), b.r * Math.sin(b.lon * DEG)), x = at[0], y = at[1];
+      var at = scene.project(b.r * Math.cos(b.lon * DEG), b.r * Math.sin(b.lon * DEG), 0);
+      if (!at) { return; }
+      var x = at[0], y = at[1];
       if (y < scene.clearTop + 8) { return; } // behind the capsule, or up among the switches
       dot(ctx, scene, x, y, 2.5, 0.95 * a * open);
       named(ctx, scene, NAMES[b.name], x + 9, y, 0.9 * a * open, 500);
@@ -1292,9 +1425,17 @@
 
     // The 1 AU ring, named where it tops out, or where it bottoms out if a panel is there.
     ctx.textAlign = 'center';
-    var ringY = sunY - st * pxAu - 9;
-    if (ringY < roomTop) { ringY = sunY + st * pxAu + 10; }
-    if (ringY > roomTop && ringY < roomFoot) { label(ctx, scene, '1 AU', sunX, ringY, 0.85 * a * open, 500); }
+    var top = null, foot = null;
+    for (var ri = 0; ri < 72; ri++) {
+      var rp = scene.project(Math.cos(ri * 5 * DEG), Math.sin(ri * 5 * DEG), 0);
+      if (!rp) { continue; }
+      if (!top || rp[1] < top[1]) { top = rp; }
+      if (!foot || rp[1] > foot[1]) { foot = rp; }
+    }
+    if (top) {
+      var ring = top[1] - 9 >= roomTop ? [top[0], top[1] - 9] : [foot[0], foot[1] + 10];
+      if (ring[1] > roomTop && ring[1] < roomFoot) { label(ctx, scene, '1 AU', ring[0], ring[1], 0.85 * a * open, 500); }
+    }
 
     // The model's edge, named along its dashed ring at the first of these longitudes
     // that is on screen and clear of the panels. Only once the plane is face on: the
