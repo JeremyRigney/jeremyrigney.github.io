@@ -76,12 +76,17 @@ MULTIVIEWER = 'https://api.multiviewer.app/api/v1/circuits'
 #
 # Absent: es-2026 (Madrid, too new for MultiViewer) and my-1999 (Sepang, a stale
 # file from an older calendar). Those fall back to detect_turns().
+#
+# Sakhir, Jeddah, Portimão and Istanbul Park weren't raced in 2026 and are here for
+# 2027. MultiViewer's newest Portimão and Istanbul maps are from 2021, which the
+# lenient year in the path picks up.
 MV_CIRCUIT_KEYS = {
     'ae-2009': 70,   # Yas Marina
     'at-1969': 19,   # Spielberg
     'au-1953': 10,   # Melbourne
     'az-2016': 144,  # Baku
     'be-1925': 7,    # Spa-Francorchamps
+    'bh-2002': 63,   # Sakhir (bacinger dates it 2002, not its 2004 opening)
     'br-1940': 14,   # Interlagos
     'ca-1978': 23,   # Montreal
     'cn-2004': 49,   # Shanghai
@@ -93,8 +98,11 @@ MV_CIRCUIT_KEYS = {
     'mc-1929': 22,   # Monte Carlo
     'mx-1962': 65,   # Mexico City
     'nl-1948': 55,   # Zandvoort
+    'pt-2008': 147,  # Portimão (Algarve)
     'qa-2004': 150,  # Losail
+    'sa-2021': 149,  # Jeddah
     'sg-2008': 61,   # Singapore
+    'tr-2005': 59,   # Istanbul Park
     'us-2012': 9,    # Austin
     'us-2022': 151,  # Miami
     'us-2023': 152,  # Las Vegas
