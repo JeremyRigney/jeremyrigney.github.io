@@ -161,6 +161,11 @@
   // holds the Sun still on screen as the scale grows (see aim and stepCamera).
   var SUN_RE = 109.08;
   var SUN_FILL = 0.31, SUN_FILL_W = 0.36;
+  // With the corona on (setCorona), the camera pulls back so that CORONA_FIT solar radii
+  // reach the room's edge, up or across, whichever is nearer: the coronagraph's field
+  // fades out between 17.5 and 19.5, under the panels.
+  var CORONA_FIT = 16;
+  var coronaOn = false;
 
   // The L1 view looks down on the ecliptic with L1, where the wind is measured, L1_RE
   // sunward of the Earth: the Earth at L1_EARTH_X of the width and L1 L1_GAP of the
@@ -1260,10 +1265,10 @@
   // turn is how far it has come round, about the ecliptic's north, from the dusk side
   // (0) to the Earth's side of the Sun (1): with tilt 0 as well, it looks at the Sun from
   // the Earth. cx, cy always place the Earth.
-  var cam = { lat: VIEWS.north.lat, lon: VIEWS.north.lon, roll: 0, cx: 0.5, cy: 1, ls: Math.log(VIEWS.north.size), size: VIEWS.north.size, dim: 1, tilt: 0, turn: 0 };
-  var target = { lat: cam.lat, lon: cam.lon, roll: 0, cx: cam.cx, cy: cam.cy, ls: cam.ls, dim: cam.dim, tilt: 0, turn: 0,
+  var cam = { lat: VIEWS.north.lat, lon: VIEWS.north.lon, roll: 0, cx: 0.5, cy: 1, ls: Math.log(VIEWS.north.size), size: VIEWS.north.size, dim: 1, tilt: 0, turn: 0, corona: 0 };
+  var target = { lat: cam.lat, lon: cam.lon, roll: 0, cx: cam.cx, cy: cam.cy, ls: cam.ls, dim: cam.dim, tilt: 0, turn: 0, corona: 0,
     anchor: false, sx: 0, sy: 0, space: 0 }; // anchor: held on the Sun at sx, sy; space: see followSun
-  var KEYS = ['lat', 'lon', 'roll', 'cx', 'cy', 'ls', 'dim', 'tilt', 'turn'];
+  var KEYS = ['lat', 'lon', 'roll', 'cx', 'cy', 'ls', 'dim', 'tilt', 'turn', 'corona'];
   var spin = 0, spinVel = 0; // degrees, degrees per second
   var resetFrom = null, resetT = 0;
   var progress = NORTH;
@@ -1361,9 +1366,11 @@
     if (id === 'sun') {
       aim = spaceAim();
       var low = clearBottom > clearTop ? clearBottom : h;
-      var rPx = Math.min((low - clearTop) * SUN_FILL, w * SUN_FILL_W);
+      var rPx = coronaOn ? Math.min((low - clearTop) / 2, w / 2) / CORONA_FIT
+        : Math.min((low - clearTop) * SUN_FILL, w * SUN_FILL_W);
       var pxSun = rPx / SUN_RE;
-      var sunView = { lat: aim.lat, lon: aim.lon, roll: aim.roll, size: pxSun / frame(), dim: v.dim, tilt: 1, turn: 1 };
+      var sunView = { lat: aim.lat, lon: aim.lon, roll: aim.roll, size: pxSun / frame(), dim: v.dim, tilt: 1, turn: 1,
+        corona: coronaOn ? 1 : 0 };
       var at = earthFor(0.5, (clearTop + low) / 2 / h, Math.log(sunView.size), 1, 1);
       sunView.cx = at.cx;
       sunView.cy = at.cy;
@@ -1584,6 +1591,7 @@
     target.dim = a.dim + (b.dim - a.dim) * t;
     target.tilt = a.tilt + (b.tilt - a.tilt) * tt;
     target.turn = a.turn + (b.turn - a.turn) * t;
+    target.corona = (a.corona || 0) + ((b.corona || 0) - (a.corona || 0)) * t;
     // Between the sun and system views the Sun, not the Earth, keeps its place on screen:
     // it moves evenly as the scale grows, and the Earth follows from it, the scale and
     // the way the camera faces. The turn keeps step with the zoom (see helioBasis).
@@ -1708,7 +1716,8 @@
       && Math.abs(wrap180(target.roll - cam.roll)) < 1e-3
       && Math.abs(target.cx - cam.cx) < 1e-4 && Math.abs(target.cy - cam.cy) < 1e-4
       && Math.abs(target.ls - cam.ls) < 1e-4 && Math.abs(target.dim - cam.dim) < 1e-3
-      && Math.abs(target.tilt - cam.tilt) < 1e-3 && Math.abs(target.turn - cam.turn) < 1e-3;
+      && Math.abs(target.tilt - cam.tilt) < 1e-3 && Math.abs(target.turn - cam.turn) < 1e-3
+      && Math.abs(target.corona - cam.corona) < 1e-3;
   }
 
   function stepCamera(dt) {
@@ -1723,6 +1732,7 @@
     cam.dim += (target.dim - cam.dim) * k;
     cam.tilt += (target.tilt - cam.tilt) * k;
     cam.turn += (target.turn - cam.turn) * k;
+    cam.corona += (target.corona - cam.corona) * k;
     if (target.anchor) {
       var e = earthFor(sp.x + (target.sx - sp.x) * k, sp.y + (target.sy - sp.y) * k, cam.ls, cam.turn, cam.tilt);
       cam.cx = e.cx;
@@ -1852,6 +1862,7 @@
     scene.earthAu = earthAu;
     scene.tilt = cam.tilt;
     scene.turn = cam.turn;
+    scene.corona = cam.corona;
     var hb = helioBasis(cam.turn, cam.tilt);
     scene.helio.right = hb[0];
     scene.helio.up = hb[1];
@@ -1919,6 +1930,12 @@
   function setLayer(name) {
     layerTarget = name === 'probability' ? 1 : 0;
     if (reducedMotion) { layer = layerTarget; }
+  }
+
+  // The sun view with the coronagraph's picture round the Sun, the camera pulled back
+  // to fit it (viewAt), or without.
+  function setCorona(on) {
+    coronaOn = !!on;
   }
 
   function setPlace(p) {
@@ -2720,6 +2737,7 @@
 
   window.AuroraGlobe = {
     setLayer: setLayer,
+    setCorona: setCorona,
     setPlace: setPlace,
     setGrid: setGrid,
     swatch: swatch,

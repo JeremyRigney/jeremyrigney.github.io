@@ -153,6 +153,13 @@
   var INNER_COUNT = 2600, INNER_COUNT_NARROW = 1300;
   var INNER_REACH = [1.2, 1.7]; // times the inner edge: where they give way to the model's streaks
   var INNER_ALPHA = 0.55;
+  // Seen from far off, half of them inside six solar radii pile up into a ball: they come
+  // in one at a time as the scale grows between these (CSS px an AU), none at the system
+  // view, all of them once the camera is among them.
+  var INNER_PX_AU = [700, 2400];
+  // With the coronagraph's picture round the Sun (the sun view's corona), the streaks
+  // give way over its field, out to these (solar radii), as they do over the disc.
+  var CORONA_CLEAR = [19, 23];
   var INNER_MIN_KMS = 40; // so they leave the surface at all
   var ACCEL = 1.2;
   var INNER_FIELD = 0.85; // the colour field's strength inside the inner edge
@@ -944,6 +951,7 @@
   }
 
   var headAt = {}, tailAt = {};
+  var clearIn = 0.95, clearOut = 1.3; // solar radii: the streaks give way inside these
 
   // One streak into the buffer from tail to head (both through the lens), its width and
   // brightness by how near it is, given way over the Sun's disc. False if off screen.
@@ -955,7 +963,7 @@
     var near = headAt.near;
     var lens = smooth(LENS_NEAR[0], LENS_NEAR[1], 1 / near) * Math.max(0.6, Math.min(1.6, 0.6 + 0.4 * near));
     var sd = Math.sqrt((hx - scene.sunX) * (hx - scene.sunX) + (hy - scene.sunY) * (hy - scene.sunY));
-    var a = alpha * lens * smooth(0.95 * sunPx, 1.3 * sunPx, sd);
+    var a = alpha * lens * smooth(clearIn * sunPx, clearOut * sunPx, sd);
     if (a < 0.004) { return false; }
     var o = helioBuf.count * SEG;
     d[o] = tailAt.x * s;
@@ -984,6 +992,9 @@
     helio.length = want;
     helioBuf.count = 0;
     var sunPx = SUN_R_AU * scene.pxPerAu;
+    var cor = (scene.corona || 0) * smooth(0.96, 1, scene.helio.back[0]);
+    clearIn = 0.95 + (CORONA_CLEAR[0] - 0.95) * cor;
+    clearOut = 1.3 + (CORONA_CLEAR[1] - 1.3) * cor;
 
     var hours = helioRate(scene) * dt;
     var trail = helioRate(scene) * HELIO_TRAIL_S;
@@ -1043,13 +1054,17 @@
     p.a = Math.random() * 360 - 180;
     p.b = Math.asin(2 * Math.random() - 1) / DEG;
     p.age = 0;
+    p.share = Math.random();
     return p;
   }
 
   function stepInner(scene, dt, k, rIn, sunPx) {
+    var thin = smooth(Math.log(INNER_PX_AU[0]), Math.log(INNER_PX_AU[1]), Math.log(scene.pxPerAu));
+    if (thin < 0.004) { return; }
     var want = scene.w < 700 ? INNER_COUNT_NARROW : INNER_COUNT;
     while (inner.length < want) { var q = spawnInner({}, rIn); q.age = 1; inner.push(q); }
     inner.length = want;
+    var allow = thin * 1.2 - 0.1;
     var hours = helioRate(scene) * dt, trail = helioRate(scene) * HELIO_TRAIL_S;
     var edge = Wind.state.atlasMeta.r.first;
     var reach = rIn * INNER_REACH[1];
@@ -1068,7 +1083,7 @@
       if (!through(scene, p.r, p.a, p.b, headAt)) { continue; }
       if (!through(scene, Math.max(SUN_R_AU, p.r - step * trail), p.a, p.b, tailAt)) { continue; }
       putStreak(scene, Math.min(1, p.age / 0.4) * smooth(SUN_R_AU, SUN_R_AU * 1.4, p.r)
-        * (1 - smooth(rIn * INNER_REACH[0], reach, p.r)) * INNER_ALPHA, v, sunPx);
+        * (1 - smooth(rIn * INNER_REACH[0], reach, p.r)) * smooth(p.share - 0.1, p.share + 0.1, allow) * INNER_ALPHA, v, sunPx);
     }
   }
 

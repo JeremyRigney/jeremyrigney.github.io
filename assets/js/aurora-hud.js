@@ -565,26 +565,37 @@
     stale('times', !!(S && S.state.failed));
   }
 
-  // Its card: what the picture shows now, and how much of the day is in.
+  // Its card: what the picture shows now, and how much of the day is in. With the corona
+  // on, the coronagraph's picture leads.
   function renderGoes() {
-    var S = window.AuroraSun;
+    var S = window.AuroraSun, C = window.AuroraCorona;
     if (!S) { return; }
-    var st = S.state, n = st.frames.length, t = shownTime();
-    var l = S.lookup(t);
+    var corona = sunShows === 'corona' && C;
+    var F = corona ? C : S;
+    var st = F.state, n = st.frames.length, t = shownTime();
+    var l = F.lookup(t);
     var verdict;
     if (!n) {
-      verdict = st.failed ? 'NOAA’s pictures didn’t load. Retrying.' : 'Loading NOAA’s pictures…';
+      verdict = st.failed ? 'NOAA’s pictures didn’t load. Retrying.'
+        : corona ? 'Loading NOAA’s coronagraph pictures…' : 'Loading NOAA’s pictures…';
     } else if (l.latest && t - l.a.t > 30 * 60000) {
       verdict = 'No picture this far ahead: the latest, from ' + when(new Date(l.a.t)) + '.';
     } else if (l.earliest) {
       verdict = 'Before NOAA’s day of pictures: the earliest, from ' + when(new Date(l.a.t)) + '.';
     } else {
-      verdict = 'The corona at 171 Å, about 600,000 K, at ' + when(new Date(l.a.t)) + '.';
+      verdict = corona ? 'The corona in white light at ' + when(new Date(l.a.t)) + ', round the disc at 171 Å.'
+        : 'The corona at 171 Å, about 600,000 K, at ' + when(new Date(l.a.t)) + '.';
     }
     text('goes-verdict', verdict);
     var left = S.loading();
-    text('goes-frames', n ? n + ' of NOAA’s ' + st.list.length + ' pictures for the day loaded'
-      + (left ? ', ' + left + ' more on the way.' : '.') : ' ');
+    var line = S.state.frames.length ? S.state.frames.length + ' of NOAA’s ' + S.state.list.length + ' pictures for the day loaded'
+      + (left ? ', ' + left + ' more on the way' : '') : '';
+    if (C && C.state.wanted && C.state.frames.length) {
+      var cleft = C.loading();
+      line += (line ? '; ' : '') + C.state.frames.length + ' of the coronagraph’s ' + C.state.list.length
+        + (cleft ? ', ' + cleft + ' more on the way' : '');
+    }
+    text('goes-frames', line ? line + '.' : ' ');
   }
 
   // The legend from space: what the colours are of, and what the streaks are.
@@ -683,6 +694,44 @@
     if (e.metaKey || e.ctrlKey || e.altKey) { return; }
     if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) { return; }
     if (e.key === 'p' || e.key === 'P') { setLayer(layer === 'seen' ? 'probability' : 'seen'); }
+  });
+
+  /* ---------- The Sun's switch ---------- */
+
+  // In the sun view: the disc alone, or with the coronagraph's corona round it, the
+  // camera pulled back to fit (AuroraGlobe.setCorona). C switches it there.
+  var sunShows = 'disc';
+  var sunToggle = document.getElementById('corona-toggle');
+  var sunButtons = sunToggle ? Array.prototype.slice.call(sunToggle.querySelectorAll('button')) : [];
+
+  function setSunShows(name) {
+    sunShows = name === 'corona' ? 'corona' : 'disc';
+    sunButtons.forEach(function (b) {
+      var on = b.getAttribute('data-sun') === sunShows;
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+      b.tabIndex = on ? 0 : -1;
+    });
+    document.body.setAttribute('data-sun', sunShows);
+    if (window.AuroraGlobe && window.AuroraGlobe.setCorona) { window.AuroraGlobe.setCorona(sunShows === 'corona'); }
+    renderGoes();
+  }
+
+  sunButtons.forEach(function (b) {
+    b.addEventListener('click', function () { setSunShows(b.getAttribute('data-sun')); });
+    b.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSunShows(sunShows === 'disc' ? 'corona' : 'disc');
+        var on = sunToggle.querySelector('[aria-checked="true"]');
+        if (on) { on.focus(); }
+      }
+    });
+  });
+
+  window.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) { return; }
+    if ((e.key === 'c' || e.key === 'C') && view() === 'sun') { setSunShows(sunShows === 'disc' ? 'corona' : 'disc'); }
   });
 
   /* ---------- More ---------- */
@@ -832,6 +881,7 @@
   document.addEventListener('aurora:view', renderAll);
   document.addEventListener('aurora:wind', renderAll);
   document.addEventListener('aurora:sun', onTime); // a frame in: as often as the slider's
+  document.addEventListener('aurora:corona', onTime);
 
   // On a wide screen the way-up chips stand in the header row, between the brand and
   // the switches. That gap is off-centre and, with seven views in the index, narrower
@@ -866,6 +916,7 @@
   });
 
   setLayer(location.hash === '#probability' ? 'probability' : 'seen', true);
+  setSunShows('disc');
   usePlace(recall() || DEFAULT_PLACE);
   renderAll();
 })();

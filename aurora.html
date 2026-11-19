@@ -22,7 +22,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/aurora.css?v=20261114a" />
+  <link rel="stylesheet" href="assets/css/aurora.css?v=20261119a" />
 
   <!-- Cookie consent: sets the Consent Mode defaults, so it must come before the Google tag -->
   <link rel="stylesheet" href="assets/css/consent.css?v=20261008" />
@@ -180,7 +180,8 @@
         <p class="card-note"><b>SUVI</b>, the Solar Ultraviolet Imager on NOAA&rsquo;s GOES-19, photographs the Sun every few minutes in extreme ultraviolet. At <b>171&nbsp;&Aring;</b> the light is from iron at about 600,000&nbsp;K: it traces the corona&rsquo;s loops, brightest where the field arches over active regions.</p>
         <p class="card-note">Dark gaps are <b>coronal holes</b>, where the field opens out into space and the fast solar wind streams away. Wind from one facing the Earth tends to reach it two to four days later: in the system view below, as a fast stream in NOAA&rsquo;s model.</p>
         <p class="card-note">The picture is NOAA&rsquo;s own, face on with solar north up, as GOES sees it from the Earth. On the way in the camera comes down from above the planets to the Earth&rsquo;s side, so it ends looking along that line; until then the half of the Sun GOES cannot see glows in the picture&rsquo;s colour, without detail. It is to scale with the views below it.</p>
-        <p class="card-note">The time slider plays back NOAA&rsquo;s last 24 hours, loaded from NOAA as they are wanted: a frame an hour first, then one every 20 minutes on a wide screen. Ahead of now the latest picture stays up.</p>
+        <p class="card-note">With <b>Corona</b> on, the camera pulls back for <b>CCOR-1</b>, the coronagraph on the same spacecraft. It blocks the disc to photograph the faint corona in white light every 15 minutes, drawn here in white (NOAA&rsquo;s own pictures are blue). Its occulter hides everything inside 4.5 solar radii and its arm makes the dark band; between the two pictures neither instrument sees. A coronal mass ejection shows as a bright front moving out: play the time slider to follow one.</p>
+        <p class="card-note">The time slider plays back NOAA&rsquo;s last 24 hours, loaded from NOAA as they are wanted: a frame an hour first, then one every 20 minutes on a wide screen (every 15 for the corona). Ahead of now the latest picture stays up.</p>
         <p class="card-meta" data-bind="goes-frames">&nbsp;</p>
       </div>
     </section>
@@ -204,6 +205,10 @@
       <div class="seg layer-toggle" id="layer-toggle" role="radiogroup" aria-label="What the globe shows">
         <button type="button" role="radio" aria-checked="true" data-layer="seen">Seen <span class="layer-gain" id="layer-gain">&times;20,000</span></button>
         <button type="button" role="radio" aria-checked="false" data-layer="probability">Probability</button>
+      </div>
+      <div class="seg corona-toggle" id="corona-toggle" role="radiogroup" aria-label="What the Sun view shows">
+        <button type="button" role="radio" aria-checked="true" data-sun="disc">Disc</button>
+        <button type="button" role="radio" aria-checked="false" data-sun="corona">Corona</button>
       </div>
     </div>
   </header>
@@ -380,8 +385,8 @@
         <p class="card-more card-note" id="legend-note-prob" hidden>The chance that aurora is visible straight up, assuming a clear, dark sky.</p>
       </div>
       <div class="legend-goes">
-        <p class="card-title">The Sun at 171&nbsp;&Aring;</p>
-        <p class="card-meta">GOES-19 SUVI, in NOAA&rsquo;s colours</p>
+        <p class="card-title"><span class="legend-disc">The Sun at 171&nbsp;&Aring;</span><span class="legend-corona">The Sun and its corona</span></p>
+        <p class="card-meta"><span class="legend-disc">GOES-19 SUVI, in NOAA&rsquo;s colours</span><span class="legend-corona">SUVI at 171&nbsp;&Aring;, CCOR-1 in white light</span></p>
       </div>
       <div class="legend-wind">
         <p class="card-title">Wind speed</p>
@@ -406,14 +411,14 @@
   </noscript>
 
   <script src="assets/js/aurora-geo.js?v=20261111a"></script>
-  <script src="assets/js/aurora-globe.js?v=20261119d"></script>
+  <script src="assets/js/aurora-globe.js?v=20261119e"></script>
   <script src="assets/js/aurora-data.js?v=20261111a"></script>
   <script src="assets/js/aurora-model.js?v=20261028d"></script>
   <script src="assets/js/aurora-wind.js?v=20261114a"></script>
-  <script src="assets/js/aurora-wind-view.js?v=20261119d"></script>
-  <script src="assets/js/aurora-sun.js?v=20261113b"></script>
-  <script src="assets/js/aurora-sun-view.js?v=20261119f"></script>
-  <script src="assets/js/aurora-hud.js?v=20261114b"></script>
+  <script src="assets/js/aurora-wind-view.js?v=20261119e"></script>
+  <script src="assets/js/aurora-sun.js?v=20261119a"></script>
+  <script src="assets/js/aurora-sun-view.js?v=20261119g"></script>
+  <script src="assets/js/aurora-hud.js?v=20261119a"></script>
   <script src="assets/js/aurora-charts.js?v=20261103e"></script>
   <script src="assets/js/aurora-timeline.js?v=20261113a"></script>
 </body>

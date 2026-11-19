@@ -19,14 +19,22 @@
  * from the Earth, since off the disc the picture is flat. It is masked round, out to
  * MASK solar radii, which also leaves out NOAA's caption; past that a soft halo in its
  * colour, out to HALO solar radii, carries the corona on into the wind round it.
+ *
+ * With the corona on (the switch in the header, AuroraGlobe.setCorona), the camera
+ * pulls back and the halo gives way to the corona itself, as CCOR-1, the coronagraph on
+ * the same spacecraft, sees it in white light (aurora-sun.js, AuroraCorona): its
+ * brightness drawn in white, from where its occulter's edge is clean to where its field
+ * is, CORONA_FIELD solar radii. Between the two pictures neither instrument sees, and
+ * the dark ring is left dark. It follows the time slider as the disc does.
  */
 (function () {
   'use strict';
 
   var Globe = window.AuroraGlobe;
   var Sun = window.AuroraSun;
+  var Corona = window.AuroraCorona;
   var Geo = window.AuroraGeo;
-  if (!Globe || !Sun || !Geo) { return; }
+  if (!Globe || !Sun || !Corona || !Geo) { return; }
 
   var SUN_RE = 109.08; // the Sun's radius in Earth radii
   var MASK = [1.38, 1.52]; // solar radii: the picture fades out between these
@@ -34,6 +42,11 @@
   var SHOW_PX = [2, 9]; // and in as the Sun's radius on screen grows between these
   var WAITING = [0.30, 0.27, 0.24]; // a plain disc, until the first frame is in
   var UNSEEN = [0.62, 0.55]; // the far half: its glow at the middle, and how much more at the limb
+  // The coronagraph: in from, in to, out from, out to (solar radii); its white; and the
+  // curve its brightness is drawn on: from a floor (the speckle under the faint outer
+  // field), to a power, times a gain.
+  var CORONA_FIELD = [4.5, 5.0, 17.5, 19.5];
+  var CORONA_WHITE = [0.93, 0.94, 0.96], CORONA_CURVE = [0.06, 1.5, 1.0];
 
   function smooth(e0, e1, x) {
     var t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
@@ -131,7 +144,51 @@
     ].join('\n');
   }
 
+  function coronaVS(kit) {
+    return [
+      kit.HEADER,
+      'void main() {',
+      '  vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2);',
+      '  gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);',
+      '}'
+    ].join('\n');
+  }
+
+  function coronaFS(kit) {
+    return [
+      kit.HEADER,
+      'uniform vec2 uRes;',
+      'uniform vec2 uSun;', // device px, from the top left
+      'uniform float uR;', // the Sun's radius, device px
+      'uniform float uFrac;', // the Sun's radius as a fraction of the picture's width
+      'uniform sampler2D uA;', // brightness, one channel
+      'uniform sampler2D uB;',
+      'uniform float uMix;',
+      'uniform vec4 uField;',
+      'uniform vec3 uWhite;',
+      'uniform vec3 uCurve;',
+      'uniform float uAlpha;',
+      'out vec4 outColor;',
+      'void main() {',
+      '  vec2 frag = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);',
+      '  vec2 d = (frag - uSun) / uR;', // solar radii, y down as the picture's rows
+      '  float r = length(d);',
+      '  if (r < uField.x || r > uField.w) { discard; }',
+      '  vec2 uv = 0.5 + d * uFrac;',
+      '  float v = mix(texture(uA, uv).r, texture(uB, uv).r, uMix);',
+      '  v = pow(max(0.0, v - uCurve.x) / (1.0 - uCurve.x), uCurve.y) * uCurve.z;',
+      '  float m = smoothstep(uField.x, uField.y, r) * (1.0 - smoothstep(uField.z, uField.w, r));',
+      // Added, as the disc is: the picture's black leaves the page's own dark.
+      '  outColor = vec4(uWhite * v * m * uAlpha, 0.0);',
+      '}'
+    ].join('\n');
+  }
+
   var gl = null, kit = null, prog = null, vao = null;
+  var cprog = null;
+  var ctex = []; // the coronagraph's, slot -> texture
+  var cfull = null, cfullT = null;
+  var cshown = null;
   var tex = []; // slot -> texture
   var full = null, fullT = null; // the newest frame at full size, and its time
   var shown = null; // what was drawn last: { a, b, mix, latest } from Sun.lookup
@@ -140,12 +197,16 @@
     gl = glIn;
     kit = kitIn;
     prog = kit.program(sunVS(kit), sunFS(kit));
+    cprog = kit.program(coronaVS(kit), coronaFS(kit));
     vao = gl.createVertexArray();
     // A context restored starts with no textures: until the next frames come in, the
     // plain disc stands in for the ones lost.
     tex = [];
     full = null;
     fullT = null;
+    ctex = [];
+    cfull = null;
+    cfullT = null;
   }
 
   function texture(source) {
@@ -154,6 +215,23 @@
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+    // Mipmapped: pulled back for the corona, the disc is a few dozen px across.
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return t;
+  }
+
+  // A coronagraph frame's brightness ({ data, size }), one byte a pixel.
+  function brightness(b) {
+    var t = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, b.size, b.size, 0, gl.RED, gl.UNSIGNED_BYTE, b.data);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -172,6 +250,55 @@
         fullT = p.t;
       }
     });
+    Corona.take().forEach(function (p) {
+      if (ctex[p.slot]) { gl.deleteTexture(ctex[p.slot]); }
+      ctex[p.slot] = brightness(p.source);
+      if (p.full && (cfullT === null || p.t >= cfullT)) {
+        if (cfull) { gl.deleteTexture(cfull); }
+        cfull = brightness(p.full);
+        cfullT = p.t;
+      }
+    });
+  }
+
+  // The coronagraph's picture round the Sun, as much as the camera's corona (scene.corona)
+  // and only facing the Sun from the Earth, since it is flat.
+  function coronaShown(scene) {
+    return (scene.corona || 0) * smooth(0.96, 1.0, scene.helio.back[0]);
+  }
+
+  function drawCorona(scene, rPx, alpha) {
+    var l = Corona.lookup(scene.time);
+    cshown = l;
+    var a = l && ctex[l.a.slot], b = l && ctex[l.b.slot];
+    if (l && l.latest && cfull && cfullT === l.a.t) { a = cfull; b = cfull; }
+    if (!a || !b) { return; }
+    var s = scene.dpr;
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.useProgram(cprog);
+    var u = cprog.u;
+    gl.uniform2f(u.uRes, kit.canvas.width, kit.canvas.height);
+    gl.uniform2f(u.uSun, scene.sunX * s, scene.sunY * s);
+    gl.uniform1f(u.uR, rPx * s);
+    gl.uniform1f(u.uFrac, Corona.radiusFrac(scene.earthAu));
+    gl.uniform4fv(u.uField, CORONA_FIELD);
+    gl.uniform3fv(u.uWhite, CORONA_WHITE);
+    gl.uniform3fv(u.uCurve, CORONA_CURVE);
+    gl.uniform1f(u.uAlpha, alpha);
+    gl.uniform1f(u.uMix, a !== b ? l.mix : 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, a);
+    gl.uniform1i(u.uA, 0);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, b);
+    gl.uniform1i(u.uB, 1);
+    gl.bindVertexArray(vao);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.bindVertexArray(null);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, null);
   }
 
   function draw(scene) {
@@ -180,9 +307,12 @@
     // Heading up from the system view: the frames will be wanted, and more of them
     // once the Sun view itself is open.
     if ((scene.sunward || 0) > 0) { Sun.want(scene.view === 'sun'); }
+    var cor = coronaShown(scene);
+    if ((scene.corona || 0) > 0.004) { Corona.want(scene.view === 'sun'); }
     upload();
     var alpha = smooth(SHOW_PX[0], SHOW_PX[1], rPx) * scene.dim;
     if (alpha < 0.004) { return; }
+    if (cor * alpha > 0.004) { drawCorona(scene, rPx, cor * alpha); } else { cshown = null; }
     var reach = rPx * HALO;
     if (sunX + reach < 0 || sunX - reach > scene.w || sunY + reach < 0 || sunY - reach > scene.h) { return; }
 
@@ -200,7 +330,8 @@
     gl.uniform2f(u.uMask, MASK[0], MASK[1]);
     gl.uniform3fv(u.uWaiting, WAITING);
     gl.uniform2fv(u.uUnseen, UNSEEN);
-    gl.uniform3f(u.uHalo, HALO, HALO_GAIN, HALO_FALL);
+    // With the corona's own picture round it, the halo gives way.
+    gl.uniform3f(u.uHalo, HALO, HALO_GAIN * (1 - cor), HALO_FALL);
     // The lens's axes in the ecliptic (scene.helio): the Sun is at its centre.
     gl.uniform3fv(u.uRight, scene.helio.right);
     gl.uniform3fv(u.uUp, scene.helio.up);
@@ -226,7 +357,7 @@
 
   // Frames still to go up keep the loop turning until they are drawn.
   function moving() {
-    return Sun.state.wanted && Sun.loading() > 0;
+    return (Sun.state.wanted && Sun.loading() > 0) || (Corona.state.wanted && Corona.loading() > 0);
   }
 
   Globe.addLayer({ init: init, draw: draw, moving: moving });
@@ -267,6 +398,7 @@
 
   // What the page's panels say about the frame on show (aurora-hud.js).
   window.AuroraSunView = {
-    shown: function () { return shown; }
+    shown: function () { return shown; },
+    coronaShown: function () { return cshown; }
   };
 })();
