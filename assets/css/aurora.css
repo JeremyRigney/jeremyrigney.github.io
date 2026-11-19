@@ -63,6 +63,8 @@
   --em-5577: #47ffa0; /* atomic oxygen, 557.7 nm: the green */
   --em-6300: #ff3d2e; /* atomic oxygen, 630.0 nm: the red, high up */
   --em-4278: #7b5cff; /* ionised nitrogen, 427.8 nm: the violet lower edge */
+  --suvi-171: #e8a91c; /* NOAA's colour for SUVI's 171 Angstrom pictures */
+  --corona-white: #eef0f5; /* the coronagraph's white light, as drawn */
 
   /* Probability, at 5, 10, 30, 50, 70 and 90 %: the globe blends between them. */
   --prob-1: #3b3486;
@@ -186,6 +188,12 @@ a {
 abbr[title] {
   text-decoration: none;
   cursor: help;
+}
+
+/* Sub- and superscripts (B_z, R_E, cm³) keep the line's spacing. */
+sub,
+sup {
+  line-height: 0;
 }
 
 button {
@@ -810,6 +818,42 @@ body:is([data-view="south"], [data-view="wind"], [data-view="l1"], [data-view="s
   font-size: var(--fs-sm);
 }
 
+/* Where to read more: the official pages, each opening in a new tab. */
+.card-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-4);
+  margin: var(--s-4) 0 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.card-links a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 0.2em;
+  transition: text-decoration-color 160ms ease;
+}
+
+.card-links a:hover {
+  text-decoration-color: currentColor;
+}
+
+.card-links a::after {
+  content: "\2009\2197";
+  content: "\2009\2197" / "";
+  color: var(--ink-faint);
+}
+
+/* A panel that scrolls shows a thin scrollbar in the card's own greys. */
+.top-more,
+.dock .card-more {
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
+}
+
 /* What a + opens is read, not glanced at: body-size type and room around it. */
 .top-more,
 .dock .card-more {
@@ -852,10 +896,6 @@ body:is([data-view="south"], [data-view="wind"], [data-view="l1"], [data-view="s
 .top-more .top-figures .sky {
   font-size: 1.125rem;
   line-height: 2.4;
-}
-
-.top-more .place-actions {
-  margin-top: var(--s-5);
 }
 
 /* Opening, it eases out of the bar; closing, it eases back in, more slowly, so the eye
@@ -918,6 +958,21 @@ body:is([data-view="sun"], [data-view="system"], [data-view="l1"], [data-view="w
    this one is showing. */
 .layer-toggle {
   order: -1;
+}
+
+/* In the sun view the Sun's own switch takes its place: the disc alone, or with the
+   coronagraph's corona round it. */
+.corona-toggle {
+  display: none;
+  order: -1;
+}
+
+body[data-view="sun"] .corona-toggle {
+  display: inline-flex;
+}
+
+body[data-view="sun"] .layer-toggle {
+  display: none;
 }
 
 .topdock,
@@ -1004,6 +1059,13 @@ body[data-view="drivers"] :is(.topdock, .top-time, .top-seg) {
     opacity: 1;
     translate: none;
     transition: clip-path 600ms cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  /* Down to the dock and no further: longer than that, it scrolls inside itself. */
+  .top-more {
+    max-height: calc(100svh - var(--header-h) - env(safe-area-inset-top, 0px) - var(--dock-space) - var(--gutter) - var(--s-4));
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   @starting-style {
@@ -1116,6 +1178,20 @@ body[data-view="drivers"] :is(.topdock, .top-time, .top-seg) {
 .layer-gain {
   font-weight: 400;
   opacity: 0.7;
+}
+
+/* The disc's mark is SUVI's gold; the corona's a white ring round the dark. */
+.corona-toggle button::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--suvi-171);
+}
+
+.corona-toggle button[data-sun="corona"]::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--corona-white);
 }
 
 /* ---------- Views ---------- */
@@ -1240,25 +1316,86 @@ body[data-view="drivers"] :is(.topdock, .top-time, .top-seg) {
 .kp-meter i[data-g="4"],
 .kp-meter i[data-g="5"] { --c: var(--g3); }
 
-/* ---------- The place's actions (behind its +) ---------- */
+/* ---------- The place, first in its + panel ---------- */
 
-.place-actions {
+/* As on /eclipse: your location, or a place from the list. A rule sets the choice
+   apart from the figures it decides. */
+.place-pick {
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--s-2);
-  margin-top: var(--s-4);
+  margin: 0 0 var(--s-5);
+  padding-bottom: var(--s-5);
+  border-bottom: 1px solid var(--line);
 }
 
-.place-actions .chip[disabled] {
+.place-locate svg {
+  flex: none;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.place-locate[disabled] {
   opacity: 0.6;
   cursor: progress;
 }
 
-.place-status {
-  margin: 0;
-  flex-basis: 100%;
+/* The list, as a chip with a chevron. The browser draws its menu, in the dark. */
+.place-select-wrap {
+  position: relative;
+  flex: 1 1 9rem;
+  min-width: 0;
+}
+
+.place-select-wrap::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0.9rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-top: -0.3rem;
+  border-right: 1.5px solid var(--ink-soft);
+  border-bottom: 1.5px solid var(--ink-soft);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.place-select {
+  width: 100%;
+  height: 2rem;
+  padding: 0 2.1rem 0 0.875rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-pill);
+  background: transparent;
+  font: inherit;
   font-size: var(--fs-xs);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  color: var(--ink);
+  color-scheme: dark;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.place-select:hover {
+  border-color: var(--ink-soft);
+  background: var(--hover);
+}
+
+.place-select option,
+.place-select optgroup {
+  background: var(--card-solid);
+  color: var(--ink);
+}
+
+.place-status {
+  flex-basis: 100%;
+  margin: var(--s-1) 0 0;
+  font-size: var(--fs-sm);
   line-height: 1.45;
   color: var(--ink-soft);
 }
@@ -1267,21 +1404,36 @@ body[data-view="drivers"] :is(.topdock, .top-time, .top-seg) {
   display: none;
 }
 
-/* The way up, from the views with something above them: on a wide screen in the
-   open middle of the switches' row, otherwise under the capsule. It belongs to the
-   header, so it stands still while the views scroll, and each shows in its own view. */
+/* The way up, from the views with something above them: not a button but grey text
+   in the sky. Under the one capsule it is centred, over the hemisphere's name in the
+   north (the globe leaves it room); where the capsule parts into pills, it sits at the
+   left, a third of the way down, clear of the time and the name. A chevron over the words sends
+   a fainter copy of itself up every few seconds, while .is-rising is on
+   (aurora-hud.js), to say the page goes on upward. aurora-hud.js sets --hint-y to
+   the foot of the panels above. */
 .up-hint {
   position: fixed;
   z-index: 19;
-  left: 50%;
-  top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + var(--s-2));
+  left: var(--hint-x, 50%);
+  top: var(--hint-y, calc(var(--header-h) + env(safe-area-inset-top, 0px) + var(--s-2)));
   translate: -50% 0;
-  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
   text-decoration: none;
-  color: var(--ink-soft);
+  color: var(--ink-faint);
+  /* A soft halo of the night, so it reads over the wind's streaks too. */
+  filter: drop-shadow(0 0 0.5rem var(--night)) drop-shadow(0 0 0.1875rem var(--night));
   visibility: hidden;
   opacity: 0;
-  transition: opacity 400ms var(--ease), visibility 400ms, color 160ms ease, background-color 160ms ease, border-color 160ms ease;
+  transition: opacity 400ms var(--ease), visibility 400ms, color 160ms ease;
 }
 
 body[data-view="north"] .up-hint[data-go="wind"],
@@ -1292,33 +1444,79 @@ body[data-view="system"] .up-hint[data-go="sun"] {
   opacity: 1;
 }
 
-.up-hint:hover {
-  color: var(--ink);
+/* Under the one capsule it would sit on an open + panel, so it steps aside while one
+   is. (Under the time's pill it is clear of them.) */
+@media (max-width: 1240px) {
+  body:has(.top-seg .more[aria-expanded="true"]) .up-hint {
+    visibility: hidden;
+    opacity: 0;
+  }
 }
 
-.up-hint::before {
+.up-hint::before,
+.up-hint::after {
   content: "";
-  width: 0.4rem;
-  height: 0.4rem;
-  margin-top: 0.2rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: 0.125rem;
   border-top: 1.5px solid currentColor;
   border-left: 1.5px solid currentColor;
   transform: rotate(45deg);
+  transition: translate 220ms var(--ease);
 }
 
+/* The copy that rises, over the chevron. */
+.up-hint::after {
+  position: absolute;
+  top: 0.125rem;
+  left: 50%;
+  margin-left: -0.25rem;
+  opacity: 0;
+}
+
+.up-hint.is-rising::after {
+  animation: hint-rise 1600ms var(--ease);
+}
+
+@keyframes hint-rise {
+  0% { opacity: 0; translate: 0 0.25rem; }
+  25% { opacity: 0.9; }
+  100% { opacity: 0; translate: 0 -0.75rem; }
+}
+
+.up-hint:hover,
+.up-hint:focus-visible {
+  color: var(--ink);
+}
+
+.up-hint:hover::before {
+  translate: 0 -0.125rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .up-hint.is-rising::after {
+    animation: none;
+  }
+}
+
+/* Where the capsule has parted into pills: at the left, in line with the time's text,
+   a third of the way down (aurora-hud.js), set from its left edge with the arrow over
+   the start of the words. The fallbacks hold until it has measured. */
 @media (min-width: 1241px) {
   .up-hint {
-    top: calc(var(--s-3) + env(safe-area-inset-top, 0px) + 0.3125rem);
+    left: var(--hint-x, calc(var(--gutter) + 1.75rem));
+    top: var(--hint-y, 33svh);
+    translate: none;
+    align-items: flex-start;
   }
 
-  /* Centred in the gap between the brand and the switches, which aurora-hud.js
-     measures (--hint-x); where that gap is too narrow for it, under the row instead. */
-  .up-hint.is-placed {
-    left: var(--hint-x, 50%);
+  .up-hint::before,
+  .up-hint::after {
+    margin-left: 0.3rem;
   }
 
-  .up-hint.is-below {
-    top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + var(--s-2));
+  .up-hint::after {
+    left: 0;
   }
 }
 
@@ -1975,6 +2173,11 @@ body:is([data-view="system"], [data-view="l1"], [data-view="wind"]) .legend-wind
 
 body[data-view="sun"] .legend-goes {
   display: block;
+}
+
+body:not([data-sun="corona"]) .legend-corona,
+body[data-sun="corona"] .legend-disc {
+  display: none;
 }
 
 body[data-view="sun"] .legend > :is(.legend-seen, .legend-prob, .legend-model, .dock-more) {

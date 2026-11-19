@@ -78,3 +78,29 @@ test('the Sun\'s radius in a frame is about 387 of 1280 px in November', functio
   near(S.radiusFrac(0.9893) * 1280, 387.8, 1);
   ok(S.radiusFrac(1.0167) < S.radiusFrac(0.9833), 'smaller at aphelion');
 });
+
+/* The coronagraph's list (AuroraCorona): CCOR-1's frames every 15 minutes. */
+var C = window.AuroraCorona;
+
+test('a coronagraph frame\'s time is its time_tag, or failing that its file name\'s', function () {
+  eq(C.parseTime({ url: '/images/animations/ccor1/20261119_1730_ccor1_1024by960.jpg', time_tag: '2026-11-19T17:30:00Z' }),
+    utcMs('2026-11-19T17:30:00'));
+  eq(C.parseTime({ url: '/images/animations/ccor1/20261119_1745_ccor1_1024by960.jpg' }), utcMs('2026-11-19T17:45:00'));
+  eq(C.parseTime({ url: '/images/elsewhere.jpg' }), null);
+  eq(C.parseTime(null), null);
+});
+
+test('its list is read with its own times, oldest first, without entries lacking a url', function () {
+  var l = S.parseList([
+    { url: '/a/20261119_1745_ccor1_1024by960.jpg', time_tag: '2026-11-19T17:45:00Z' },
+    { url: '/a/20261119_1730_ccor1_1024by960.jpg', time_tag: '2026-11-19T17:30:00Z' },
+    { time_tag: '2026-11-19T17:00:00Z' }
+  ], C.parseTime);
+  eq(l.length, 2);
+  ok(l[0].t < l[1].t, 'oldest first');
+});
+
+test('its Sun is the size NOAA draws it, as a share of the cut kept', function () {
+  near(C.radiusFrac(0.9886), 1 / (2 * C.CUT), 1e-9, 'measured at 0.9886 AU');
+  ok(C.radiusFrac(0.9833) > C.radiusFrac(1.0167), 'larger at perihelion');
+});

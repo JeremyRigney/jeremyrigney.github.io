@@ -30,7 +30,49 @@
   var Data = window.AuroraData;
   if (!Geo || !Data) { return; }
 
-  var DEFAULT_PLACE = { lat: 55.38, lon: -7.37, name: 'Malin Head, Ireland', label: 'Malin Head', source: 'default' };
+  // The places on offer beside your own location, in the place's + panel: Malin Head,
+  // the default, then a swath of capitals in the north view's sight, each named by its
+  // own country.
+  var PLACES = [
+    { group: 'Default', items: [
+      { id: 'malin-head', label: 'Malin Head', name: 'Malin Head, Ireland', lat: 55.38, lon: -7.37 }
+    ] },
+    { group: 'Capitals', items: [
+      { id: 'amsterdam', label: 'Amsterdam', name: 'Amsterdam, Netherlands', lat: 52.37, lon: 4.90 },
+      { id: 'belfast', label: 'Belfast', name: 'Belfast, Northern Ireland', lat: 54.60, lon: -5.93 },
+      { id: 'berlin', label: 'Berlin', name: 'Berlin, Germany', lat: 52.52, lon: 13.40 },
+      { id: 'brussels', label: 'Brussels', name: 'Brussels, Belgium', lat: 50.85, lon: 4.35 },
+      { id: 'cardiff', label: 'Cardiff', name: 'Cardiff, Wales', lat: 51.48, lon: -3.18 },
+      { id: 'copenhagen', label: 'Copenhagen', name: 'Copenhagen, Denmark', lat: 55.68, lon: 12.57 },
+      { id: 'dublin', label: 'Dublin', name: 'Dublin, Ireland', lat: 53.35, lon: -6.26 },
+      { id: 'edinburgh', label: 'Edinburgh', name: 'Edinburgh, Scotland', lat: 55.95, lon: -3.19 },
+      { id: 'helsinki', label: 'Helsinki', name: 'Helsinki, Finland', lat: 60.17, lon: 24.94 },
+      { id: 'london', label: 'London', name: 'London, England', lat: 51.51, lon: -0.13 },
+      { id: 'nuuk', label: 'Nuuk', name: 'Nuuk, Greenland', lat: 64.18, lon: -51.72 },
+      { id: 'oslo', label: 'Oslo', name: 'Oslo, Norway', lat: 59.91, lon: 10.75 },
+      { id: 'paris', label: 'Paris', name: 'Paris, France', lat: 48.86, lon: 2.35 },
+      { id: 'prague', label: 'Prague', name: 'Prague, Czechia', lat: 50.08, lon: 14.44 },
+      { id: 'reykjavik', label: 'Reykjavík', name: 'Reykjavík, Iceland', lat: 64.15, lon: -21.94 },
+      { id: 'riga', label: 'Riga', name: 'Riga, Latvia', lat: 56.95, lon: 24.11 },
+      { id: 'stockholm', label: 'Stockholm', name: 'Stockholm, Sweden', lat: 59.33, lon: 18.07 },
+      { id: 'tallinn', label: 'Tallinn', name: 'Tallinn, Estonia', lat: 59.44, lon: 24.75 },
+      { id: 'torshavn', label: 'Tórshavn', name: 'Tórshavn, Faroe Islands', lat: 62.01, lon: -6.77 },
+      { id: 'vilnius', label: 'Vilnius', name: 'Vilnius, Lithuania', lat: 54.69, lon: 25.28 },
+      { id: 'warsaw', label: 'Warsaw', name: 'Warsaw, Poland', lat: 52.23, lon: 21.01 }
+    ] }
+  ];
+
+  function listed(id) {
+    for (var g = 0; g < PLACES.length; g++) {
+      for (var i = 0; i < PLACES[g].items.length; i++) {
+        var it = PLACES[g].items[i];
+        if (it.id === id) { return { id: it.id, lat: it.lat, lon: it.lon, name: it.name, label: it.label, source: 'list' }; }
+      }
+    }
+    return null;
+  }
+
+  var DEFAULT_PLACE = listed('malin-head');
   var STORAGE_KEY = 'aurora.location';
 
   var place = DEFAULT_PLACE;
@@ -191,7 +233,7 @@
     var dir = see.bearing != null ? direction(see.bearing) : 'north';
     var lead = at ? 'At ' + when(at) + ': ' : '';
     var expect = !at && night && night.kp >= Math.max(1, hope) - KP_THIRD
-      ? ' NOAA expects Kp ' + night.kp.toFixed(1) + ' at its height tonight.'
+      ? ' NOAA forecasts a peak of Kp ' + night.kp.toFixed(1) + ' tonight.'
       : '';
 
     if (sky.key === 'day') {
@@ -207,7 +249,7 @@
     if (o >= 30) { line = 'Aurora likely overhead'; }
     else if (o >= 10) { line = 'Aurora possible overhead'; }
     else if (low && h >= 30) { line = 'Aurora likely, low in the ' + dir; }
-    else if (low && h >= 10) { line = 'Possible low in the ' + dir; tip = ' — a phone camera will catch it before your eyes do.'; }
+    else if (low && h >= 10) { line = 'Possible low in the ' + dir; tip = '. Try a phone camera.'; }
     else { return at ? lead + 'unlikely from here.' : 'Unlikely from here right now.' + expect; }
 
     if (cloud && cloud.key === 'cloudy') {
@@ -224,9 +266,9 @@
     var side = lat >= 0 ? 'north' : 'south';
     var rule = Math.round(hope) < 1
       ? 'From here, aurora can show at any Kp once it’s dark and clear.'
-      : 'From here, aurora usually shows low in the ' + side + ' from about <b>Kp ' + Math.round(need)
-        + '</b>, or <b>Kp ' + Math.round(hope) + '</b> under a clear sky.';
-    return kp === null ? rule : rule + ' Kp is <b>' + kp.toFixed(1) + '</b> ' + (at ? 'then' : 'now') + '.';
+      : 'From here, aurora usually shows low in the ' + side + ' from <b>Kp ' + Math.round(need)
+        + '</b>, or <b>Kp ' + Math.round(hope) + '</b> with a clear sky.';
+    return kp === null ? rule : rule + ' Kp ' + (at ? 'then' : 'now') + ': <b>' + kp.toFixed(1) + '</b>.';
   }
 
   /* ---------- Rendering ---------- */
@@ -449,11 +491,11 @@
     if (!up) { return at ? 'Nothing measured or modelled for this time.' : 'Waiting for the wind at L1…'; }
     var w = speedWord(up.v) + ' wind';
     var line;
-    if (up.source === 'model') { line = w + ', by NOAA’s model. Bz can’t be forecast.'; }
-    else if (up.bz === null) { line = w + '. Bz isn’t reporting.'; }
-    else if (up.bz <= -5) { line = w + ' and Bz well south: the aurora is being fed.'; }
-    else if (up.bz <= -1.5) { line = w + ', Bz south: some of its energy is getting in.'; }
-    else if (up.v >= 500) { line = w + ', but Bz is north: little of it gets in.'; }
+    if (up.source === 'model') { line = w + ', from NOAA’s model. Bz can’t be forecast.'; }
+    else if (up.bz === null) { line = w + '. No Bz data.'; }
+    else if (up.bz <= -5) { line = w + ', Bz strongly south: driving aurora.'; }
+    else if (up.bz <= -1.5) { line = w + ', Bz south: some energy getting in.'; }
+    else if (up.v >= 500) { line = w + ', but Bz north: little gets in.'; }
     else { line = w + ', Bz north: quiet.'; }
     return at ? 'At ' + when(at) + ': ' + lowerFirst(line) : line;
   }
@@ -472,9 +514,9 @@
     text('up-mach', up ? b.mach.toFixed(1) : '–');
     text('up-source', !up ? 'Neither L1 nor NOAA’s model has this time.'
       : up.source === 'l1'
-        ? 'Measured at L1 at ' + clock(new Date(up.seen)) + ', ' + Math.round(up.lagMin) + ' minutes before it arrives. Bz '
-          + (up.bz === null ? 'isn’t reporting, and is taken as zero.' : signed(up.bz, 1) + ' nT.')
-        : 'From NOAA’s WSA-Enlil model at the Earth: L1 hasn’t seen this wind yet. Bz is taken as zero.');
+        ? 'Measured at L1 at ' + clock(new Date(up.seen)) + ', ' + Math.round(up.lagMin) + ' min before it reaches Earth. Bz '
+          + (up.bz === null ? 'no data (taken as 0).' : signed(up.bz, 1) + ' nT.')
+        : 'From NOAA’s WSA-Enlil model at Earth: L1 hasn’t measured this wind yet. Bz taken as 0.');
     var old = live && (!up || up.source !== 'l1') ? false : live && Data.isStale('wind');
     ['wind-verdict', 'up-speed', 'up-density', 'up-pressure', 'mp-standoff', 'bs-standoff', 'up-mach'].forEach(function (n) { stale(n, old); });
   }
@@ -482,7 +524,7 @@
   // What the model has coming at the Earth, from its outlook over the next three days.
   function sunVerdict(o, meta, at) {
     if (!meta) { return Wind.state.failed ? 'NOAA’s model didn’t load. Retrying.' : 'Waiting for NOAA’s model…'; }
-    if (!o) { return 'NOAA’s run doesn’t reach this time.'; }
+    if (!o) { return 'This model run doesn’t reach this time.'; }
     var line;
     if (o.trend === 'rising') {
       line = 'Faster wind arrives ' + when(new Date(o.onset)) + ', up to ' + Math.round(o.peak.speed) + ' km/s.';
@@ -490,8 +532,8 @@
       line = 'Easing to ' + Math.round(o.low.speed) + ' km/s by ' + when(new Date(o.low.time)) + '.';
     } else {
       // As far ahead as the run goes, which near its end is less than three days.
-      var span = o.hours >= 66 ? 'for three days' : o.hours >= 40 ? 'for two days' : o.hours >= 18 ? 'for a day' : 'to the end of this run';
-      line = 'Steady near ' + Math.round(o.now) + ' km/s ' + span + '.';
+      var span = o.hours >= 66 ? 'for 3 days' : o.hours >= 40 ? 'for 2 days' : o.hours >= 18 ? 'for 1 day' : 'to the end of this run';
+      line = 'Steady at ~' + Math.round(o.now) + ' km/s ' + span + '.';
     }
     return at ? 'From ' + when(at) + ': ' + lowerFirst(line) : line;
   }
@@ -506,12 +548,12 @@
     text('sun-peak', o ? Math.round(o.peak.speed) : '–');
     text('sun-low', o ? Math.round(o.low.speed) : '–');
     if (m) {
-      html('sun-run', 'The run of ' + escapeHtml(when(new Date(m.source.ref))) + ', out ' + escapeHtml(when(new Date(m.source.modified)))
+      html('sun-run', 'Run of ' + escapeHtml(when(new Date(m.source.ref))) + ', published ' + escapeHtml(when(new Date(m.source.modified)))
         + '. WSA ' + escapeHtml(String(m.source.wsa).replace(/^A_V/, '')) + ', Enlil ' + escapeHtml(m.source.enlil) + '.'
-        + (Wind.stale() ? ' <span class="stale-note">No newer run has come since.</span>' : ''));
+        + (Wind.stale() ? ' <span class="stale-note">No newer run since.</span>' : ''));
       text('sun-cme', m.source.cme
-        ? 'This run was made for a coronal mass ejection, so that is in the picture.'
-        : 'This is the daily run of the background wind. A coronal mass ejection only appears here once NOAA’s forecasters have run the model for it.');
+        ? 'This run includes a coronal mass ejection (CME).'
+        : 'Daily background run: a CME appears only once NOAA’s forecasters model it.');
     }
     var old = !m || Wind.stale();
     ['sun-verdict', 'sun-now', 'sun-peak', 'sun-low'].forEach(function (n) { stale(n, !!m && old); });
@@ -532,7 +574,7 @@
         return;
       }
       if (up.source === 'model') {
-        line('<span class="tag tag-model">Modelled</span>', live ? 'arriving now' : relative(at), 'WSA-Enlil at the Earth');
+        line('<span class="tag tag-model">Modelled</span>', live ? 'arriving now' : relative(at), 'WSA-Enlil at Earth');
         stale('times', Wind.stale());
       } else {
         line(live ? '<span class="tag">Live</span>' : '<span class="tag tag-model">Measured</span>',
@@ -557,34 +599,47 @@
     var S = window.AuroraSun;
     var t = shownTime(), live = isLive(), at = new Date(t);
     var l = S ? S.lookup(t) : null;
-    var src = l ? (l.latest ? 'latest picture, ' : 'picture of ') + clock(new Date(l.a.t))
-      : S && S.state.failed ? 'NOAA’s pictures didn’t load' : 'loading NOAA’s pictures…';
+    var src = l ? (l.latest ? 'latest image, ' : 'image from ') + clock(new Date(l.a.t))
+      : S && S.state.failed ? 'NOAA images didn’t load' : 'loading NOAA images…';
     html('times', '<span class="tag">GOES-19</span><span class="times-main"><b>' + clockHtml(live ? clock(at) : when(at)) + '</b></span>'
       + '<span class="times-rel">' + escapeHtml(live ? 'now' : relative(at)) + '</span>'
       + '<span class="times-src">' + escapeHtml(src) + '</span>');
     stale('times', !!(S && S.state.failed));
   }
 
-  // Its card: what the picture shows now, and how much of the day is in.
+  // Its card: what the picture shows now, and how much of the day is in. With the corona
+  // on, the coronagraph's picture leads.
   function renderGoes() {
-    var S = window.AuroraSun;
+    var S = window.AuroraSun, C = window.AuroraCorona;
     if (!S) { return; }
-    var st = S.state, n = st.frames.length, t = shownTime();
-    var l = S.lookup(t);
+    var corona = sunShows === 'corona' && C;
+    var F = corona ? C : S;
+    var st = F.state, n = st.frames.length, t = shownTime();
+    var l = F.lookup(t);
     var verdict;
     if (!n) {
-      verdict = st.failed ? 'NOAA’s pictures didn’t load. Retrying.' : 'Loading NOAA’s pictures…';
+      verdict = st.failed ? 'NOAA images didn’t load. Retrying.'
+        : corona ? 'Loading coronagraph images…' : 'Loading NOAA images…';
+    } else if (sunBuffering || (F.covered && !F.covered(t))) {
+      verdict = corona ? 'Loading coronagraph images…' : 'Loading NOAA images…';
     } else if (l.latest && t - l.a.t > 30 * 60000) {
-      verdict = 'No picture this far ahead: the latest, from ' + when(new Date(l.a.t)) + '.';
-    } else if (l.earliest) {
-      verdict = 'Before NOAA’s day of pictures: the earliest, from ' + when(new Date(l.a.t)) + '.';
+      verdict = 'No image this far ahead. Showing the latest, ' + when(new Date(l.a.t)) + '.';
+    } else if (l.earliest && st.list.length && t < st.list[0].t - 30 * 60000) {
+      verdict = 'Before NOAA’s 24 hours of images. Showing the earliest, ' + when(new Date(l.a.t)) + '.';
     } else {
-      verdict = 'The corona at 171 Å, about 600,000 K, at ' + when(new Date(l.a.t)) + '.';
+      verdict = corona ? 'White-light corona at ' + when(new Date(l.a.t)) + ', with the 171 Å disc.'
+        : 'Extreme UV at 171 Å (~600,000 K), ' + when(new Date(l.a.t)) + '.';
     }
     text('goes-verdict', verdict);
     var left = S.loading();
-    text('goes-frames', n ? n + ' of NOAA’s ' + st.list.length + ' pictures for the day loaded'
-      + (left ? ', ' + left + ' more on the way.' : '.') : ' ');
+    var line = S.state.frames.length ? 'SUVI: ' + S.state.frames.length + ' of ' + S.state.list.length + ' images loaded'
+      + (left ? ' (' + left + ' loading)' : '') : '';
+    if (C && C.state.wanted && C.state.frames.length) {
+      var cleft = C.loading();
+      line += (line ? '. ' : '') + 'CCOR-1: ' + C.state.frames.length + ' of ' + C.state.list.length
+        + (cleft ? ' (' + cleft + ' loading)' : '');
+    }
+    text('goes-frames', line ? line + '.' : ' ');
   }
 
   // The legend from space: what the colours are of, and what the streaks are.
@@ -595,14 +650,13 @@
     text('wind-legend-of', sun ? 'by NOAA’s WSA-Enlil' : 'measured at L1');
     if (sun) {
       var dens = Wind && Wind.state.dens;
-      text('wind-legend-note', 'The model’s radial speed in the plane of the Earth’s orbit. The streaks move at that speed where they are, '
-        + V.HELIO_HOURS_PER_S + ' hours of travel a second'
-        + (dens ? ', and their number follows the model’s density: crowded where the wind is dense, sparse where it is thin.' : '.'));
+      text('wind-legend-note', 'Modelled radial speed. Streaks show ' + V.HELIO_HOURS_PER_S + ' hours of travel per second'
+        + (dens ? '; their number shows density.' : '.'));
     } else {
       var px = G && G.pxPerReAt ? G.pxPerReAt('wind') : 0;
       var times = px > 0 ? Math.round(V.speedup(px) / 10) * 10 : 0;
-      text('wind-legend-note', 'The streaks are the wind measured at L1, carried to the Earth: their colour and speed follow its speed (a warm white when slow, through gold to red when fast), their number its density.'
-        + (times ? ' They run about ' + times + ' times faster than life.' : ''));
+      text('wind-legend-note', 'The wind measured at L1, carried to Earth. Colour and speed follow wind speed; number shows density.'
+        + (times ? ' ~' + times + '× real time.' : ''));
     }
   }
 
@@ -685,6 +739,44 @@
     if (e.key === 'p' || e.key === 'P') { setLayer(layer === 'seen' ? 'probability' : 'seen'); }
   });
 
+  /* ---------- The Sun's switch ---------- */
+
+  // In the sun view: the disc alone, or with the coronagraph's corona round it, the
+  // camera pulled back to fit (AuroraGlobe.setCorona). C switches it there.
+  var sunShows = 'disc';
+  var sunToggle = document.getElementById('corona-toggle');
+  var sunButtons = sunToggle ? Array.prototype.slice.call(sunToggle.querySelectorAll('button')) : [];
+
+  function setSunShows(name) {
+    sunShows = name === 'corona' ? 'corona' : 'disc';
+    sunButtons.forEach(function (b) {
+      var on = b.getAttribute('data-sun') === sunShows;
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+      b.tabIndex = on ? 0 : -1;
+    });
+    document.body.setAttribute('data-sun', sunShows);
+    if (window.AuroraGlobe && window.AuroraGlobe.setCorona) { window.AuroraGlobe.setCorona(sunShows === 'corona'); }
+    renderGoes();
+  }
+
+  sunButtons.forEach(function (b) {
+    b.addEventListener('click', function () { setSunShows(b.getAttribute('data-sun')); });
+    b.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSunShows(sunShows === 'disc' ? 'corona' : 'disc');
+        var on = sunToggle.querySelector('[aria-checked="true"]');
+        if (on) { on.focus(); }
+      }
+    });
+  });
+
+  window.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) { return; }
+    if ((e.key === 'c' || e.key === 'C') && view() === 'sun') { setSunShows(sunShows === 'disc' ? 'corona' : 'disc'); }
+  });
+
   /* ---------- More ---------- */
 
   // A round + beside a card's title opens what the card doesn't need to say at first.
@@ -721,13 +813,38 @@
   /* ---------- The place ---------- */
 
   var locateBtn = document.querySelector('[data-action="locate"]');
-  var resetBtn = document.querySelector('[data-action="reset-place"]');
+  var placeSelect = document.getElementById('place-select');
+  var LOCATE_TEXT = 'Use my location';
+
+  // The list, by group, with a first line for when the place is your own location.
+  if (placeSelect) {
+    var none = document.createElement('option');
+    none.value = '';
+    none.textContent = 'Choose a place…';
+    placeSelect.appendChild(none);
+    PLACES.forEach(function (g) {
+      var og = document.createElement('optgroup');
+      og.label = g.group;
+      g.items.forEach(function (it) {
+        var o = document.createElement('option');
+        o.value = it.id;
+        o.textContent = it.label;
+        og.appendChild(o);
+      });
+      placeSelect.appendChild(og);
+    });
+  }
+
+  function locateSays(words, busy) {
+    text('locate-text', words);
+    if (locateBtn) { locateBtn.disabled = !!busy; }
+  }
 
   function usePlace(p) {
     place = p;
     Data.setPlace(p.lat, p.lon);
     if (window.AuroraGlobe) { window.AuroraGlobe.setPlace({ lat: p.lat, lon: p.lon, label: p.label }); }
-    if (resetBtn) { resetBtn.hidden = p.source === 'default'; }
+    if (placeSelect) { placeSelect.value = p.id || ''; }
     renderPlace();
     document.dispatchEvent(new CustomEvent('aurora:place', { detail: { lat: p.lat, lon: p.lon } }));
   }
@@ -741,9 +858,10 @@
     text('locate-status', message);
   }
 
+  // A listed place is kept by its id, your own location by its coordinates.
   function remember(p) {
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ lat: p.lat, lon: p.lon }));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(p.id ? { id: p.id } : { lat: p.lat, lon: p.lon }));
     } catch (err) { /* private mode, quota: not worth surfacing */ }
   }
 
@@ -752,6 +870,7 @@
       var raw = window.localStorage.getItem(STORAGE_KEY);
       if (!raw) { return null; }
       var v = JSON.parse(raw);
+      if (v.id) { return listed(v.id); }
       if (isFinite(v.lat) && isFinite(v.lon) && Math.abs(v.lat) <= 90 && Math.abs(v.lon) <= 180) {
         return mine(v.lat, v.lon);
       }
@@ -766,33 +885,32 @@
   if (locateBtn) {
     locateBtn.addEventListener('click', function () {
       if (!navigator.geolocation) {
-        say('This browser can’t share a location.');
+        say('This browser doesn’t share location. Choose a place instead.');
+        if (placeSelect) { placeSelect.focus(); }
         return;
       }
-      locateBtn.disabled = true;
-      locateBtn.textContent = 'Locating…';
+      locateSays('Locating…', true);
       say('');
       navigator.geolocation.getCurrentPosition(function (pos) {
-        locateBtn.disabled = false;
-        locateBtn.textContent = 'Use my location';
+        locateSays(LOCATE_TEXT);
         var p = mine(pos.coords.latitude, pos.coords.longitude);
         usePlace(p);
         remember(p);
       }, function (err) {
-        locateBtn.disabled = false;
-        locateBtn.textContent = 'Use my location';
-        say(err && err.code === 1
-          ? 'Location permission declined. Showing Malin Head.'
-          : 'Couldn’t get a location. Showing Malin Head.');
+        locateSays(LOCATE_TEXT);
+        say((err && err.code === 1 ? 'Location blocked' : 'Location unavailable') + '. Choose a place instead.');
+        if (placeSelect) { placeSelect.focus(); }
       }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
     });
   }
 
-  if (resetBtn) {
-    resetBtn.addEventListener('click', function () {
-      try { window.localStorage.removeItem(STORAGE_KEY); } catch (err) { /* ignore */ }
+  if (placeSelect) {
+    placeSelect.addEventListener('change', function () {
+      var p = listed(placeSelect.value);
+      if (!p) { placeSelect.value = place.id || ''; return; }
       say('');
-      usePlace(DEFAULT_PLACE);
+      usePlace(p);
+      remember(p);
     });
   }
 
@@ -832,28 +950,52 @@
   document.addEventListener('aurora:view', renderAll);
   document.addEventListener('aurora:wind', renderAll);
   document.addEventListener('aurora:sun', onTime); // a frame in: as often as the slider's
+  document.addEventListener('aurora:corona', onTime);
+  // The slider waiting on frames in the Sun view says so.
+  var sunBuffering = false;
+  document.addEventListener('aurora:buffering', function (e) {
+    sunBuffering = !!(e.detail && e.detail.on);
+    renderGoes();
+  });
 
-  // On a wide screen the way-up chips stand in the header row, between the brand and
-  // the switches. That gap is off-centre and, with seven views in the index, narrower
-  // than some chips at some widths: each is centred in it, or put under the row when
-  // it would not fit with room to spare. Measured, since the gap is the fonts' doing.
-  var HINT_ROOM = 16; // px either side
+  // The way up: grey text with an arrow. Where the top is one capsule, centred under
+  // it, over the hemisphere's name (the globe leaves it room). Where the capsule parts
+  // into pills, at the left, in line with the time's text, a third of the way down:
+  // far enough below the time that its arrow points into the sky, not at the clock.
+  // Every few seconds its arrow sends a copy of itself up, only while showing.
+  var HINT_GAP = 4; // px under the capsule
+  var HINT_DROP = 64; // px at least, under the time's pill
+  var RISE_EVERY = 4500, RISE_FOR = 1700; // ms
   var hints = Array.prototype.slice.call(document.querySelectorAll('.up-hint'));
   function placeHints() {
-    var brand = document.querySelector('.site-header .brand');
-    var ctl = document.querySelector('.site-header .header-controls');
-    if (!brand || !ctl) { return; }
-    var l = brand.getBoundingClientRect().right, r = ctl.getBoundingClientRect().left;
-    hints.forEach(function (a) {
-      var w = a.offsetWidth;
-      a.classList.add('is-placed');
-      a.style.setProperty('--hint-x', Math.round((l + r) / 2) + 'px');
-      a.classList.toggle('is-below', r - l < w + 2 * HINT_ROOM);
-    });
+    var root = document.documentElement.style;
+    var top = document.querySelector('.topdock');
+    var time = document.querySelector('.site-header .top-time');
+    if (top && top.getClientRects().length) {
+      root.setProperty('--hint-y', Math.round(top.getBoundingClientRect().bottom + HINT_GAP) + 'px');
+      root.removeProperty('--hint-x');
+    } else if (time) {
+      var r = time.getBoundingClientRect();
+      var inset = parseFloat(getComputedStyle(time).paddingLeft) || 0;
+      root.setProperty('--hint-y', Math.round(Math.max(r.bottom + HINT_DROP, window.innerHeight / 3)) + 'px');
+      root.setProperty('--hint-x', Math.round(r.left + inset) + 'px');
+    }
   }
   placeHints();
   window.addEventListener('resize', placeHints);
   if (document.fonts && document.fonts.ready) { document.fonts.ready.then(placeHints); }
+  if (window.ResizeObserver) {
+    var header = document.querySelector('.site-header');
+    if (header) { new ResizeObserver(placeHints).observe(header); }
+  }
+  setInterval(function () {
+    if (document.hidden) { return; }
+    hints.forEach(function (a) {
+      if (getComputedStyle(a).visibility !== 'visible') { return; }
+      a.classList.add('is-rising');
+      setTimeout(function () { a.classList.remove('is-rising'); }, RISE_FOR);
+    });
+  }, RISE_EVERY);
 
   // The chips that lead to another view scroll there, smoothly where motion is welcome.
   Array.prototype.forEach.call(document.querySelectorAll('[data-go]'), function (a) {
@@ -866,6 +1008,7 @@
   });
 
   setLayer(location.hash === '#probability' ? 'probability' : 'seen', true);
+  setSunShows('disc');
   usePlace(recall() || DEFAULT_PLACE);
   renderAll();
 })();
