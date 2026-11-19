@@ -177,11 +177,21 @@
   // decade, where the Sun comes into frame. ZOOM_EASE is the exponent of that ease.
   var RISE_SPAN = [0.3, 0.95];
   var ZOOM_EASE = 2.2;
+  // From the system view into the sun view the camera comes down off the ecliptic's
+  // north to the Earth's side of it, so that it ends looking at the Sun along the
+  // Sun-Earth line, as GOES does: first it turns about the ecliptic's north, until the
+  // Earth lies below the Sun on screen (TURN_SPAN), then it tips down toward the Earth,
+  // until the plane is edge-on (DESCENT_SPAN). Both are spans of the way from the sun
+  // view (0) to the system view (1), and both fall while the model is still on screen,
+  // so the turn shows on it.
+  var TURN_SPAN = [0.55, 0.95];
+  var DESCENT_SPAN = [0.3, 0.72];
   // However quickly the page is scrolled (a snap carries a whole view in a fraction of
   // a second), the camera keeps to these paces, in views a second: through the rise,
-  // slow enough to watch it turn; through the zoom to the Sun a little quicker;
+  // slow enough to watch it turn; through the zoom out to the planets a little quicker;
+  // into the Sun, where the camera comes round to the Earth's side, slower again;
   // elsewhere about as fast as a snap.
-  var PACE_RISE = 0.4, PACE_ZOOM = 0.5, PACE = 4;
+  var PACE_RISE = 0.4, PACE_ZOOM = 0.5, PACE_SUN = 0.3, PACE = 4;
   var PACE_EASE = 4; // per second: how it slows into a view, and gathers speed
 
   // The globe's fine lines (graticule, contours, coasts, labels) fade out between these
@@ -1244,10 +1254,13 @@
   var w = 1, h = 1, dpr = 1;
   // ls is the logarithm of size: the views span four decades of it, so it is what eases.
   // tilt is how far the camera has risen over the ecliptic, 0 side-on to 1 from its north.
-  var cam = { lat: VIEWS.north.lat, lon: VIEWS.north.lon, roll: 0, cx: 0.5, cy: 1, ls: Math.log(VIEWS.north.size), size: VIEWS.north.size, dim: 1, tilt: 0 };
-  var target = { lat: cam.lat, lon: cam.lon, roll: 0, cx: cam.cx, cy: cam.cy, ls: cam.ls, dim: cam.dim, tilt: 0,
-    anchor: false, sx: 0, space: 0 }; // anchor: held on the Sun at sx; space: see followSun
-  var KEYS = ['lat', 'lon', 'roll', 'cx', 'cy', 'ls', 'dim', 'tilt'];
+  // turn is how far it has come round, about the ecliptic's north, from the dusk side
+  // (0) to the Earth's side of the Sun (1): with tilt 0 as well, it looks at the Sun from
+  // the Earth. cx, cy always place the Earth.
+  var cam = { lat: VIEWS.north.lat, lon: VIEWS.north.lon, roll: 0, cx: 0.5, cy: 1, ls: Math.log(VIEWS.north.size), size: VIEWS.north.size, dim: 1, tilt: 0, turn: 0 };
+  var target = { lat: cam.lat, lon: cam.lon, roll: 0, cx: cam.cx, cy: cam.cy, ls: cam.ls, dim: cam.dim, tilt: 0, turn: 0,
+    anchor: false, sx: 0, sy: 0, space: 0 }; // anchor: held on the Sun at sx, sy; space: see followSun
+  var KEYS = ['lat', 'lon', 'roll', 'cx', 'cy', 'ls', 'dim', 'tilt', 'turn'];
   var spin = 0, spinVel = 0; // degrees, degrees per second
   var resetFrom = null, resetT = 0;
   var progress = NORTH;
@@ -1332,7 +1345,7 @@
       var pxRe = portrait() ? w / WIND_SPAN_PORTRAIT : Math.min(w / WIND_SPAN, h / WIND_SPAN_TALL);
       mid = (clearTop + (clearBottom > clearTop ? clearBottom : h)) / 2;
       return { lat: aim.lat, lon: aim.lon, roll: aim.roll, cx: portrait() ? 0.56 : WIND_EARTH_X, cy: mid / h,
-        size: pxRe / frame(), dim: v.dim, tilt: 0 };
+        size: pxRe / frame(), dim: v.dim, tilt: 0, turn: 0 };
     }
     if (id === 'l1') {
       aim = spaceAim();
@@ -1340,15 +1353,18 @@
       var ex = upright ? L1_EARTH_X_PORTRAIT : L1_EARTH_X;
       mid = (clearTop + (clearBottom > clearTop ? clearBottom : h)) / 2;
       return { lat: aim.lat, lon: aim.lon, roll: aim.roll, cx: ex, cy: mid / h,
-        size: (upright ? L1_GAP_PORTRAIT : L1_GAP) * w / L1_RE / frame(), dim: v.dim, tilt: 1 };
+        size: (upright ? L1_GAP_PORTRAIT : L1_GAP) * w / L1_RE / frame(), dim: v.dim, tilt: 1, turn: 0 };
     }
     if (id === 'sun') {
       aim = spaceAim();
       var low = clearBottom > clearTop ? clearBottom : h;
       var rPx = Math.min((low - clearTop) * SUN_FILL, w * SUN_FILL_W);
       var pxSun = rPx / SUN_RE;
-      return { lat: aim.lat, lon: aim.lon, roll: aim.roll, cx: (w / 2 + earthAu * pxSun * AU_RE) / w,
-        cy: (clearTop + low) / 2 / h, size: pxSun / frame(), dim: v.dim, tilt: 1 };
+      var sunView = { lat: aim.lat, lon: aim.lon, roll: aim.roll, size: pxSun / frame(), dim: v.dim, tilt: 0, turn: 1 };
+      var at = earthFor(0.5, (clearTop + low) / 2 / h, Math.log(sunView.size), 1, 0);
+      sunView.cx = at.cx;
+      sunView.cy = at.cy;
+      return sunView;
     }
     if (id === 'system') {
       aim = spaceAim();
@@ -1360,10 +1376,10 @@
       pxAu = Math.max(pxAu, (bottom - clearTop) / 2 / SUN_REACH_AU);
       pxAu = Math.max(40, Math.min(pxAu, (w - SUN_EARTH_ROOM - sunX) / earthAu));
       return { lat: aim.lat, lon: aim.lon, roll: aim.roll, cx: (sunX + earthAu * pxAu) / w, cy: (clearTop + bottom) / 2 / h,
-        size: pxAu / AU_RE / frame(), dim: v.dim, tilt: 1 };
+        size: pxAu / AU_RE / frame(), dim: v.dim, tilt: 1, turn: 0 };
     }
     if (id === 'drivers') {
-      return { lat: v.lat, lon: v.lon, roll: 0, cx: v.cx, cy: v.cy, size: v.size, dim: v.dim, tilt: 0 };
+      return { lat: v.lat, lon: v.lon, roll: 0, cx: v.cx, cy: v.cy, size: v.size, dim: v.dim, tilt: 0, turn: 0 };
     }
     var size = portrait() ? PORTRAIT_SIZE : v.size;
     var r = size * frame();
@@ -1371,7 +1387,7 @@
     var cy = id === 'north'
       ? (clearTop + NAME_ROOM + (0.72 - NAME_SINK) * fs + r) / h
       : (clearBottom - NAME_ROOM - NAME_HANG * fs - r) / h;
-    return { lat: v.lat, lon: v.lon, roll: 0, cx: 0.5, cy: cy, size: size, dim: v.dim, tilt: 0 };
+    return { lat: v.lat, lon: v.lon, roll: 0, cx: 0.5, cy: cy, size: size, dim: v.dim, tilt: 0, turn: 0 };
   }
 
   function wrap180(d) {
@@ -1502,13 +1518,13 @@
   // The framing that position asks for. Worked out every frame, not only on a scroll:
   // the views from space follow the Sun, which the time slider can move.
   // The pace allowed at a position: slow through the rise between the L1 and wind
-  // views, a little quicker through the zoom between the sun and L1 views.
+  // views and the turn into the Sun, a little quicker through the zoom out to the planets.
   function paceAt(at) {
     var i = Math.min(ids.length - 2, Math.floor(at));
     if (i < 0) { return PACE; }
     if (ids[i] === 'l1' && ids[i + 1] === 'wind') { return PACE_RISE; }
     if (ids[i] === 'system' && ids[i + 1] === 'l1') { return PACE_ZOOM; }
-    if (ids[i] === 'sun' && ids[i + 1] === 'system') { return PACE_ZOOM; }
+    if (ids[i] === 'sun' && ids[i + 1] === 'system') { return PACE_SUN; }
     return PACE;
   }
 
@@ -1564,23 +1580,50 @@
     target.ls = Math.log(a.size) + (Math.log(b.size) - Math.log(a.size)) * zt;
     target.dim = a.dim + (b.dim - a.dim) * t;
     target.tilt = a.tilt + (b.tilt - a.tilt) * tt;
-    // Between the sun and system views the Sun, not the Earth, keeps its line on screen:
-    // its x moves evenly as the scale grows, and the Earth's (cx) follows from both.
+    target.turn = a.turn + (b.turn - a.turn) * t;
+    // Between the sun and system views the Sun, not the Earth, keeps its place on screen:
+    // it moves evenly as the scale grows, and the Earth follows from it, the scale and
+    // the way the camera faces. Meanwhile the camera comes round to the Earth's side
+    // (TURN_SPAN) and down to the plane (DESCENT_SPAN).
     target.anchor = ids[i0] === 'sun' && ids[i1] === 'system';
     if (target.anchor) {
-      target.sx = sunXOf(a.cx, a.size) + (sunXOf(b.cx, b.size) - sunXOf(a.cx, a.size)) * t;
-      target.cx = cxForSun(target.sx, target.ls);
+      target.turn = 1 - smooth(TURN_SPAN[0], TURN_SPAN[1], t);
+      target.tilt = smooth(DESCENT_SPAN[0], DESCENT_SPAN[1], t);
+      var sa = sunPlace(a.cx, a.cy, a.size, a.turn, a.tilt), sb = sunPlace(b.cx, b.cy, b.size, b.turn, b.tilt);
+      target.sx = sa.x + (sb.x - sa.x) * t;
+      target.sy = sa.y + (sb.y - sa.y) * t;
+      var e = earthFor(target.sx, target.sy, target.ls, target.turn, target.tilt);
+      target.cx = e.cx;
+      target.cy = e.cy;
     }
   }
 
-  // The Sun's x on screen, as a fraction of the width, for a framing (cx, size); and
-  // the cx that puts it at sx at the scale e^ls. It is earthAu to the Earth's left.
-  function sunXOf(cx, size) {
-    return cx - earthAu * size * frame() * AU_RE / w;
+  /*
+   * The ecliptic on screen. A point in it, x AU from the Sun toward the Earth and y AU
+   * at right angles (the way the planets go round), is drawn at
+   *
+   *   (x cos k + y sin k,  sin(tilt 90) (x sin k - y cos k)) AU from the Sun, y down,
+   *
+   * with k the turn times 90 degrees: the plane turned about its north by k, then seen
+   * from above it by the tilt. At the system view (k 0, tilt 1) the Earth is right of
+   * the Sun; at the sun view (k 90, tilt 0) the plane is edge-on and the Earth in front.
+   */
+  function eclOffset(xAu, yAu, pxAu, turn, tilt) {
+    var k = turn * Math.PI / 2, ck = Math.cos(k), sk = Math.sin(k), st = Math.sin(tilt * Math.PI / 2);
+    return [(xAu * ck + yAu * sk) * pxAu, st * (xAu * sk - yAu * ck) * pxAu];
   }
 
-  function cxForSun(sx, ls) {
-    return sx + earthAu * Math.exp(ls) * frame() * AU_RE / w;
+  // The Sun's place on screen, as fractions of the width and height, for a framing that
+  // puts the Earth at (cx, cy); and where that puts the Earth for the Sun at (sx, sy) at
+  // the scale e^ls.
+  function sunPlace(cx, cy, size, turn, tilt) {
+    var o = eclOffset(earthAu, 0, size * frame() * AU_RE, turn, tilt);
+    return { x: cx - o[0] / w, y: cy - o[1] / h };
+  }
+
+  function earthFor(sx, sy, ls, turn, tilt) {
+    var o = eclOffset(earthAu, 0, Math.exp(ls) * frame() * AU_RE, turn, tilt);
+    return { cx: sx + o[0] / w, cy: sy + o[1] / h };
   }
 
   /*
@@ -1633,7 +1676,7 @@
       && Math.abs(wrap180(target.roll - cam.roll)) < 1e-3
       && Math.abs(target.cx - cam.cx) < 1e-4 && Math.abs(target.cy - cam.cy) < 1e-4
       && Math.abs(target.ls - cam.ls) < 1e-4 && Math.abs(target.dim - cam.dim) < 1e-3
-      && Math.abs(target.tilt - cam.tilt) < 1e-3;
+      && Math.abs(target.tilt - cam.tilt) < 1e-3 && Math.abs(target.turn - cam.turn) < 1e-3;
   }
 
   function stepCamera(dt) {
@@ -1641,18 +1684,21 @@
     cam.lat += (target.lat - cam.lat) * k;
     cam.lon = wrap180(cam.lon + wrap180(target.lon - cam.lon) * k);
     cam.roll = wrap180(cam.roll + wrap180(target.roll - cam.roll) * k);
-    // Anchored on the Sun (see aim), its x eases and cx follows from it and the scale,
-    // or the two easing apart would swing the Sun across the screen.
-    var sx = sunXOf(cam.cx, Math.exp(cam.ls));
-    cam.cy += (target.cy - cam.cy) * k;
+    // Anchored on the Sun (see aim), its place eases and the Earth's follows from it, the
+    // scale and the turn, or the two easing apart would swing the Sun across the screen.
+    var sp = sunPlace(cam.cx, cam.cy, Math.exp(cam.ls), cam.turn, cam.tilt);
     cam.ls += (target.ls - cam.ls) * k;
-    if (target.anchor) {
-      cam.cx = cxForSun(sx + (target.sx - sx) * k, cam.ls);
-    } else {
-      cam.cx += (target.cx - cam.cx) * k;
-    }
     cam.dim += (target.dim - cam.dim) * k;
     cam.tilt += (target.tilt - cam.tilt) * k;
+    cam.turn += (target.turn - cam.turn) * k;
+    if (target.anchor) {
+      var e = earthFor(sp.x + (target.sx - sp.x) * k, sp.y + (target.sy - sp.y) * k, cam.ls, cam.turn, cam.tilt);
+      cam.cx = e.cx;
+      cam.cy = e.cy;
+    } else {
+      cam.cx += (target.cx - cam.cx) * k;
+      cam.cy += (target.cy - cam.cy) * k;
+    }
     // The easing never quite arrives, so it lands once it is within a hair: a still
     // camera is what lets the loop slow down and the overlay stop redrawing.
     if (landed()) {
@@ -1681,6 +1727,14 @@
     pxPerAu: 1,
     earthAu: 1, // the Earth's distance from the Sun
     tilt: 0, // 0 side-on in the ecliptic, 1 from its north
+    turn: 0, // 0 from the dusk side, 1 from the Earth's side of the Sun (see eclOffset)
+    sunX: 0, sunY: 0, // the Sun's centre on screen
+    // A point in the ecliptic, x AU from the Sun toward the Earth and y AU the way the
+    // planets go round, on screen: [x, y] in CSS px.
+    ecl: function (x, y) {
+      var o = eclOffset(x, y, scene.pxPerAu, scene.turn, scene.tilt);
+      return [scene.sunX + o[0], scene.sunY + o[1]];
+    },
     sunward: 0, // 0 at the system view, 1 at the sun view
     progress: 0, // position among the views, in page order
     view: 'north', // the nearest view's id
@@ -1750,7 +1804,8 @@
     centerX = cam.cx * w;
     centerY = cam.cy * h;
     detail = smooth(DETAIL_FROM, DETAIL_FULL, radiusPx);
-    shown = smooth(GLOBE_FROM, GLOBE_FULL, radiusPx);
+    // From the Earth's side of the Sun the camera stands where the Earth is: it is not drawn.
+    shown = smooth(GLOBE_FROM, GLOBE_FULL, radiusPx) * (1 - cam.turn);
 
     scene.w = w; scene.h = h; scene.dpr = dpr;
     scene.earthX = centerX; scene.earthY = centerY;
@@ -1758,6 +1813,10 @@
     scene.pxPerAu = radiusPx * AU_RE;
     scene.earthAu = earthAu;
     scene.tilt = cam.tilt;
+    scene.turn = cam.turn;
+    var so = eclOffset(earthAu, 0, scene.pxPerAu, cam.turn, cam.tilt);
+    scene.sunX = centerX - so[0];
+    scene.sunY = centerY - so[1];
     // How far the camera is from the system view toward the Sun, 0 to 1: the layers at
     // the Earth are keyed to the scale, and must not show round the Sun at the same one.
     var sys = ids.indexOf('system');
@@ -2091,7 +2150,7 @@
   }
 
   function drawOverlay() {
-    var key = [cam.lat, cam.lon, cam.roll, cam.cx, cam.cy, cam.size, cam.dim, cam.tilt, spin, wobble.yaw.toFixed(2), wobble.pitch.toFixed(2), place.lat, place.lon, place.label, fontsReady,
+    var key = [cam.lat, cam.lon, cam.roll, cam.cx, cam.cy, cam.size, cam.dim, cam.tilt, cam.turn, spin, wobble.yaw.toFixed(2), wobble.pitch.toFixed(2), place.lat, place.lon, place.label, fontsReady,
       sunDir[0].toFixed(4), sunDir[1].toFixed(4), sunDir[2].toFixed(4)].join();
     for (var li = 0; li < layers.length; li++) {
       if (layers[li].ready && layers[li].overlayKey) { key += '|' + layers[li].overlayKey(scene); }

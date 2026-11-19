@@ -8,9 +8,16 @@
  * shown is the newest at or before the time being shown, faded into the next, so the
  * time slider plays the day back. Live it shows the newest at NOAA's own size.
  *
- * The picture is face-on, solar north up, as GOES sees it from the Earth: the camera is
- * not turned to look along the Sun-Earth line, and the page says so. It is masked
- * round, out to MASK solar radii, which also leaves out NOAA's caption.
+ * The picture is face-on, solar north up, as GOES sees it from the Earth, and the camera
+ * comes round to look at the Sun from the Earth's side on its way in (aurora-globe.js,
+ * TURN_SPAN and DESCENT_SPAN). On the way the picture is laid on the half of the Sun
+ * that faces the Earth, so it turns with the camera: from above, the half GOES sees is
+ * the half toward the Earth, and the far half, which nobody on the Earth sees, glows
+ * in the picture's own colour (its average over a few points on the disc), dimmer in
+ * the middle and brighter toward the limb, as the corona is at 171 Angstroms, with no
+ * detail it could not have. The corona round the limb shows only once the camera faces the Sun
+ * from the Earth, since off the disc the picture is flat. It is masked round, out to
+ * MASK solar radii, which also leaves out NOAA's caption.
  */
 (function () {
   'use strict';
@@ -24,6 +31,7 @@
   var MASK = [1.38, 1.52]; // solar radii: the picture fades out between these
   var SHOW_PX = [2, 9]; // and in as the Sun's radius on screen grows between these
   var WAITING = [0.30, 0.27, 0.24]; // a plain disc, until the first frame is in
+  var UNSEEN = [0.62, 0.55]; // the far half: its glow at the middle, and how much more at the limb
 
   function smooth(e0, e1, x) {
     var t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
@@ -42,9 +50,21 @@
       'uniform float uMix;', // 0 shows uA, 1 uB
       'uniform float uMode;', // 0 the frames, 1 a plain disc while none is in
       'uniform vec3 uWaiting;',
+      'uniform vec2 uUnseen;',
+      // The camera in the ecliptic, x toward the Earth, y the way the planets go round,
+      // z north: the screen's right, its up, and toward the camera. GOES's own is y, z, x.
+      'uniform vec3 uRight;',
+      'uniform vec3 uUp;',
+      'uniform vec3 uToward;',
       'uniform vec2 uMask;',
       'uniform float uAlpha;',
       'out vec4 outColor;',
+      // The picture's colour: the two frames, as shown, at the disc's middle and half
+      // way out four ways.
+      'vec3 picture(vec2 d) {',
+      '  vec2 uv = 0.5 + d * uFrac;',
+      '  return mix(texture(uA, uv).rgb, texture(uB, uv).rgb, uMix);',
+      '}',
       'void main() {',
       '  vec2 frag = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);',
       '  vec2 d = (frag - uSun) / uR;', // solar radii, y down as the picture's rows
@@ -57,8 +77,23 @@
       '    c = uWaiting;',
       '    a = (1.0 - smoothstep(1.0 - w, 1.0 + w, r)) * uAlpha;',
       '  } else {',
-      '    vec2 uv = 0.5 + d * uFrac;',
-      '    c = mix(texture(uA, uv).rgb, texture(uB, uv).rgb, uMix);',
+      // On the disc: the point of the sphere under this pixel, and where GOES pictured
+      // it, if it faces the Earth.
+      '    vec3 p = d.x * uRight - d.y * uUp + sqrt(max(0.0, 1.0 - r * r)) * uToward;',
+      '    vec2 uv = 0.5 + vec2(p.y, -p.z) * uFrac;',
+      '    vec3 disc = mix(texture(uA, uv).rgb, texture(uB, uv).rgb, uMix);',
+      // Fully pictured up to GOES's own limb (p.x 0), so that face-on it is NOAA's picture
+      // exactly; just past it, eased into the plain far side.
+      '    vec3 tone = (picture(vec2(0.0)) + picture(vec2(0.45, 0.0)) + picture(vec2(-0.45, 0.0))',
+      '      + picture(vec2(0.0, 0.45)) + picture(vec2(0.0, -0.45))) * 0.2;',
+      '    float rim = 1.0 - sqrt(max(0.0, 1.0 - r * r));',
+      '    vec3 far = tone * (uUnseen.x + uUnseen.y * rim * rim);',
+      '    disc = mix(far, disc, smoothstep(-0.12, 0.0, p.x));',
+      // Off it: the corona, flat as pictured, once the camera faces the Sun from the Earth.
+      '    vec2 fuv = 0.5 + d * uFrac;',
+      '    vec3 corona = mix(texture(uA, fuv).rgb, texture(uB, fuv).rgb, uMix) * smoothstep(0.96, 1.0, uToward.x);',
+      '    float w = fwidth(r);',
+      '    c = mix(corona, disc, 1.0 - smoothstep(1.0 - w, 1.0 + w, r));',
       '  }',
       // Added to what is under it: the picture's black sky leaves the page's own
       // dark showing, rather than a darker ring round the corona. The plain disc,
@@ -112,7 +147,7 @@
   }
 
   function draw(scene) {
-    var sunX = scene.earthX - scene.earthAu * scene.pxPerAu, sunY = scene.earthY;
+    var sunX = scene.sunX, sunY = scene.sunY;
     var rPx = SUN_RE * scene.pxPerRe;
     // Heading up from the system view: the frames will be wanted, and more of them
     // once the Sun view itself is open.
@@ -136,6 +171,14 @@
     gl.uniform1f(u.uFrac, Sun.radiusFrac(scene.earthAu));
     gl.uniform2f(u.uMask, MASK[0], MASK[1]);
     gl.uniform3fv(u.uWaiting, WAITING);
+    gl.uniform2fv(u.uUnseen, UNSEEN);
+    // The camera's axes in the ecliptic (as scene.ecl draws it): turned about the north
+    // by k, risen over the plane by e.
+    var k = scene.turn * Math.PI / 2, e = scene.tilt * Math.PI / 2;
+    var ck = Math.cos(k), sk = Math.sin(k), ce = Math.cos(e), se = Math.sin(e);
+    gl.uniform3f(u.uRight, ck, sk, 0);
+    gl.uniform3f(u.uUp, -se * sk, se * ck, ce);
+    gl.uniform3f(u.uToward, ce * sk, -ce * ck, se);
     gl.uniform1f(u.uAlpha, alpha);
     var a = l && tex[l.a.slot], b = l && tex[l.b.slot];
     if (l && l.latest && full && fullT === l.a.t) { a = full; b = full; }
@@ -175,7 +218,7 @@
     var sc = Globe.scene;
     if (!sc || sc.view !== 'system' || (sc.sunward || 0) > 0.05) { return null; }
     if (e.target && e.target.closest && e.target.closest('a, button, input, select, textarea, .card, .top-seg')) { return null; }
-    var sunX = sc.earthX - sc.earthAu * sc.pxPerAu, sunY = sc.earthY;
+    var sunX = sc.sunX, sunY = sc.sunY;
     var ds = Math.hypot(e.clientX - sunX, e.clientY - sunY), de = Math.hypot(e.clientX - sc.earthX, e.clientY - sc.earthY);
     if (Math.min(ds, de) > HIT_PX) { return null; }
     return ds <= de ? 'sun' : 'l1';

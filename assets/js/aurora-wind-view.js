@@ -192,6 +192,7 @@
       'uniform vec2 uSun;', // the Sun on screen, device px from the top left
       'uniform float uPxAu;', // device px in an AU
       'uniform float uTilt;', // 0 side-on in the ecliptic, 1 from its north
+      'uniform vec2 uTurn;', // cos and sin of how far the plane is turned about its north (scene.ecl)
       'uniform sampler3D uEcl;', // (longitude, radius, frame)
       'uniform vec3 uFrame;', // texture z of the frame before and of the frame after, and how far between
       'uniform float uShift;', // AU a parcel moves per km/s in the time between those two frames
@@ -238,11 +239,14 @@
       'void main() {',
       '  vec2 frag = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);',
       '  vec2 s = (frag - uSun) / uPxAu;',
-      '  s.y = -s.y;', // AU: x from the Sun toward the Earth, y up the screen
+      '  s.y = -s.y;', // AU, right and up the screen
       // The ecliptic, seen from above it by st: edge-on it has no area and is not drawn.
+      // Undone, and turned back about its north, to x toward the Earth and y the way the
+      // planets go round (the inverse of scene.ecl).
       '  float st = sin(uTilt * 1.5707963);',
       '  float open = smoothstep(0.04, 0.5, st);',
-      '  vec2 p = vec2(s.x, s.y / max(st, 1e-3));',
+      '  float q = s.y / max(st, 1e-3);',
+      '  vec2 p = vec2(s.x * uTurn.x - q * uTurn.y, s.x * uTurn.y + q * uTurn.x);',
       '  float r = length(p);',
       '  float wr = fwidth(r) + 1e-6;',
       '  float rIn = uR.x - 0.5 * uR.y, rOut = uR.x + (uR.z - 0.5) * uR.y;',
@@ -877,17 +881,19 @@
   // out again as a single ring.
   function stepHelio(scene, dt, frame, sunX, sunY, rFar) {
     var m = Wind.state.atlasMeta;
+    var d = helioBuf.data, count = 0;
+    var s = scene.dpr, pxAu = scene.pxPerAu;
     var want = scene.w < 700 ? HELIO_COUNT_NARROW : HELIO_COUNT;
     var rIn = m.r.first - 0.5 * m.r.step, rOut = m.r.first + (m.r.count - 0.5) * m.r.step;
     var rMax = rOut + FADE_AU[1];
     while (helio.length < want) { helio.push(spawnHelio({}, rIn, rMax, true)); }
     helio.length = want;
 
+    // Where each is on screen: scene.ecl, spelt out, since there are thousands a frame.
     var st = Math.sin(scene.tilt * Math.PI / 2);
+    var tk = scene.turn * Math.PI / 2, ck = Math.cos(tk) * pxAu, sk = Math.sin(tk) * pxAu;
     var hours = HELIO_HOURS_PER_S * dt;
     var k = Math.round(frame);
-    var d = helioBuf.data, count = 0;
-    var s = scene.dpr, pxAu = scene.pxPerAu;
     for (var i = 0; i < helio.length; i++) {
       var p = helio[i];
       // Inside the model its speed is the model's there; past the edge, the speed it
@@ -917,12 +923,12 @@
       p.r += step * hours;
       p.age += dt;
       var ca = Math.cos(p.a * DEG), sa = Math.sin(p.a * DEG);
-      var hx = sunX + p.r * ca * pxAu, hy = sunY - p.r * sa * st * pxAu;
+      var hx = sunX + p.r * (ca * ck + sa * sk), hy = sunY + p.r * st * (ca * sk - sa * ck);
       if (showing < 0.01 || hx < -NEAR_MARGIN || hx > scene.w + NEAR_MARGIN || hy < -NEAR_MARGIN || hy > scene.h + NEAR_MARGIN) { continue; }
       var rt = Math.max(rIn, p.r - step * HELIO_HOURS_PER_S * HELIO_TRAIL_S);
       var o = count * SEG;
-      d[o] = (sunX + rt * ca * pxAu) * s;
-      d[o + 1] = (sunY - rt * sa * st * pxAu) * s;
+      d[o] = (sunX + rt * (ca * ck + sa * sk)) * s;
+      d[o + 1] = (sunY + rt * st * (ca * sk - sa * ck)) * s;
       d[o + 2] = 0;
       d[o + 3] = hx * s;
       d[o + 4] = hy * s;
@@ -938,7 +944,7 @@
   }
 
   function drawHelio(scene, dt) {
-    var sunX = scene.earthX - scene.earthAu * scene.pxPerAu, sunY = scene.earthY;
+    var sunX = scene.sunX, sunY = scene.sunY;
     var s = scene.dpr;
     var m = Wind.state.atlasMeta;
     var has = Wind.ready() && eclTex && m;
@@ -952,6 +958,7 @@
     gl.uniform2f(u.uSun, sunX * s, sunY * s);
     gl.uniform1f(u.uPxAu, scene.pxPerAu * s);
     gl.uniform1f(u.uTilt, scene.tilt);
+    gl.uniform2f(u.uTurn, Math.cos(scene.turn * Math.PI / 2), Math.sin(scene.turn * Math.PI / 2));
     gl.uniform1f(u.uAlpha, helioA);
     gl.uniform3fv(u.uInk, ink);
     gl.uniform3fv(u.uRamp, ramp);
@@ -1208,7 +1215,7 @@
 
   function overlayHelio(ctx, scene) {
     var pxAu = scene.pxPerAu;
-    var sunX = scene.earthX - scene.earthAu * pxAu, sunY = scene.earthY;
+    var sunX = scene.sunX, sunY = scene.sunY;
     var st = Math.sin(scene.tilt * Math.PI / 2);
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
@@ -1218,7 +1225,8 @@
     // The Earth, once the globe itself is too small to read (a few px across, as in
     // the L1 view on a wide screen). Named first: of all the names here it is the one
     // that must not give way.
-    var small = (1 - smooth(2.6, 4.5, scene.pxPerRe)) * scene.dim;
+    // From the Earth's side of the Sun the camera stands in its place (scene.turn).
+    var small = (1 - smooth(2.6, 4.5, scene.pxPerRe)) * (1 - smooth(0.05, 0.4, scene.turn)) * scene.dim;
     if (small > 0.02) {
       var ex = Math.round(scene.earthX) + 0.5, ey = Math.round(scene.earthY) + 0.5;
       ctx.lineWidth = 3.5;
@@ -1273,7 +1281,7 @@
     // Outermost first: Mars has the most room, Mercury the least.
     bodies.slice().reverse().forEach(function (b) {
       if (b.name === 'earth') { return; }
-      var x = sunX + b.r * Math.cos(b.lon * DEG) * pxAu, y = sunY - b.r * Math.sin(b.lon * DEG) * st * pxAu;
+      var at = scene.ecl(b.r * Math.cos(b.lon * DEG), b.r * Math.sin(b.lon * DEG)), x = at[0], y = at[1];
       if (y < scene.clearTop + 8) { return; } // behind the capsule, or up among the switches
       dot(ctx, scene, x, y, 2.5, 0.95 * a * open);
       named(ctx, scene, NAMES[b.name], x + 9, y, 0.9 * a * open, 500);
